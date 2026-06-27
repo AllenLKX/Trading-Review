@@ -2,12 +2,15 @@
 
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Download, FileSearch, Search, Trash2, Upload } from "lucide-react";
+import { SegmentedControl } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
+import { PlanOperationForm } from "@/features/trades/PlanOperationForm";
+import { PlanReviewForm } from "@/features/trades/PlanReviewForm";
 import { buildRollingAuditReport } from "@/lib/audit-summary";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
 import { sampleAuditReports } from "@/lib/sample-data";
 import { buildTradeDataFile, parseTradeDataFile } from "@/lib/trade-data-file";
-import type { TradePlan } from "@/lib/types";
+import type { PlanReview, TradeOperation, TradePlan } from "@/lib/types";
 import { AuditSnapshotCard } from "./AuditSnapshotCard";
 
 type HistoryPageProps = {
@@ -15,6 +18,8 @@ type HistoryPageProps = {
   highlightedPlanId: string | null;
   onUpdatePlan: (plan: TradePlan) => void;
   onDeletePlan: (planId: string) => void;
+  onAddOperation: (operation: TradeOperation) => void;
+  onAddReview: (review: PlanReview) => void;
   onReplacePlans: (plans: TradePlan[]) => void;
   onClearPlans: () => void;
   onRestoreSamples: () => void;
@@ -25,6 +30,8 @@ export function HistoryPage({
   highlightedPlanId,
   onUpdatePlan,
   onDeletePlan,
+  onAddOperation,
+  onAddReview,
   onReplacePlans,
   onClearPlans,
   onRestoreSamples
@@ -126,6 +133,8 @@ export function HistoryPage({
           setSelectedDetailPlanId(null);
         }}
         onUpdatePlan={onUpdatePlan}
+        onAddOperation={onAddOperation}
+        onAddReview={onAddReview}
       />
     );
   }
@@ -274,13 +283,18 @@ function PlanDetailView({
   plan,
   onBack,
   onDeletePlan,
-  onUpdatePlan
+  onUpdatePlan,
+  onAddOperation,
+  onAddReview
 }: {
   plan: TradePlan;
   onBack: () => void;
   onDeletePlan: (planId: string) => void;
   onUpdatePlan: (plan: TradePlan) => void;
+  onAddOperation: (operation: TradeOperation) => void;
+  onAddReview: (review: PlanReview) => void;
 }) {
+  const [entryMode, setEntryMode] = useState<"operation" | "review">("operation");
   const timeline = [
     ...plan.operations.map((operation) => ({ type: "operation" as const, time: operation.tradeTime, item: operation })),
     ...plan.reviews.map((review) => ({ type: "review" as const, time: review.reviewTime, item: review }))
@@ -340,6 +354,26 @@ function PlanDetailView({
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold text-white">添加记录</h3>
+          <span className="text-xs font-semibold text-muted">写入当前计划</span>
+        </div>
+        <SegmentedControl
+          value={entryMode}
+          onChange={setEntryMode}
+          options={[
+            { value: "operation", label: "添加操作" },
+            { value: "review", label: "添加复盘" }
+          ]}
+        />
+        {entryMode === "operation" ? (
+          <PlanOperationForm plan={plan} onSave={onAddOperation} />
+        ) : (
+          <PlanReviewForm plan={plan} onSave={onAddReview} />
+        )}
       </section>
 
       <section className="space-y-3">

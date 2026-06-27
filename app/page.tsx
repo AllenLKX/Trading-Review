@@ -48,6 +48,8 @@ export default function Home() {
           highlightedPlanId={highlightedPlanId}
           onUpdatePlan={updatePlan}
           onDeletePlan={deletePlan}
+          onAddOperation={addOperation}
+          onAddReview={addReview}
           onReplacePlans={replacePlans}
           onClearPlans={clearPlans}
           onRestoreSamples={restoreSamplePlans}
