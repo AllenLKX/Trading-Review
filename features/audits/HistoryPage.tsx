@@ -43,8 +43,10 @@ export function HistoryPage({
           trade.market,
           trade.decisionReason,
           trade.psychologyNote,
+          trade.reviewNote,
           ...trade.emotionTags,
-          ...trade.strategyTags
+          ...trade.strategyTags,
+          ...trade.violatedRules
         ]
           .filter(Boolean)
           .join(" ")

@@ -4,9 +4,16 @@ import { useState } from "react";
 import { AlertTriangle, Check, ChevronDown, Pencil, Sparkles, Trash2, X } from "lucide-react";
 import { ChipGroup } from "@/components/ChipGroup";
 import { SegmentedControl } from "@/components/SegmentedControl";
-import { getActionLabel, getActionTone, formatCurrency, formatDateTime, getQuantityUnitLabel } from "@/lib/format";
+import {
+  getActionLabel,
+  getActionTone,
+  formatCurrency,
+  formatDateTime,
+  getQuantityUnitLabel,
+  getRealizedResultLabel
+} from "@/lib/format";
 import { emotionOptions, strategyOptions } from "@/lib/sample-data";
-import type { QuantityUnit, TradeDecision } from "@/lib/types";
+import type { QuantityUnit, RealizedResult, TradeDecision } from "@/lib/types";
 
 type TradeLogCardProps = {
   trade: TradeDecision;
@@ -31,11 +38,22 @@ type EditState = {
 
 type EditErrors = Partial<Record<"assetName" | "price" | "quantity" | "decisionReason" | "emotionTags", string>>;
 
+type ReviewState = {
+  realizedResult: RealizedResult;
+  profitLoss: string;
+  violatedRules: string[];
+  reviewNote: string;
+};
+
+const violatedRuleOptions = ["未按计划", "追高", "止损拖延", "仓位过重", "消息驱动", "过早离场"];
+
 export function TradeLogCard({ trade, isHighlighted = false, onUpdate, onDelete }: TradeLogCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editState, setEditState] = useState<EditState>(() => buildEditState(trade));
+  const [reviewState, setReviewState] = useState<ReviewState>(() => buildReviewState(trade));
   const [errors, setErrors] = useState<EditErrors>({});
+  const [reviewSavedMessage, setReviewSavedMessage] = useState("");
   const sourceLabel = trade.source === "manual" ? "手动记录" : trade.source === "ai_screenshot" ? "截图确认" : "示例数据";
   const numericPrice = Number(editState.price);
   const numericQuantity = Number(editState.quantity);
@@ -75,6 +93,16 @@ export function TradeLogCard({ trade, isHighlighted = false, onUpdate, onDelete 
     if (field === "emotionTags") {
       clearError("emotionTags");
     }
+  };
+
+  const toggleViolatedRule = (rule: string) => {
+    setReviewState((current) => ({
+      ...current,
+      violatedRules: current.violatedRules.includes(rule)
+        ? current.violatedRules.filter((item) => item !== rule)
+        : [...current.violatedRules, rule]
+    }));
+    setReviewSavedMessage("");
   };
 
   const startEditing = () => {
@@ -123,6 +151,22 @@ export function TradeLogCard({ trade, isHighlighted = false, onUpdate, onDelete 
     });
     setIsEditing(false);
     setErrors({});
+  };
+
+  const saveReview = () => {
+    const now = new Date().toISOString();
+    const profitLoss = reviewState.profitLoss.trim() === "" ? undefined : Number(reviewState.profitLoss);
+
+    onUpdate({
+      ...trade,
+      realizedResult: reviewState.realizedResult,
+      profitLoss: Number.isFinite(profitLoss) ? profitLoss : undefined,
+      violatedRules: reviewState.violatedRules,
+      reviewNote: reviewState.reviewNote.trim() || undefined,
+      reviewStatus: "archived",
+      updatedAt: now
+    });
+    setReviewSavedMessage("复盘已保存");
   };
 
   const fieldClassName = (field: keyof EditErrors, extra = "") =>
@@ -386,18 +430,79 @@ export function TradeLogCard({ trade, isHighlighted = false, onUpdate, onDelete 
             <DetailMetric label="复盘状态" value={trade.reviewStatus === "archived" ? "已归档" : "待确认"} />
           </div>
 
+          <div className="grid grid-cols-2 gap-2">
+            <DetailMetric label="实际结果" value={getRealizedResultLabel(trade.realizedResult)} />
+            <DetailMetric label="实际盈亏" value={formatCurrency(trade.profitLoss, trade.currency)} />
+          </div>
+
           <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
             <div className="mb-2 flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary-soft" />
-              <p className="text-sm font-bold text-primary-soft">AI 单笔复盘占位</p>
+              <p className="text-sm font-bold text-primary-soft">事后复盘</p>
             </div>
-            <p className="text-sm leading-6 text-muted-strong">
-              后续这里会总结你的原始理由、情绪状态和可能的执行偏差。当前仅作为行为复盘入口，不提供任何买卖建议。
-            </p>
-            <div className="mt-3 space-y-2 text-xs leading-5 text-muted">
-              <p>· 这次操作是否和预先计划一致？</p>
-              <p>· 触发操作的是价格条件、消息刺激，还是情绪压力？</p>
-              <p>· 止盈止损是否来自你自己填写的计划？</p>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <span className="rt-label">实际结果</span>
+                <SegmentedControl
+                  value={reviewState.realizedResult}
+                  onChange={(value) => {
+                    setReviewState((current) => ({ ...current, realizedResult: value }));
+                    setReviewSavedMessage("");
+                  }}
+                  options={[
+                    { value: "unknown", label: "待复盘" },
+                    { value: "profit", label: "盈利" },
+                    { value: "loss", label: "亏损" },
+                    { value: "breakeven", label: "持平" }
+                  ]}
+                />
+              </div>
+
+              <label className="space-y-2">
+                <span className="rt-label">实际盈亏 · {trade.currency}</span>
+                <input
+                  className="rt-input text-right tabular-nums"
+                  inputMode="decimal"
+                  placeholder={`${trade.currency} 0.00`}
+                  value={reviewState.profitLoss}
+                  onChange={(event) => {
+                    setReviewState((current) => ({ ...current, profitLoss: event.target.value }));
+                    setReviewSavedMessage("");
+                  }}
+                />
+              </label>
+
+              <div className="space-y-2">
+                <span className="rt-label">是否违反计划</span>
+                <ChipGroup
+                  options={violatedRuleOptions}
+                  selected={reviewState.violatedRules}
+                  onToggle={toggleViolatedRule}
+                />
+              </div>
+
+              <label className="space-y-2">
+                <span className="rt-label">复盘备注</span>
+                <textarea
+                  className="rt-input min-h-24 resize-none leading-6"
+                  placeholder="记录事后看到的偏差、执行质量和下一次要避免的问题。"
+                  value={reviewState.reviewNote}
+                  onChange={(event) => {
+                    setReviewState((current) => ({ ...current, reviewNote: event.target.value }));
+                    setReviewSavedMessage("");
+                  }}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={saveReview}
+                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-white transition active:scale-[0.98]"
+              >
+                <Check className="h-4 w-4" />
+                保存复盘
+              </button>
+              {reviewSavedMessage ? <p className="text-center text-xs font-semibold text-buy">{reviewSavedMessage}</p> : null}
             </div>
           </div>
         </div>
@@ -448,6 +553,15 @@ function buildEditState(trade: TradeDecision): EditState {
     psychologyNote: trade.psychologyNote ?? "",
     emotionTags: trade.emotionTags,
     strategyTags: trade.strategyTags
+  };
+}
+
+function buildReviewState(trade: TradeDecision): ReviewState {
+  return {
+    realizedResult: trade.realizedResult ?? "unknown",
+    profitLoss: typeof trade.profitLoss === "number" ? String(trade.profitLoss) : "",
+    violatedRules: trade.violatedRules,
+    reviewNote: trade.reviewNote ?? ""
   };
 }
 

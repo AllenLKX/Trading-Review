@@ -1,4 +1,4 @@
-import type { QuantityUnit, TradeAction } from "@/lib/types";
+import type { QuantityUnit, RealizedResult, TradeAction } from "@/lib/types";
 
 const currencySymbols: Record<string, string> = {
   HKD: "HK$",
@@ -58,4 +58,15 @@ export function getQuantityUnitLabel(unit: QuantityUnit) {
   };
 
   return labels[unit];
+}
+
+export function getRealizedResultLabel(result: RealizedResult = "unknown") {
+  const labels: Record<RealizedResult, string> = {
+    profit: "盈利",
+    loss: "亏损",
+    breakeven: "持平",
+    unknown: "待复盘"
+  };
+
+  return labels[result];
 }

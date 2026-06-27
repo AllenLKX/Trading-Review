@@ -8,6 +8,8 @@ export type CurrencyCode = "HKD" | "USD" | "CNY" | "EUR" | "JPY" | "GBP";
 
 export type QuantityUnit = "shares" | "units";
 
+export type RealizedResult = "profit" | "loss" | "breakeven" | "unknown";
+
 export type TradeDecision = {
   id: string;
   action: TradeAction;
@@ -29,9 +31,10 @@ export type TradeDecision = {
   source: TradeSource;
   reviewStatus: ReviewStatus;
   errorTags: string[];
-  realizedResult?: "profit" | "loss" | "breakeven" | "unknown";
+  realizedResult?: RealizedResult;
   profitLoss?: number;
   violatedRules: string[];
+  reviewNote?: string;
   createdAt: string;
   updatedAt: string;
 };
