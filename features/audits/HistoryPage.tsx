@@ -3,17 +3,19 @@
 import { EmptyState } from "@/components/EmptyState";
 import { buildRollingAuditReport } from "@/lib/audit-summary";
 import { sampleAuditReports } from "@/lib/sample-data";
+import { buildTradeDataFile, parseTradeDataFile } from "@/lib/trade-data-file";
 import type { TradeAction, TradeDecision } from "@/lib/types";
 import { AuditSnapshotCard } from "./AuditSnapshotCard";
 import { TradeLogCard } from "@/features/trades/TradeLogCard";
-import { FileSearch, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Download, FileSearch, Search, Upload } from "lucide-react";
+import { type ChangeEvent, useMemo, useRef, useState } from "react";
 
 type HistoryPageProps = {
   trades: TradeDecision[];
   highlightedTradeId: string | null;
   onUpdateTrade: (trade: TradeDecision) => void;
   onDeleteTrade: (tradeId: string) => void;
+  onReplaceTrades: (trades: TradeDecision[]) => void;
   onClearTrades: () => void;
   onRestoreSamples: () => void;
 };
@@ -25,11 +27,14 @@ export function HistoryPage({
   highlightedTradeId,
   onUpdateTrade,
   onDeleteTrade,
+  onReplaceTrades,
   onClearTrades,
   onRestoreSamples
 }: HistoryPageProps) {
   const [query, setQuery] = useState("");
   const [actionFilter, setActionFilter] = useState<HistoryActionFilter>("all");
+  const [dataMessage, setDataMessage] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [, ...archivedAudits] = sampleAuditReports;
   const latestAudit = buildRollingAuditReport(trades);
   const normalizedQuery = query.trim().toLowerCase();
@@ -69,6 +74,43 @@ export function HistoryPage({
     }
   };
 
+  const exportTrades = () => {
+    const dataFile = buildTradeDataFile(trades);
+    const blob = new Blob([JSON.stringify(dataFile, null, 2)], { type: "application/json" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `rationaltrade-history-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+    setDataMessage(`已导出 ${trades.length} 笔历史记录。`);
+  };
+
+  const importTrades = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const nextTrades = parseTradeDataFile(text);
+
+      if (trades.length > 0 && !window.confirm(`导入会替换当前 ${trades.length} 笔本地历史，确认继续吗？`)) {
+        return;
+      }
+
+      onReplaceTrades(nextTrades);
+      setDataMessage(`已导入 ${nextTrades.length} 笔历史记录。`);
+    } catch (error) {
+      setDataMessage(error instanceof Error ? error.message : "导入失败，请检查 JSON 文件。");
+    }
+  };
+
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pb-28 pt-5">
       <div>
@@ -105,6 +147,31 @@ export function HistoryPage({
               恢复示例数据
             </button>
           </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={exportTrades}
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-line bg-surface text-xs font-bold text-muted-strong transition active:scale-[0.98]"
+            >
+              <Download className="h-4 w-4" />
+              导出 JSON
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]"
+            >
+              <Upload className="h-4 w-4" />
+              导入 JSON
+            </button>
+            <input ref={fileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={importTrades} />
+          </div>
+          {dataMessage ? (
+            <p className="rounded-xl border border-line bg-background px-3 py-2 text-xs font-semibold text-muted-strong">
+              {dataMessage}
+            </p>
+          ) : null}
 
           <div className="space-y-3 rounded-2xl border border-line bg-surface p-3">
             <label className="relative block">

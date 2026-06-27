@@ -39,6 +39,13 @@ export type TradeDecision = {
   updatedAt: string;
 };
 
+export type TradeDataFile = {
+  schemaVersion: 1;
+  exportedAt: string;
+  source: "rationaltrade-local";
+  trades: TradeDecision[];
+};
+
 export type BatchRecognitionItem = {
   id: string;
   action: TradeAction;
