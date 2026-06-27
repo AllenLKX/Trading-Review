@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, Check, ChevronDown, Pencil, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Pencil, Sparkles, Trash2, X } from "lucide-react";
 import { ChipGroup } from "@/components/ChipGroup";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { getActionLabel, getActionTone, formatCurrency, formatDateTime, getQuantityUnitLabel } from "@/lib/format";
@@ -12,6 +12,7 @@ type TradeLogCardProps = {
   trade: TradeDecision;
   isHighlighted?: boolean;
   onUpdate: (trade: TradeDecision) => void;
+  onDelete: (tradeId: string) => void;
 };
 
 type EditState = {
@@ -30,7 +31,7 @@ type EditState = {
 
 type EditErrors = Partial<Record<"assetName" | "price" | "quantity" | "decisionReason" | "emotionTags", string>>;
 
-export function TradeLogCard({ trade, isHighlighted = false, onUpdate }: TradeLogCardProps) {
+export function TradeLogCard({ trade, isHighlighted = false, onUpdate, onDelete }: TradeLogCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editState, setEditState] = useState<EditState>(() => buildEditState(trade));
@@ -87,6 +88,12 @@ export function TradeLogCard({ trade, isHighlighted = false, onUpdate }: TradeLo
     setEditState(buildEditState(trade));
     setErrors({});
     setIsEditing(false);
+  };
+
+  const confirmDelete = () => {
+    if (window.confirm(`确认删除「${trade.assetName}」这条历史记录吗？`)) {
+      onDelete(trade.id);
+    }
   };
 
   const saveEditing = () => {
@@ -405,14 +412,24 @@ export function TradeLogCard({ trade, isHighlighted = false, onUpdate }: TradeLo
         <ChevronDown className={`h-4 w-4 transition ${isExpanded ? "rotate-180" : ""}`} />
       </button>
       {!isEditing ? (
-        <button
-          type="button"
-          onClick={startEditing}
-          className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]"
-        >
-          <Pencil className="h-4 w-4" />
-          编辑这条记录
-        </button>
+        <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+          <button
+            type="button"
+            onClick={startEditing}
+            className="flex h-10 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]"
+          >
+            <Pencil className="h-4 w-4" />
+            编辑这条记录
+          </button>
+          <button
+            type="button"
+            onClick={confirmDelete}
+            className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98]"
+            aria-label={`删除 ${trade.assetName}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       ) : null}
     </article>
   );

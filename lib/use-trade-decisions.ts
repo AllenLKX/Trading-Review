@@ -11,6 +11,7 @@ type TradeDecisionStore = {
   saveTrade: (trade: TradeDecision) => void;
   archiveBatch: (nextTrades: TradeDecision[]) => void;
   updateTrade: (trade: TradeDecision) => void;
+  deleteTrade: (tradeId: string) => void;
   clearTrades: () => void;
   restoreSampleTrades: () => void;
 };
@@ -51,6 +52,10 @@ export function useTradeDecisions(): TradeDecisionStore {
       updateTrade: (trade: TradeDecision) => {
         setTrades((current) => current.map((item) => (item.id === trade.id ? trade : item)));
         setHighlightedTradeId(trade.id);
+      },
+      deleteTrade: (tradeId: string) => {
+        setTrades((current) => current.filter((item) => item.id !== tradeId));
+        setHighlightedTradeId((current) => (current === tradeId ? null : current));
       },
       clearTrades: () => {
         setTrades([]);

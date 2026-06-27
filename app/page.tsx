@@ -10,7 +10,7 @@ import type { TradeDecision } from "@/lib/types";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<AppTab>("record");
-  const { trades, highlightedTradeId, saveTrade, archiveBatch, updateTrade, clearTrades, restoreSampleTrades } =
+  const { trades, highlightedTradeId, saveTrade, archiveBatch, updateTrade, deleteTrade, clearTrades, restoreSampleTrades } =
     useTradeDecisions();
 
   const handleSaveTrade = (trade: TradeDecision) => {
@@ -33,6 +33,7 @@ export default function Home() {
           trades={trades}
           highlightedTradeId={highlightedTradeId}
           onUpdateTrade={updateTrade}
+          onDeleteTrade={deleteTrade}
           onClearTrades={clearTrades}
           onRestoreSamples={restoreSampleTrades}
         />
