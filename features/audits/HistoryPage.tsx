@@ -1,7 +1,7 @@
 "use client";
 
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
-import { Download, FileSearch, Search, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Download, FileSearch, Search, Trash2, Upload } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { buildRollingAuditReport } from "@/lib/audit-summary";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
@@ -31,6 +31,7 @@ export function HistoryPage({
 }: HistoryPageProps) {
   const [query, setQuery] = useState("");
   const [dataMessage, setDataMessage] = useState("");
+  const [selectedDetailPlanId, setSelectedDetailPlanId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [, ...archivedAudits] = sampleAuditReports;
   const latestAudit = buildRollingAuditReport(plans);
@@ -65,6 +66,7 @@ export function HistoryPage({
       }),
     [normalizedQuery, plans]
   );
+  const selectedDetailPlan = plans.find((plan) => plan.id === selectedDetailPlanId) ?? null;
 
   const confirmClearPlans = () => {
     if (plans.length === 0) {
@@ -113,6 +115,20 @@ export function HistoryPage({
       setDataMessage(error instanceof Error ? error.message : "导入失败，请检查 JSON 文件。");
     }
   };
+
+  if (selectedDetailPlan) {
+    return (
+      <PlanDetailView
+        plan={selectedDetailPlan}
+        onBack={() => setSelectedDetailPlanId(null)}
+        onDeletePlan={(planId) => {
+          onDeletePlan(planId);
+          setSelectedDetailPlanId(null);
+        }}
+        onUpdatePlan={onUpdatePlan}
+      />
+    );
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pb-28 pt-5">
@@ -172,6 +188,7 @@ export function HistoryPage({
               isHighlighted={plan.id === highlightedPlanId}
               onDeletePlan={onDeletePlan}
               onUpdatePlan={onUpdatePlan}
+              onOpenDetail={setSelectedDetailPlanId}
             />
           ))
         ) : plans.length > 0 ? (
@@ -188,19 +205,15 @@ function PlanCard({
   plan,
   isHighlighted,
   onDeletePlan,
-  onUpdatePlan
+  onUpdatePlan,
+  onOpenDetail
 }: {
   plan: TradePlan;
   isHighlighted: boolean;
   onDeletePlan: (planId: string) => void;
   onUpdatePlan: (plan: TradePlan) => void;
+  onOpenDetail: (planId: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const timeline = [
-    ...plan.operations.map((operation) => ({ type: "operation" as const, time: operation.tradeTime, item: operation })),
-    ...plan.reviews.map((review) => ({ type: "review" as const, time: review.reviewTime, item: review }))
-  ].sort((left, right) => new Date(right.time).getTime() - new Date(left.time).getTime());
-
   const confirmDelete = () => {
     if (window.confirm(`确认删除「${plan.title}」以及其中所有操作和复盘吗？`)) {
       onDeletePlan(plan.id);
@@ -242,54 +255,9 @@ function PlanCard({
         <p className="text-sm leading-6 text-muted-strong">{plan.thesis}</p>
       </div>
 
-      {open ? (
-        <div className="mt-4 space-y-3 border-t border-line pt-4">
-          {timeline.length > 0 ? (
-            timeline.map((event) =>
-              event.type === "operation" ? (
-                <div key={event.item.id} className="rounded-xl border border-line bg-background p-3">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <span className={`rounded-lg border px-2 py-1 text-xs font-bold ${getActionTone(event.item.action)}`}>
-                      {getActionLabel(event.item.action)}
-                    </span>
-                    <span className="text-xs text-muted">{formatDateTime(event.item.tradeTime)}</span>
-                  </div>
-                  <p className="text-sm font-bold tabular-nums text-white">{formatCurrency(event.item.price, event.item.currency)}</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-strong">{event.item.decisionReason}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {[...event.item.emotionTags, ...event.item.strategyTags].map((tag) => (
-                      <span key={tag} className="rounded-full border border-line bg-surface-soft px-2 py-1 text-xs text-muted-strong">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div key={event.item.id} className="rounded-xl border border-primary/30 bg-primary/10 p-3">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <span className="text-xs font-bold text-primary-soft">独立复盘 · {getRealizedResultLabel(event.item.realizedResult)}</span>
-                    <span className="text-xs text-muted">{formatDateTime(event.item.reviewTime)}</span>
-                  </div>
-                  <p className="text-sm leading-6 text-muted-strong">{event.item.reviewNote}</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {[...event.item.violatedRules, ...event.item.emotionTags].map((tag) => (
-                      <span key={tag} className="rounded-full border border-line bg-surface-soft px-2 py-1 text-xs text-muted-strong">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )
-            )
-          ) : (
-            <p className="rounded-xl border border-line bg-background p-3 text-sm text-muted">这个计划还没有操作或复盘。</p>
-          )}
-        </div>
-      ) : null}
-
       <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
-        <button type="button" onClick={() => setOpen((current) => !current)} className="h-10 rounded-xl border border-line bg-background text-xs font-bold text-muted-strong transition active:scale-[0.98]">
-          {open ? "收起时间线" : "展开时间线"}
+        <button type="button" onClick={() => onOpenDetail(plan.id)} className="h-10 rounded-xl border border-line bg-background text-xs font-bold text-muted-strong transition active:scale-[0.98]">
+          查看详情
         </button>
         <button type="button" onClick={toggleStatus} className="h-10 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]">
           {plan.status === "active" ? "关闭计划" : "重新打开"}
@@ -299,5 +267,141 @@ function PlanCard({
         </button>
       </div>
     </article>
+  );
+}
+
+function PlanDetailView({
+  plan,
+  onBack,
+  onDeletePlan,
+  onUpdatePlan
+}: {
+  plan: TradePlan;
+  onBack: () => void;
+  onDeletePlan: (planId: string) => void;
+  onUpdatePlan: (plan: TradePlan) => void;
+}) {
+  const timeline = [
+    ...plan.operations.map((operation) => ({ type: "operation" as const, time: operation.tradeTime, item: operation })),
+    ...plan.reviews.map((review) => ({ type: "review" as const, time: review.reviewTime, item: review }))
+  ].sort((left, right) => new Date(right.time).getTime() - new Date(left.time).getTime());
+
+  const confirmDelete = () => {
+    if (window.confirm(`确认删除「${plan.title}」以及其中所有操作和复盘吗？`)) {
+      onDeletePlan(plan.id);
+    }
+  };
+
+  const toggleStatus = () => {
+    const now = new Date().toISOString();
+    onUpdatePlan({ ...plan, status: plan.status === "active" ? "closed" : "active", updatedAt: now });
+  };
+
+  return (
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pb-28 pt-5">
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex h-10 w-fit items-center gap-2 rounded-xl border border-line bg-surface px-3 text-xs font-bold text-muted-strong transition active:scale-[0.98]"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        返回计划列表
+      </button>
+
+      <section className="rounded-2xl border border-primary/30 bg-surface p-4 shadow-glow">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted">计划详情</p>
+            <h2 className="mt-1 text-2xl font-bold text-white">{plan.title}</h2>
+            <p className="mt-2 text-sm text-muted">
+              {plan.assetName} · {plan.ticker} · {plan.market} · {plan.currency}
+            </p>
+          </div>
+          <span className="rounded-lg border border-line bg-background px-2 py-1 text-xs font-bold text-muted-strong">
+            {plan.status === "active" ? "进行中" : "已关闭"}
+          </span>
+        </div>
+
+        <div className="mt-4 rounded-xl border-l-2 border-primary bg-background p-3">
+          <p className="text-sm leading-6 text-muted-strong">{plan.thesis}</p>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <DetailMetric label="操作" value={`${plan.operations.length} 次`} />
+          <DetailMetric label="复盘" value={`${plan.reviews.length} 次`} />
+          <DetailMetric label="状态" value={plan.status === "active" ? "进行中" : "已关闭"} />
+        </div>
+
+        <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+          <button type="button" onClick={toggleStatus} className="h-10 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]">
+            {plan.status === "active" ? "关闭计划" : "重新打开"}
+          </button>
+          <button type="button" onClick={confirmDelete} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98]" aria-label={`删除 ${plan.title}`}>
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold text-white">计划时间线</h3>
+          <span className="text-xs font-semibold text-muted">{timeline.length} 条</span>
+        </div>
+
+        {timeline.length > 0 ? (
+          timeline.map((event) =>
+            event.type === "operation" ? (
+              <div key={event.item.id} className="rounded-2xl border border-line bg-surface p-4">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className={`rounded-lg border px-2 py-1 text-xs font-bold ${getActionTone(event.item.action)}`}>
+                    {getActionLabel(event.item.action)}
+                  </span>
+                  <span className="text-xs text-muted">{formatDateTime(event.item.tradeTime)}</span>
+                </div>
+                <p className="text-sm font-bold tabular-nums text-white">{formatCurrency(event.item.price, event.item.currency)}</p>
+                <p className="mt-2 text-sm leading-6 text-muted-strong">{event.item.decisionReason}</p>
+                {event.item.psychologyNote ? <p className="mt-2 text-xs leading-5 text-muted">{event.item.psychologyNote}</p> : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {[...event.item.emotionTags, ...event.item.strategyTags].map((tag) => (
+                    <span key={tag} className="rounded-full border border-line bg-surface-soft px-2 py-1 text-xs text-muted-strong">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div key={event.item.id} className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="text-xs font-bold text-primary-soft">独立复盘 · {getRealizedResultLabel(event.item.realizedResult)}</span>
+                  <span className="text-xs text-muted">{formatDateTime(event.item.reviewTime)}</span>
+                </div>
+                <p className="text-sm leading-6 text-muted-strong">{event.item.reviewNote}</p>
+                {typeof event.item.profitLoss === "number" ? (
+                  <p className="mt-2 text-sm font-bold tabular-nums text-white">{formatCurrency(event.item.profitLoss, plan.currency)}</p>
+                ) : null}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {[...event.item.violatedRules, ...event.item.emotionTags].map((tag) => (
+                    <span key={tag} className="rounded-full border border-line bg-surface-soft px-2 py-1 text-xs text-muted-strong">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          )
+        ) : (
+          <p className="rounded-2xl border border-line bg-surface p-4 text-sm text-muted">这个计划还没有操作或复盘。</p>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function DetailMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-line bg-background p-3">
+      <p className="text-[11px] font-semibold text-muted">{label}</p>
+      <p className="mt-1 truncate text-sm font-bold text-white">{value}</p>
+    </div>
   );
 }
