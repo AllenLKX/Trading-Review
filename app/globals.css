@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  background: #051425;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #051425;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(79, 70, 229, 0.16), transparent 34rem),
+    #051425;
+  color: #d5e3fc;
+  font-feature-settings: "tnum";
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@layer components {
+  .rt-card {
+    @apply rounded-2xl border border-line bg-surface;
+  }
+
+  .rt-input {
+    @apply w-full rounded-xl border border-line bg-background px-3 py-3 text-sm text-muted-strong outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30;
+  }
+
+  .rt-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+}

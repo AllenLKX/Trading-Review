@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>周期审计与 K 线 - AlphaJournal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed-dim": "#ffb3b6",
+                        "outline": "#918fa1",
+                        "on-secondary": "#003825",
+                        "surface-container-low": "#0d1c2e",
+                        "primary": "#c3c0ff",
+                        "on-primary-container": "#dad7ff",
+                        "surface-bright": "#2c3a4d",
+                        "surface-container-lowest": "#010f20",
+                        "on-tertiary-fixed": "#40000c",
+                        "secondary-container": "#25a475",
+                        "on-tertiary-container": "#ffd0d2",
+                        "surface-container": "#122032",
+                        "primary-container": "#4f46e5",
+                        "on-surface": "#d5e3fc",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "primary-fixed": "#e2dfff",
+                        "surface-container-highest": "#283648",
+                        "on-surface-variant": "#c7c4d8",
+                        "error-container": "#93000a",
+                        "error": "#ffb4ab",
+                        "secondary-fixed": "#85f8c4",
+                        "inverse-on-surface": "#233144",
+                        "tertiary": "#ffb3b6",
+                        "inverse-primary": "#4d44e3",
+                        "inverse-surface": "#d5e3fc",
+                        "surface-variant": "#283648",
+                        "tertiary-fixed": "#ffdada",
+                        "tertiary-container": "#c20038",
+                        "on-secondary-fixed-variant": "#005137",
+                        "on-primary": "#1d00a5",
+                        "on-error": "#690005",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "surface-tint": "#c3c0ff",
+                        "secondary": "#68dba9",
+                        "on-primary-fixed": "#0f0069",
+                        "on-tertiary": "#68001a",
+                        "on-secondary-container": "#00311f",
+                        "surface-dim": "#051425",
+                        "surface": "#051425",
+                        "secondary-fixed-dim": "#68dba9",
+                        "outline-variant": "#464555",
+                        "on-secondary-fixed": "#002114",
+                        "surface-container-high": "#1d2b3d",
+                        "on-error-container": "#ffdad6",
+                        "on-background": "#d5e3fc",
+                        "on-tertiary-fixed-variant": "#920028",
+                        "background": "#051425"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "32px",
+                        "container-max": "1280px",
+                        "gutter": "16px",
+                        "unit": "4px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "data-mono": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "data-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .chart-grid {
+            background-image: linear-gradient(to right, rgba(145, 143, 161, 0.1) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(145, 143, 161, 0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        .pulse-pin {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(195, 192, 255, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(195, 192, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(195, 192, 255, 0); }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background font-sans min-h-screen pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface dark:bg-surface border-b border-outline-variant flex justify-between items-center px-margin-mobile h-14 w-full max-w-container-max mx-auto md:hidden">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-variation-settings: 'FILL' 1;">person</span>
+</div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary">AlphaJournal</h1>
+</div>
+<button class="hover:bg-surface-container-high transition-colors active:opacity-80 transition-opacity p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-primary dark:text-primary">settings</span>
+</button>
+</header>
+<!-- Main Content -->
+<main class="pt-16 md:pt-margin-desktop px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto flex flex-col md:flex-row gap-gutter">
+<!-- Sidebar Navigation (Desktop) -->
+<nav class="hidden md:flex flex-col w-64 bg-surface-container rounded-xl p-4 gap-2 sticky top-margin-desktop h-[calc(100vh-64px)] border border-outline-variant">
+<h2 class="font-headline-sm text-headline-sm font-bold text-primary mb-6 px-4">AlphaJournal</h2>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md text-body-md">记录</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-secondary-container text-on-secondary-container" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">candlestick_chart</span>
+<span class="font-body-md text-body-md font-bold">审计</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-body-md text-body-md">错题本</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">gavel</span>
+<span class="font-body-md text-body-md">军规</span>
+</a>
+</nav>
+<!-- Canvas -->
+<div class="flex-1 flex flex-col gap-gutter">
+<!-- Header Section -->
+<section class="flex flex-col gap-2">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface">周期审计与 K 线</h2>
+<p class="font-body-md text-body-md text-outline">交易后的情绪与语境分析。</p>
+</section>
+<!-- Summary / AI Report Dropdown -->
+<section class="bg-surface rounded-xl border border-outline-variant p-4 flex flex-col gap-4">
+<div class="flex items-center justify-between cursor-pointer" onclick="document.getElementById('ai-report').classList.toggle('hidden')">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-sm">calendar_today</span>
+<span class="font-body-md text-body-md text-on-surface">已选周期：2026 科技股波动期</span>
+</div>
+<div class="flex items-center gap-2 text-primary hover:text-primary-fixed transition-colors">
+<span class="font-label-md text-label-md">展开详细 AI 报告</span>
+<span class="material-symbols-outlined text-sm">keyboard_arrow_down</span>
+</div>
+</div>
+<!-- Expanded Content -->
+<div class="hidden flex flex-col gap-3 pt-4 border-t border-outline-variant" id="ai-report">
+<p class="font-body-md text-body-md text-on-surface-variant">
+                        AI 分析表明，此期间情绪波动（兴奋与焦虑）与次优买卖点之间存在高度相关性。在社交噪音推动的局部峰值时出现了过度杠杆的情况。
+                    </p>
+<div class="flex gap-2">
+<span class="px-2 py-1 rounded bg-error-container/20 text-error font-label-md text-label-md border border-error-container/50">检测到 FOMO</span>
+<span class="px-2 py-1 rounded bg-secondary-container/20 text-secondary font-label-md text-label-md border border-secondary-container/50">恐慌性抛售</span>
+</div>
+</div>
+</section>
+<!-- Chart Section -->
+<section class="bg-surface rounded-xl border border-outline-variant p-4 flex flex-col gap-4 relative overflow-hidden h-[400px] md:h-[500px]">
+<div class="flex justify-between items-center mb-2 z-10 relative">
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">腾讯控股 (00700.HK)</span>
+<span class="font-data-mono text-data-mono text-outline">2026年4月 - 2026年5月</span>
+</div>
+<div class="flex gap-2">
+<div class="px-3 py-1 rounded bg-surface-container-high border border-outline-variant font-label-md text-label-md text-on-surface cursor-pointer hover:bg-surface-variant">日线</div>
+<div class="px-3 py-1 rounded bg-primary-container text-on-primary-container font-label-md text-label-md cursor-pointer">周线</div>
+</div>
+</div>
+<!-- Mock Chart Area -->
+<div class="absolute inset-0 top-[80px] chart-grid flex items-center justify-center pointer-events-none">
+<!-- Decorative SVG Line to represent price wave -->
+<svg class="w-full h-full opacity-60" preserveaspectratio="none" viewbox="0 0 100 100">
+<path class="text-primary-container" d="M0,80 Q10,70 20,40 T40,20 T60,60 T80,80 T100,50" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+</svg>
+</div>
+<!-- Interactive Pins Container -->
+<div class="absolute inset-0 top-[80px] z-20">
+<!-- Pin A (Red / High) -->
+<div class="absolute top-[20%] left-[38%] group cursor-pointer" onclick="togglePopup('popup-a')">
+<div class="w-4 h-4 rounded-full bg-error border-2 border-surface pulse-pin flex items-center justify-center shadow-lg"></div>
+<!-- Pop-up A -->
+<div class="hidden absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-surface-container-high border border-outline-variant rounded-lg p-3 shadow-xl z-30 pointer-events-auto" id="popup-a">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-1 text-outline">
+<span class="material-symbols-outlined text-[12px]">calendar_today</span>
+<span class="font-label-md text-label-md">2026-04-15</span>
+</div>
+<span class="font-data-mono text-data-mono text-error font-bold">高位追涨</span>
+<p class="font-body-md text-body-md text-on-surface-variant italic border-l-2 border-error pl-2 mt-1">“大家都在谈论利好，忍不住了”</p>
+<div class="flex gap-1 mt-2 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-surface-variant text-on-surface font-label-md text-label-md text-[10px]">#社交噪音</span>
+<span class="px-1.5 py-0.5 rounded bg-tertiary-container/30 text-tertiary-fixed font-label-md text-label-md text-[10px]">情绪: 兴奋</span>
+</div>
+</div>
+<!-- Arrow -->
+<div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-surface-container-high"></div>
+</div>
+</div>
+<!-- Pin B (Green / Low) -->
+<div class="absolute top-[80%] left-[78%] group cursor-pointer" onclick="togglePopup('popup-b')">
+<div class="w-4 h-4 rounded-full bg-secondary border-2 border-surface pulse-pin flex items-center justify-center shadow-lg" style="animation-delay: 1s;"></div>
+<!-- Pop-up B -->
+<div class="hidden absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-surface-container-high border border-outline-variant rounded-lg p-3 shadow-xl z-30 pointer-events-auto" id="popup-b">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-1 text-outline">
+<span class="material-symbols-outlined text-[12px]">calendar_today</span>
+<span class="font-label-md text-label-md">2026-05-20</span>
+</div>
+<span class="font-data-mono text-data-mono text-secondary font-bold">低位恐慌抛售</span>
+<p class="font-body-md text-body-md text-on-surface-variant italic border-l-2 border-secondary pl-2 mt-1">“实在受不了阴跌了，清仓离场保平安”</p>
+<div class="flex gap-1 mt-2 flex-wrap">
+<span class="px-1.5 py-0.5 rounded bg-surface-variant text-on-surface font-label-md text-label-md text-[10px]">#焦虑</span>
+</div>
+</div>
+<!-- Arrow -->
+<div class="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-surface-container-high"></div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-between items-center h-16 px-0 pb-safe bg-surface-container dark:bg-surface-container border-t border-outline-variant z-50 md:hidden">
+<a class="flex flex-1 flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md mt-1">记录</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-95 transition-transform duration-150" href="#">
+<div class="bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 flex flex-col items-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">candlestick_chart</span>
+<span class="font-label-md text-label-md mt-1">审计</span>
+</div>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-label-md text-label-md mt-1">错题本</span>
+</a>
+<a class="flex flex-1 flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">gavel</span>
+<span class="font-label-md text-label-md mt-1">军规</span>
+</a>
+</nav>
+<script>
+        function togglePopup(id) {
+            // Close all other popups
+            const allPopups = ['popup-a', 'popup-b'];
+            allPopups.forEach(pid => {
+                if(pid !== id) document.getElementById(pid).classList.add('hidden');
+            });
+            
+            // Toggle target
+            const el = document.getElementById(id);
+            el.classList.toggle('hidden');
+        }
+
+        // Close popups when clicking outside
+        document.addEventListener('click', function(event) {
+            const isClickInsidePin = event.target.closest('.group');
+            if (!isClickInsidePin) {
+                const popups = ['popup-a', 'popup-b'];
+                popups.forEach(id => {
+                    const el = document.getElementById(id);
+                    if(el) el.classList.add('hidden');
+                });
+            }
+        });
+    </script>
+</body></html>

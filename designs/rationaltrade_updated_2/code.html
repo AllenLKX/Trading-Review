@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RationalTrade - Record Decision</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#4d44e3",
+                        "surface-tint": "#c3c0ff",
+                        "outline-variant": "#464555",
+                        "on-tertiary-fixed": "#40000c",
+                        "on-secondary-fixed": "#002114",
+                        "on-error": "#690005",
+                        "tertiary-fixed-dim": "#ffb3b6",
+                        "primary-container": "#4f46e5",
+                        "surface-variant": "#283648",
+                        "on-primary-container": "#dad7ff",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "surface-container-lowest": "#010f20",
+                        "secondary": "#68dba9",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "on-background": "#d5e3fc",
+                        "on-primary-fixed": "#0f0069",
+                        "surface-dim": "#051425",
+                        "secondary-fixed-dim": "#68dba9",
+                        "surface-container": "#122032",
+                        "on-secondary-fixed-variant": "#005137",
+                        "secondary-container": "#25a475",
+                        "error-container": "#93000a",
+                        "on-surface": "#d5e3fc",
+                        "background": "#051425",
+                        "on-secondary": "#003825",
+                        "surface-container-high": "#1d2b3d",
+                        "surface": "#051425",
+                        "on-tertiary-fixed-variant": "#920028",
+                        "surface-bright": "#2c3a4d",
+                        "primary": "#c3c0ff",
+                        "error": "#ffb4ab",
+                        "primary-fixed": "#e2dfff",
+                        "surface-container-highest": "#283648",
+                        "on-surface-variant": "#c7c4d8",
+                        "on-secondary-container": "#00311f",
+                        "on-primary": "#1d00a5",
+                        "inverse-surface": "#d5e3fc",
+                        "tertiary-container": "#c20038",
+                        "secondary-fixed": "#85f8c4",
+                        "surface-container-low": "#0d1c2e",
+                        "inverse-on-surface": "#233144",
+                        "tertiary": "#ffb3b6",
+                        "on-tertiary-container": "#ffd0d2",
+                        "on-tertiary": "#68001a",
+                        "tertiary-fixed": "#ffdada",
+                        "outline": "#918fa1"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "container-max": "1280px",
+                        "unit": "4px",
+                        "margin-mobile": "16px",
+                        "margin-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Inter", "sans-serif"],
+                        "headline-lg-mobile": ["Inter", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"],
+                        "headline-md": ["Inter", "sans-serif"],
+                        "data-mono": ["Inter", "monospace"],
+                        "headline-lg": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"],
+                        "label-md": ["Inter", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "data-mono": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[style*="FILL' 1"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        * {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen flex flex-col antialiased">
+<!-- TopAppBar JSON Source of Truth -->
+<header class="bg-surface text-primary flex justify-between items-center px-margin-mobile w-full docked full-width top-0 h-16 z-40 sticky">
+<div class="flex items-center gap-4">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-on-surface-variant text-lg">person</span>
+</div>
+<h1 class="text-headline-md font-headline-md font-bold text-primary">RationalTrade</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors duration-200">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col pb-[80px] w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop gap-gutter">
+<!-- Sticky Header Controls -->
+<div class="sticky top-16 z-30 bg-background/95 backdrop-blur py-4 flex flex-col gap-4 border-b border-surface-container-highest">
+<!-- Global State Segmented Controller -->
+<div class="flex items-center justify-between w-full">
+<span class="text-label-md font-label-md text-on-surface-variant uppercase">Global Data State</span>
+<div class="bg-surface-container-highest p-1 rounded-lg flex inline-flex">
+<button class="px-3 py-1.5 rounded text-label-md font-label-md transition-all duration-200 bg-surface-container text-on-surface shadow-sm" id="btn-state-empty" onclick="setGlobalState('empty')">
+                        查看：空状态
+                    </button>
+<button class="px-3 py-1.5 rounded text-label-md font-label-md transition-all duration-200 text-on-surface-variant hover:text-on-surface" id="btn-state-full" onclick="setGlobalState('full')">
+                        查看：完整数据态
+                    </button>
+</div>
+</div>
+<!-- Sub-View Switcher Tabs -->
+<div class="flex bg-surface-container p-1 rounded-xl">
+<button class="flex-1 py-2 rounded-lg flex items-center justify-center gap-2 text-label-md font-label-md transition-all duration-200 text-on-surface-variant hover:bg-surface-container-highest" id="btn-view-manual" onclick="setSubView('manual')">
+<span>✍️</span> 闪念手动输入
+                </button>
+<button class="flex-1 py-2 rounded-lg flex items-center justify-center gap-2 text-label-md font-label-md transition-all duration-200 bg-surface-container-high text-on-surface shadow-sm border border-outline-variant/30" id="btn-view-ai" onclick="setSubView('ai')">
+<span>📸</span> AI 截图识图补账
+                </button>
+</div>
+</div>
+<!-- Dynamic Content Area -->
+<div class="flex-1 relative mt-2">
+<!-- View: Manual Input -->
+<div class="hidden flex flex-col gap-4 fade-in" id="view-manual">
+<div class="bg-surface-container rounded-xl p-4 border border-outline-variant flex flex-col gap-4 shadow-sm">
+<!-- Asset & Time Row -->
+<div class="flex gap-4 items-end">
+<div class="flex-1 flex flex-col gap-1">
+<label class="text-label-md font-label-md text-on-surface-variant">Asset Name / Ticker</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-md font-body-md focus:outline-none focus:ring-2 focus:ring-primary-container focus:border-transparent transition-all" placeholder="e.g. AAPL or BTC" type="text"/>
+</div>
+<div class="flex items-center bg-surface-container-highest rounded-lg px-3 py-2 border border-outline-variant h-[42px] cursor-pointer hover:bg-surface-bright transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant mr-2 text-[18px]">calendar_today</span>
+<span class="text-data-mono font-data-mono text-on-surface">2026-06-04 10:15</span>
+</div>
+</div>
+<!-- Action Toggle -->
+<div class="flex flex-col gap-1">
+<label class="text-label-md font-label-md text-on-surface-variant">Action</label>
+<div class="flex bg-surface-container-lowest p-1 rounded-lg border border-outline-variant">
+<button class="flex-1 py-1.5 rounded text-body-md font-body-md text-secondary-container hover:bg-surface-container-highest transition-colors">Buy</button>
+<button class="flex-1 py-1.5 rounded text-body-md font-body-md text-error-container hover:bg-surface-container-highest transition-colors">Sell</button>
+<button class="flex-1 py-1.5 rounded bg-surface-container-high text-on-surface shadow-sm text-body-md font-body-md border border-outline-variant/50">Observe</button>
+</div>
+</div>
+<!-- Price Targets -->
+<div class="flex gap-4">
+<div class="flex-1 flex flex-col gap-1">
+<label class="text-label-md font-label-md text-on-surface-variant">Take Profit</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-data-mono font-data-mono text-right focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="0.00" type="number"/>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<label class="text-label-md font-label-md text-on-surface-variant">Stop Loss</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-data-mono font-data-mono text-right focus:outline-none focus:ring-2 focus:ring-primary-container" placeholder="0.00" type="number"/>
+</div>
+</div>
+<!-- Reason -->
+<div class="flex flex-col gap-1">
+<label class="text-label-md font-label-md text-on-surface-variant flex items-center gap-1">
+                            💡 Decision Reason
+                        </label>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-md font-body-md focus:outline-none focus:ring-2 focus:ring-primary-container resize-none" placeholder="What is the logic behind this decision? Pattern breakdown, news catalyst, etc." rows="3"></textarea>
+</div>
+<!-- Metadata (Emotions & Strategy) -->
+<div class="flex flex-col gap-3">
+<div class="flex items-center gap-3">
+<span class="text-label-md font-label-md text-on-surface-variant w-16">Emotion:</span>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded-full bg-surface-container-highest hover:bg-surface-bright flex items-center justify-center text-lg transition-colors">😎</button>
+<button class="w-8 h-8 rounded-full bg-surface-container-highest hover:bg-surface-bright flex items-center justify-center text-lg transition-colors">😰</button>
+<button class="w-8 h-8 rounded-full border border-primary-container bg-primary-container/10 flex items-center justify-center text-lg transition-colors">🧘</button>
+<button class="w-8 h-8 rounded-full bg-surface-container-highest hover:bg-surface-bright flex items-center justify-center text-lg transition-colors">😡</button>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-label-md font-label-md text-on-surface-variant w-16">Strategy:</span>
+<div class="flex gap-2 flex-wrap">
+<span class="px-2 py-1 rounded-md bg-primary-container/20 text-primary font-label-md text-label-md border border-primary/20 cursor-pointer">Scalp</span>
+<span class="px-2 py-1 rounded-md bg-surface-container-highest text-on-surface-variant font-label-md text-label-md border border-outline-variant cursor-pointer hover:bg-surface-bright">Trend Follow</span>
+<span class="px-2 py-1 rounded-md bg-surface-container-highest text-on-surface-variant font-label-md text-label-md border border-outline-variant cursor-pointer hover:bg-surface-bright">Breakout</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Save Action -->
+<button class="w-full py-3 rounded-xl bg-secondary-container text-on-secondary-container font-headline-sm text-headline-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity mt-4 shadow-lg shadow-secondary-container/20">
+<span class="material-symbols-outlined">save</span>
+                    确认保存当前决策想法
+                </button>
+</div>
+<!-- View: AI Screenshot -->
+<div class="flex flex-col h-full fade-in" id="view-ai">
+<!-- AI Empty State -->
+<div class="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-lowest/50 min-h-[300px] p-6 hover:bg-surface-container transition-colors cursor-pointer group" id="ai-state-empty">
+<div class="w-16 h-16 rounded-full bg-surface-container-highest flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl text-on-surface-variant" style="font-variation-settings: 'FILL' 1;">add_photo_alternate</span>
+</div>
+<p class="text-body-lg font-body-lg text-on-surface text-center">📸 点击或拖入多笔交易结算/持仓截图</p>
+<p class="text-label-md font-label-md text-on-surface-variant mt-2 text-center max-w-[250px]">AI 将自动提取资产、价格、方向和时间戳。</p>
+</div>
+<!-- AI Full Data State -->
+<div class="hidden flex-col gap-4 pb-20" id="ai-state-full">
+<p class="text-label-md font-label-md text-on-surface-variant uppercase tracking-wider mb-[-8px]">Batch Verification Stream (2)</p>
+<!-- Card 1: Expanded -->
+<div class="bg-surface-container rounded-xl border border-outline-variant shadow-sm overflow-hidden flex flex-col">
+<!-- Header / Summary line -->
+<div class="p-4 border-b border-surface-container-highest flex justify-between items-center bg-surface-container-lowest/30">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-secondary-container/20 text-secondary-container flex items-center justify-center font-bold text-body-md">
+                                    B
+                                </div>
+<div class="flex flex-col">
+<span class="text-headline-sm font-headline-sm text-on-surface">Tencent (0700.HK)</span>
+<span class="text-label-md font-label-md text-on-surface-variant">Parsed from img_7812.png</span>
+</div>
+</div>
+<div class="text-right">
+<div class="text-headline-sm font-headline-sm text-on-surface font-data-mono">415.5 HKD</div>
+<div class="flex items-center justify-end gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]">edit_note</span>
+<span class="text-label-md font-label-md text-data-mono">2026-06-04 10:15 📝</span>
+</div>
+</div>
+</div>
+<!-- Expanded Content -->
+<div class="p-4 flex flex-col gap-4 bg-surface-container">
+<div class="flex flex-col gap-1">
+<label class="text-label-md font-label-md text-on-surface-variant">User Feedback / Context</label>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 text-body-md font-body-md focus:outline-none focus:ring-2 focus:ring-primary-container resize-none text-on-surface" placeholder="Add additional notes here..." rows="2">Bought the dip off the 200MA test. Volume looks supportive.</textarea>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="text-label-md font-label-md text-on-surface-variant">State:</span>
+<span class="px-2 py-0.5 rounded text-lg border border-primary-container bg-primary-container/10">🧘</span>
+</div>
+<button class="text-error-container text-label-md font-label-md hover:underline flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">delete</span> Remove
+                                </button>
+</div>
+</div>
+</div>
+<!-- Card 2: Collapsed -->
+<div class="bg-surface-container rounded-xl border border-outline-variant shadow-sm p-4 flex justify-between items-center opacity-70 hover:opacity-100 transition-opacity cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-error-container/20 text-error-container flex items-center justify-center font-bold text-body-md">
+                                S
+                            </div>
+<div class="flex flex-col">
+<span class="text-body-lg font-body-lg text-on-surface font-semibold">Meituan (3690.HK)</span>
+<span class="text-label-md font-label-md text-on-surface-variant">2026-06-03</span>
+</div>
+</div>
+<div class="text-right flex items-center gap-4">
+<div class="text-body-lg font-body-lg text-on-surface font-data-mono">125.0 HKD</div>
+<span class="material-symbols-outlined text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<!-- Fixed Footer Actions for AI Flow -->
+<div class="fixed bottom-16 left-0 w-full p-4 bg-background/90 backdrop-blur border-t border-surface-container-highest flex gap-4 z-30 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+<button class="flex-1 py-3 rounded-xl border border-outline-variant text-on-surface font-body-md text-body-md hover:bg-surface-container transition-colors">
+                            取消重传
+                        </button>
+<button class="flex-[2] py-3 rounded-xl bg-primary-container text-on-primary-container font-headline-sm text-headline-sm shadow-lg shadow-primary-container/20 hover:opacity-90 transition-opacity">
+                            一键批量归档并入库
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar JSON Source of Truth -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center h-16 bg-surface-container border-t border-outline-variant pb-safe z-50">
+<!-- Active Tab 1: Record -->
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 active:scale-90 transition-transform duration-150 group flex-1">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">edit_square</span>
+<span class="text-label-md font-label-md mt-0.5">记录</span>
+</button>
+<!-- Inactive Tab 2: History -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:text-on-surface active:scale-90 transition-transform duration-150 group flex-1">
+<span class="material-symbols-outlined">history_edu</span>
+<span class="text-label-md font-label-md mt-0.5">历史</span>
+</button>
+</nav>
+<script>
+        // Interaction Logic
+        function setSubView(view) {
+            const manualView = document.getElementById('view-manual');
+            const aiView = document.getElementById('view-ai');
+            const btnManual = document.getElementById('btn-view-manual');
+            const btnAi = document.getElementById('btn-view-ai');
+
+            if (view === 'manual') {
+                manualView.classList.remove('hidden');
+                aiView.classList.add('hidden');
+                
+                // Update button styles
+                btnManual.classList.add('bg-surface-container-high', 'text-on-surface', 'shadow-sm', 'border', 'border-outline-variant/30');
+                btnManual.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-highest');
+                
+                btnAi.classList.remove('bg-surface-container-high', 'text-on-surface', 'shadow-sm', 'border', 'border-outline-variant/30');
+                btnAi.classList.add('text-on-surface-variant', 'hover:bg-surface-container-highest');
+            } else {
+                aiView.classList.remove('hidden');
+                manualView.classList.add('hidden');
+                
+                // Update button styles
+                btnAi.classList.add('bg-surface-container-high', 'text-on-surface', 'shadow-sm', 'border', 'border-outline-variant/30');
+                btnAi.classList.remove('text-on-surface-variant', 'hover:bg-surface-container-highest');
+                
+                btnManual.classList.remove('bg-surface-container-high', 'text-on-surface', 'shadow-sm', 'border', 'border-outline-variant/30');
+                btnManual.classList.add('text-on-surface-variant', 'hover:bg-surface-container-highest');
+            }
+        }
+
+        function setGlobalState(state) {
+            const emptyState = document.getElementById('ai-state-empty');
+            const fullState = document.getElementById('ai-state-full');
+            const btnEmpty = document.getElementById('btn-state-empty');
+            const btnFull = document.getElementById('btn-state-full');
+
+            if (state === 'empty') {
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                fullState.classList.add('hidden');
+                fullState.classList.remove('flex');
+
+                btnEmpty.classList.add('bg-surface-container', 'text-on-surface', 'shadow-sm');
+                btnEmpty.classList.remove('text-on-surface-variant');
+                
+                btnFull.classList.remove('bg-surface-container', 'text-on-surface', 'shadow-sm');
+                btnFull.classList.add('text-on-surface-variant');
+            } else {
+                fullState.classList.remove('hidden');
+                fullState.classList.add('flex');
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+
+                btnFull.classList.add('bg-surface-container', 'text-on-surface', 'shadow-sm');
+                btnFull.classList.remove('text-on-surface-variant');
+                
+                btnEmpty.classList.remove('bg-surface-container', 'text-on-surface', 'shadow-sm');
+                btnEmpty.classList.add('text-on-surface-variant');
+            }
+            
+            // Ensure AI view is visible to demonstrate state change
+            if(document.getElementById('view-ai').classList.contains('hidden')) {
+                 setSubView('ai');
+            }
+        }
+    </script>
+</body></html>

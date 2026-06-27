@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RationalTrade - 决策历史与审计</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-primary": "#4d44e3",
+                        "surface-tint": "#c3c0ff",
+                        "outline-variant": "#464555",
+                        "on-tertiary-fixed": "#40000c",
+                        "on-secondary-fixed": "#002114",
+                        "on-error": "#690005",
+                        "tertiary-fixed-dim": "#ffb3b6",
+                        "primary-container": "#4f46e5",
+                        "surface-variant": "#283648",
+                        "on-primary-container": "#dad7ff",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "surface-container-lowest": "#010f20",
+                        "secondary": "#68dba9",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "on-background": "#d5e3fc",
+                        "on-primary-fixed": "#0f0069",
+                        "surface-dim": "#051425",
+                        "secondary-fixed-dim": "#68dba9",
+                        "surface-container": "#122032",
+                        "on-secondary-fixed-variant": "#005137",
+                        "secondary-container": "#25a475",
+                        "error-container": "#93000a",
+                        "on-surface": "#d5e3fc",
+                        "background": "#051425",
+                        "on-secondary": "#003825",
+                        "surface-container-high": "#1d2b3d",
+                        "surface": "#051425",
+                        "on-tertiary-fixed-variant": "#920028",
+                        "surface-bright": "#2c3a4d",
+                        "primary": "#c3c0ff",
+                        "error": "#ffb4ab",
+                        "primary-fixed": "#e2dfff",
+                        "surface-container-highest": "#283648",
+                        "on-surface-variant": "#c7c4d8",
+                        "on-secondary-container": "#00311f",
+                        "on-primary": "#1d00a5",
+                        "inverse-surface": "#d5e3fc",
+                        "tertiary-container": "#c20038",
+                        "secondary-fixed": "#85f8c4",
+                        "surface-container-low": "#0d1c2e",
+                        "inverse-on-surface": "#233144",
+                        "tertiary": "#ffb3b6",
+                        "on-tertiary-container": "#ffd0d2",
+                        "on-tertiary": "#68001a",
+                        "tertiary-fixed": "#ffdada",
+                        "outline": "#918fa1"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "container-max": "1280px",
+                        "unit": "4px",
+                        "margin-mobile": "16px",
+                        "margin-desktop": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "data-mono": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom scrollbar for data tables/feeds if needed */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #283648; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #464555; }
+        /* Prevent layout shift from scrollbar */
+        html { scrollbar-gutter: stable; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col font-body-md pb-24 md:pb-0">
+<!-- TopAppBar JSON Component -->
+<header class="flex justify-between items-center px-margin-mobile w-full bg-surface dark:bg-surface top-0 full-width docked h-16 sticky z-50 transition-colors duration-200">
+<!-- Leading Avatar -->
+<div class="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center border border-outline-variant text-label-md font-label-md text-primary">
+            U
+        </div>
+<!-- Headline -->
+<div class="text-headline-md font-headline-md font-bold text-primary dark:text-primary tracking-tight">
+            RationalTrade
+        </div>
+<!-- Trailing Icon -->
+<button aria-label="Settings" class="w-10 h-10 rounded-full flex items-center justify-center text-primary dark:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-high transition-colors duration-200">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</header>
+<!-- Sticky Header: Global State Switcher (Segmented Controller) -->
+<div class="sticky top-16 z-40 bg-background/80 backdrop-blur-md px-margin-mobile md:px-margin-desktop py-4 border-b border-surface-container shadow-sm">
+<div class="max-w-container-max mx-auto flex items-center justify-between">
+<div class="bg-surface-container-lowest p-unit rounded-lg flex border border-surface-container-high w-full md:w-auto">
+<button class="flex-1 md:w-32 py-1.5 text-label-md font-label-md rounded bg-surface-container-high text-on-surface shadow-sm transition-all">全周期分析</button>
+<button class="flex-1 md:w-32 py-1.5 text-label-md font-label-md rounded text-on-surface-variant hover:text-on-surface transition-all">当前波段</button>
+</div>
+<div class="hidden md:flex items-center gap-2 text-label-md font-label-md text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+<span>高级过滤</span>
+</div>
+</div>
+</div>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-margin-mobile md:px-margin-desktop py-6 space-y-gutter max-w-container-max mx-auto w-full">
+<!-- Grid Layout for Desktop -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Left/Top Column: Smart Audit -->
+<div class="md:col-span-12 lg:col-span-5 space-y-gutter">
+<!-- 【🧠 近30天系统智能审计】 Component -->
+<!-- Using surface-container with a subtle primary border/glow to simulate indigo-950/30 within the strict theme -->
+<section class="bg-surface-container rounded-xl border border-primary-container/30 overflow-hidden relative group transition-all duration-300 hover:border-primary-container/50">
+<!-- Decorative subtle gradient backdrop -->
+<div class="absolute inset-0 bg-gradient-to-br from-primary-container/5 to-transparent pointer-events-none"></div>
+<!-- Header -->
+<div class="p-4 border-b border-surface-container-high flex justify-between items-center relative z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">psychology</span>
+<h2 class="text-headline-sm font-headline-sm text-on-surface">近30天系统智能审计</h2>
+</div>
+<button aria-label="Refresh Data" class="text-on-surface-variant hover:text-primary transition-colors flex items-center p-1 rounded hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-[18px]">refresh</span>
+</button>
+</div>
+<!-- Expanded Section: Latest Analysis Report -->
+<div class="p-5 relative z-10">
+<div class="flex justify-between items-start mb-4">
+<span class="text-label-md font-label-md text-on-surface-variant">评估周期: 2026-05-05 ~ 06-04</span>
+<div class="px-2 py-0.5 rounded bg-error-container/20 border border-error-container/50 flex items-center gap-1">
+<div class="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></div>
+<span class="text-label-md font-label-md text-error">情绪指数: 65% (偏高)</span>
+</div>
+</div>
+<p class="text-body-md font-body-md text-on-surface-variant leading-relaxed">
+<strong class="text-on-surface font-medium">行为偏差预警：</strong> 系统检测到近期在止损执行环节存在显著犹豫特征。相比历史基准线，平均延迟离场时间增加 <span class="text-error font-data-mono">14.2%</span>。在震荡市中频繁出现的微调止损单行为高度符合「损失厌恶」心理模型，建议暂停高频交易进行策略复盘。
+                        </p>
+</div>
+<!-- Collapsed Section: Past Snapshots Archive (Accordion) -->
+<details class="group/accordion border-t border-surface-container-high relative z-10">
+<summary class="p-4 cursor-pointer text-label-md font-label-md text-on-surface-variant hover:bg-surface-container-high transition-colors flex justify-between items-center list-none [&amp;::-webkit-details-marker]:hidden">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">inventory_2</span>
+                                历史审计快照归档
+                            </div>
+<span class="material-symbols-outlined text-[18px] transform transition-transform group-open/accordion:-rotate-180">expand_more</span>
+</summary>
+<div class="p-4 pt-0 bg-surface-container-lowest/50 space-y-2">
+<!-- Archive Item 1 -->
+<div class="flex justify-between items-center py-2 border-b border-surface-container-high/50 last:border-0">
+<span class="text-body-md font-body-md text-on-surface-variant">2026-04-05 ~ 05-04</span>
+<span class="text-label-md font-label-md px-2 py-0.5 bg-secondary-container/20 text-secondary rounded border border-secondary-container/30">状态优良</span>
+</div>
+<!-- Archive Item 2 -->
+<div class="flex justify-between items-center py-2 border-b border-surface-container-high/50 last:border-0">
+<span class="text-body-md font-body-md text-on-surface-variant">2026-03-05 ~ 04-04</span>
+<span class="text-label-md font-label-md px-2 py-0.5 bg-surface-container-highest text-on-surface-variant rounded border border-outline-variant">常规波动</span>
+</div>
+</div>
+</details>
+</section>
+<!-- Example of Empty State (Hidden by default, shown for UI demonstration context if needed) -->
+<!--
+                <div class="h-48 border border-dashed border-outline-variant rounded-xl flex items-center justify-center">
+                    <span class="text-body-md font-body-md text-on-surface-variant/50">暂无历史决策记录与审计数据</span>
+                </div>
+                -->
+</div>
+<!-- Right/Bottom Column: Historical Feed -->
+<div class="md:col-span-12 lg:col-span-7 space-y-gutter">
+<div class="flex items-center justify-between mb-2">
+<h2 class="text-headline-sm font-headline-sm text-on-surface">历史流水 Feed</h2>
+<span class="text-label-md font-label-md text-on-surface-variant">已验证</span>
+</div>
+<!-- Feed Container -->
+<div class="space-y-3">
+<!-- Card 1: Tencent Buy -->
+<article class="bg-surface rounded-xl border border-surface-container-high p-4 hover:border-outline-variant transition-colors group">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<!-- Asset Icon -->
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center border border-surface-container-highest">
+<span class="text-headline-sm font-headline-sm font-bold text-on-surface">腾讯</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-body-lg font-body-lg font-medium text-on-surface">Tencent Holdings</h3>
+<span class="text-label-md font-label-md px-1.5 py-0.5 bg-secondary-container/10 text-secondary border border-secondary/20 rounded">建仓 Buy</span>
+</div>
+<span class="text-label-md font-label-md text-on-surface-variant">HKG: 0700 · 1000 股</span>
+</div>
+</div>
+<div class="text-right">
+<div class="text-data-mono font-data-mono text-on-surface">HK$ 382.40</div>
+<div class="text-label-md font-label-md text-on-surface-variant mt-0.5">今天 10:30 AM</div>
+</div>
+</div>
+<!-- Note section -->
+<div class="bg-surface-container-lowest rounded p-3 text-body-md font-body-md text-on-surface-variant border-l-2 border-secondary relative overflow-hidden">
+<div class="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-[40px]">check_circle</span>
+</div>
+                            突破底部震荡区间，量能放大。基于 MA20 支撑线进行右侧交易，严格遵守了开盘制定的纪律。
+                        </div>
+</article>
+<!-- Card 2: Meituan Sell -->
+<article class="bg-surface rounded-xl border border-surface-container-high p-4 hover:border-outline-variant transition-colors group">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<!-- Asset Icon -->
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center border border-surface-container-highest">
+<span class="text-headline-sm font-headline-sm font-bold text-on-surface">美团</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-body-lg font-body-lg font-medium text-on-surface">Meituan</h3>
+<span class="text-label-md font-label-md px-1.5 py-0.5 bg-error-container/10 text-error border border-error/20 rounded">平仓 Sell</span>
+</div>
+<span class="text-label-md font-label-md text-on-surface-variant">HKG: 3690 · 500 股</span>
+</div>
+</div>
+<div class="text-right">
+<div class="text-data-mono font-data-mono text-on-surface">HK$ 115.80</div>
+<div class="text-label-md font-label-md text-on-surface-variant mt-0.5">昨天 14:15 PM</div>
+</div>
+</div>
+<!-- Note section -->
+<div class="bg-surface-container-lowest rounded p-3 text-body-md font-body-md text-on-surface-variant border-l-2 border-error relative overflow-hidden">
+<div class="absolute top-0 right-0 p-1 opacity-10 group-hover:opacity-20 transition-opacity">
+<span class="material-symbols-outlined text-[40px]">warning</span>
+</div>
+                            触及预设动态止损位。盘中情绪受大盘拖累出现恐慌性抛售，未等待收盘确认即执行平仓。需反思是否过于急躁。
+                        </div>
+</article>
+<!-- Card 3: Neutral Action / Adjust -->
+<article class="bg-surface rounded-xl border border-surface-container-high p-4 hover:border-outline-variant transition-colors group">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center border border-surface-container-highest">
+<span class="text-headline-sm font-headline-sm font-bold text-on-surface">比亚</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="text-body-lg font-body-lg font-medium text-on-surface">BYD Company</h3>
+<span class="text-label-md font-label-md px-1.5 py-0.5 bg-surface-container-highest text-on-surface border border-outline-variant rounded">调仓 Adjust</span>
+</div>
+<span class="text-label-md font-label-md text-on-surface-variant">HKG: 1211 · 200 股</span>
+</div>
+</div>
+<div class="text-right">
+<div class="text-data-mono font-data-mono text-on-surface">HK$ 218.20</div>
+<div class="text-label-md font-label-md text-on-surface-variant mt-0.5">06-02 09:45 AM</div>
+</div>
+</div>
+<div class="bg-surface-container-lowest rounded p-3 text-body-md font-body-md text-on-surface-variant border-l-2 border-outline-variant">
+                            降低仓位权重以平衡投资组合风险，资金转移至确定性更高的防御性板块。
+                        </div>
+</article>
+</div>
+<div class="flex justify-center mt-6">
+<button class="px-4 py-2 text-label-md font-label-md text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded-lg transition-colors flex items-center gap-2">
+                        加载更多历史记录
+                        <span class="material-symbols-outlined text-[18px]">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar JSON Component -->
+<!-- Displayed on mobile as requested, following strict JSON structure and active state logic -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center h-16 bg-surface-container dark:bg-surface-container border-t border-outline-variant dark:border-outline-variant pb-safe z-50">
+<!-- Tab 1: Record (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-4 py-1 hover:text-on-surface dark:hover:text-on-surface scale-95 active:scale-90 transition-transform duration-150 w-full h-full">
+<span class="material-symbols-outlined mb-1">edit_square</span>
+<span class="text-label-md font-label-md">记录</span>
+</button>
+<!-- Tab 2: History (Active - determined by semantic matching to "决策历史与审计") -->
+<button class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-container text-on-primary-container dark:text-on-primary-container rounded-xl px-4 py-1 hover:text-on-surface dark:hover:text-on-surface scale-95 active:scale-90 transition-transform duration-150 h-12 w-full h-full">
+<!-- Using style="font-variation-settings: 'FILL' 1;" for active fill state as instructed for Material Symbols -->
+<span class="material-symbols-outlined mb-0.5" style="font-variation-settings: 'FILL' 1;">history_edu</span>
+<span class="text-label-md font-label-md">历史</span>
+</button>
+</nav>
+<!-- Desktop Side Navigation Scaffold (Hidden on mobile) to maintain structural integrity of the design system rules -->
+<aside class="hidden md:flex flex-col w-64 fixed left-0 top-16 h-[calc(100vh-4rem)] border-r border-surface-container-high bg-surface px-4 py-6 overflow-y-auto z-40">
+<div class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">edit_square</span>
+<span class="text-body-md font-body-md font-medium">记录</span>
+</a>
+<!-- Active State equivalent for desktop sidebar -->
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg bg-primary-container/10 text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">history_edu</span>
+<span class="text-body-md font-body-md font-medium">历史</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors mt-8" href="#">
+<span class="material-symbols-outlined text-[20px]">bar_chart</span>
+<span class="text-body-md font-body-md font-medium">分析</span>
+</a>
+</div>
+</aside>
+<!-- Adjust main container margin for desktop sidebar -->
+<style>
+        @media (min-width: 768px) {
+            main { margin-left: 16rem; max-width: calc(100% - 16rem); }
+            .sticky.top-16 { margin-left: 16rem; width: calc(100% - 16rem); }
+        }
+    </style>
+</body></html>

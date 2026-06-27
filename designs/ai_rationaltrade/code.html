@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>投资军规与 AI 审计</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed-dim": "#ffb3b6",
+                    "outline": "#918fa1",
+                    "on-secondary": "#003825",
+                    "surface-container-low": "#0d1c2e",
+                    "primary": "#c3c0ff",
+                    "on-primary-container": "#dad7ff",
+                    "surface-bright": "#2c3a4d",
+                    "surface-container-lowest": "#010f20",
+                    "on-tertiary-fixed": "#40000c",
+                    "secondary-container": "#25a475",
+                    "on-tertiary-container": "#ffd0d2",
+                    "surface-container": "#122032",
+                    "primary-container": "#4f46e5",
+                    "on-surface": "#d5e3fc",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "primary-fixed": "#e2dfff",
+                    "surface-container-highest": "#283648",
+                    "on-surface-variant": "#c7c4d8",
+                    "error-container": "#93000a",
+                    "error": "#ffb4ab",
+                    "secondary-fixed": "#85f8c4",
+                    "inverse-on-surface": "#233144",
+                    "tertiary": "#ffb3b6",
+                    "inverse-primary": "#4d44e3",
+                    "inverse-surface": "#d5e3fc",
+                    "surface-variant": "#283648",
+                    "tertiary-fixed": "#ffdada",
+                    "tertiary-container": "#c20038",
+                    "on-secondary-fixed-variant": "#005137",
+                    "on-primary": "#1d00a5",
+                    "on-error": "#690005",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "surface-tint": "#c3c0ff",
+                    "secondary": "#68dba9",
+                    "on-primary-fixed": "#0f0069",
+                    "on-tertiary": "#68001a",
+                    "on-secondary-container": "#00311f",
+                    "surface-dim": "#051425",
+                    "surface": "#051425",
+                    "secondary-fixed-dim": "#68dba9",
+                    "outline-variant": "#464555",
+                    "on-secondary-fixed": "#002114",
+                    "surface-container-high": "#1d2b3d",
+                    "on-error-container": "#ffdad6",
+                    "on-background": "#d5e3fc",
+                    "on-tertiary-fixed-variant": "#920028",
+                    "background": "#051425"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-desktop": "32px",
+                    "container-max": "1280px",
+                    "gutter": "16px",
+                    "unit": "4px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "data-mono": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                    "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #464555; border-radius: 4px; }
+        body { min-height: max(884px, 100dvh); }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="bg-surface border-b border-outline-variant fixed top-0 w-full z-50">
+<div class="flex justify-between items-center px-margin-mobile h-14 w-full max-w-container-max mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-high border border-outline-variant flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">person</span>
+</div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">AlphaJournal</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors active:opacity-80 transition-opacity text-on-surface-variant">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 w-full max-w-container-max mx-auto pt-20 pb-24 px-margin-mobile md:px-margin-desktop flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">投资军规与 AI 审计</h2>
+<span class="px-2 py-1 bg-surface-container-high rounded text-xs font-data-mono text-outline font-medium tracking-wider">实时审计中</span>
+</div>
+<!-- Section 1: Rules Checklist -->
+<section class="bg-surface-container-low rounded-xl border border-surface-container-highest overflow-hidden flex flex-col">
+<div class="px-4 py-3 border-b border-surface-container-highest bg-surface-container/50">
+<h3 class="font-body-md text-body-md font-semibold text-on-surface">我的核心投资军规</h3>
+</div>
+<div class="flex flex-col p-2 gap-1">
+<!-- Rule 1 (Checked) -->
+<label class="flex items-start gap-3 p-3 rounded-lg hover:bg-surface-container-high/50 transition-colors cursor-pointer group">
+<div class="mt-0.5 flex-shrink-0 w-5 h-5 rounded flex items-center justify-center bg-secondary-container text-on-secondary-container">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="font-body-md text-body-md text-on-surface-variant line-through opacity-70 transition-all group-hover:opacity-100">
+                    单项资产持仓比例绝不超过 20%
+                </span>
+</label>
+<!-- Rule 2 (Checked, Warning) -->
+<label class="flex items-start gap-3 p-3 rounded-lg hover:bg-surface-container-high/50 transition-colors cursor-pointer group bg-surface-container-highest/20">
+<div class="mt-0.5 flex-shrink-0 w-5 h-5 rounded flex items-center justify-center bg-secondary-container text-on-secondary-container">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<span class="font-body-md text-body-md text-tertiary">
+                    若价格跌破 20 日支撑位，无条件执行止损
+                </span>
+</label>
+<!-- Rule 3 (Unchecked, Active) -->
+<label class="flex items-start gap-3 p-3 rounded-lg hover:bg-surface-container-high/50 transition-colors cursor-pointer group bg-surface-container border border-outline-variant/30 relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+<div class="mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 border-outline flex items-center justify-center transition-colors group-hover:border-primary">
+</div>
+<span class="font-body-md text-body-md text-on-surface font-medium">
+                    严禁在情绪高点盲目追涨
+                </span>
+</label>
+</div>
+</section>
+<!-- Section 2: AI Audit Chat -->
+<section class="flex flex-col gap-4 mt-2">
+<h3 class="font-label-md text-label-md text-outline tracking-widest uppercase">AI 决策实时审计</h3>
+<!-- AI Bubble -->
+<div class="flex gap-3 max-w-[95%] md:max-w-[85%]">
+<div class="w-8 h-8 rounded-full bg-surface-bright border border-surface-container-highest flex items-center justify-center flex-shrink-0 mt-1">
+<span class="material-symbols-outlined text-primary text-[18px]">smart_toy</span>
+</div>
+<div class="bg-surface-container rounded-2xl rounded-tl-sm p-4 border border-surface-container-highest relative">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-error text-[18px]">warning</span>
+<span class="font-label-md text-label-md text-error font-bold tracking-wide">系统审计警报</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+                    扫描了您的“2026年4月财报季”报告。发现连续 3 笔交易严重违反了 <strong class="text-primary-fixed">军规 #3（禁止追高）</strong>。这已演变为一种认知习惯，而非偶然失误。
+                    <br/><br/>
+<span class="text-on-surface-variant italic">提问：是您的买入系统需要修正，还是执行层面出了问题？</span>
+</p>
+</div>
+</div>
+<!-- User Actions -->
+<div class="flex flex-col gap-3 pl-11 mt-2">
+<button class="w-full sm:w-auto text-left px-5 py-3 rounded-lg border border-error bg-error-container/10 hover:bg-error-container/20 transition-colors flex items-center justify-between group">
+<span class="font-body-md text-body-md text-error font-medium group-hover:text-error-container">
+                    承认执行偏差，强制锁定错误回顾
+                </span>
+<span class="material-symbols-outlined text-error opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all">arrow_forward</span>
+</button>
+<button class="w-full sm:w-auto text-left px-5 py-3 rounded-lg border border-outline-variant bg-surface-container-low hover:bg-surface-container transition-colors flex items-center justify-between group">
+<span class="font-body-md text-body-md text-on-surface-variant group-hover:text-on-surface">
+                    调整系统参数，修正军规条文
+                </span>
+<span class="material-symbols-outlined text-on-surface-variant opacity-50 group-hover:opacity-100">tune</span>
+</button>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="bg-surface-container border-t border-outline-variant fixed bottom-0 w-full z-50 md:hidden pb-safe">
+<div class="flex justify-between items-center h-16 w-full font-label-md text-label-md">
+<button class="flex-1 flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-95 transition-transform duration-150 h-full gap-1">
+<span class="material-symbols-outlined text-[24px]" data-icon="analytics">analytics</span>
+<span>历史</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-95 transition-transform duration-150 h-full gap-1">
+<span class="material-symbols-outlined text-[24px]" data-icon="candlestick_chart">candlestick_chart</span>
+<span>审计</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors active:scale-95 transition-transform duration-150 h-full gap-1">
+<span class="material-symbols-outlined text-[24px]" data-icon="menu_book">menu_book</span>
+<span>笔记</span>
+</button>
+<div class="flex-1 flex items-center justify-center h-full">
+<button class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active:scale-95 transition-transform duration-150 gap-0.5 shadow-sm">
+<span class="material-symbols-outlined text-[24px]" data-icon="gavel" style="font-variation-settings: 'FILL' 1;">gavel</span>
+<span class="font-semibold">军规</span>
+</button>
+</div>
+</div>
+</nav>
+<!-- Desktop Sidebar -->
+<aside class="hidden md:flex fixed left-0 top-14 bottom-0 w-64 bg-surface-container border-r border-outline-variant flex-col py-6 px-4 gap-2 z-40">
+<button class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors text-left w-full">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md text-body-md">历史</span>
+</button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors text-left w-full">
+<span class="material-symbols-outlined">candlestick_chart</span>
+<span class="font-body-md text-body-md">审计</span>
+</button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-colors text-left w-full">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-body-md text-body-md">笔记</span>
+</button>
+<button class="flex items-center gap-3 px-4 py-3 rounded-lg bg-secondary-container text-on-secondary-container font-medium text-left w-full mt-2 border border-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">gavel</span>
+<span class="font-body-md text-body-md">军规</span>
+</button>
+</aside>
+<!-- Spacer for desktop sidebar layout adjustment -->
+<style>
+    @media (min-width: 768px) {
+        main { margin-left: 16rem; max-width: calc(1280px - 16rem); }
+    }
+</style>
+</body></html>

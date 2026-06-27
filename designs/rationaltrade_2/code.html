@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RationalTrade - 错题本</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-fixed-variant": "#005137",
+                        "background": "#051425",
+                        "surface-tint": "#c3c0ff",
+                        "on-primary": "#1d00a5",
+                        "on-secondary-fixed": "#002114",
+                        "surface-variant": "#283648",
+                        "surface-container": "#122032",
+                        "secondary-container": "#25a475",
+                        "surface-container-highest": "#283648",
+                        "outline-variant": "#464555",
+                        "on-secondary-container": "#00311f",
+                        "secondary": "#68dba9",
+                        "surface-bright": "#2c3a4d",
+                        "secondary-fixed-dim": "#68dba9",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "surface-container-high": "#1d2b3d",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "on-background": "#d5e3fc",
+                        "on-surface-variant": "#c7c4d8",
+                        "surface-container-low": "#0d1c2e",
+                        "primary-container": "#4f46e5",
+                        "on-secondary": "#003825",
+                        "tertiary": "#ffb3b6",
+                        "primary": "#c3c0ff",
+                        "outline": "#918fa1",
+                        "on-tertiary-fixed": "#40000c",
+                        "inverse-on-surface": "#233144",
+                        "tertiary-fixed": "#ffdada",
+                        "error-container": "#93000a",
+                        "error": "#ffb4ab",
+                        "on-tertiary-container": "#ffd0d2",
+                        "on-error-container": "#ffdad6",
+                        "surface-dim": "#051425",
+                        "on-surface": "#d5e3fc",
+                        "surface": "#051425",
+                        "on-primary-fixed": "#0f0069",
+                        "on-primary-container": "#dad7ff",
+                        "tertiary-container": "#c20038",
+                        "inverse-surface": "#d5e3fc",
+                        "on-error": "#690005",
+                        "tertiary-fixed-dim": "#ffb3b6",
+                        "secondary-fixed": "#85f8c4",
+                        "primary-fixed": "#e2dfff",
+                        "inverse-primary": "#4d44e3",
+                        "on-tertiary-fixed-variant": "#920028",
+                        "surface-container-lowest": "#010f20",
+                        "on-tertiary": "#68001a",
+                        "slate-900": "#0f172a",
+                        "slate-950": "#020617",
+                        "slate-800": "#1e293b",
+                        "rose-500": "#f43f5e",
+                        "rose-400": "#fb7185",
+                        "slate-200": "#e2e8f0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "32px",
+                        "gutter": "16px",
+                        "unit": "4px",
+                        "container-max": "1280px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "data-mono": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "data-mono": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #020617; /* slate-950 */
+            color: #d5e3fc; /* on-surface */
+            -webkit-font-smoothing: antialiased;
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-on-surface flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface text-primary dark:text-primary font-headline-sm text-headline-sm-mobile w-full top-0 sticky z-40 flat no shadows text-on-surface dark:text-on-surface transition-colors duration-200 flex justify-between items-center px-margin-mobile py-unit w-full md:px-margin-desktop md:hidden">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">person</span>
+</div>
+<span class="font-headline-md text-headline-md-mobile text-primary dark:text-primary tracking-tight font-extrabold">RationalTrade</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container dark:hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-on-surface">settings</span>
+</button>
+</header>
+<!-- Web Top App Bar -->
+<header class="hidden md:flex bg-surface dark:bg-surface text-primary dark:text-primary font-headline-sm text-headline-sm w-full top-0 sticky z-40 flat no shadows text-on-surface dark:text-on-surface transition-colors duration-200 justify-between items-center px-margin-desktop py-unit w-full">
+<div class="flex items-center gap-4">
+<span class="font-headline-lg text-headline-lg text-primary dark:text-primary tracking-tight font-extrabold">RationalTrade</span>
+</div>
+<nav class="flex gap-8">
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md hover:text-on-surface transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-xl">edit_note</span>
+                记录
+            </a>
+<a class="text-on-surface-variant dark:text-on-surface-variant font-label-md text-label-md hover:text-on-surface transition-colors flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-xl">analytics</span>
+                审计
+            </a>
+<a class="text-on-surface dark:text-on-surface font-label-md text-label-md font-bold flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">auto_stories</span>
+                错题本
+            </a>
+</nav>
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-primary">person</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container dark:hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-on-surface">settings</span>
+</button>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-gutter pb-24 md:pb-8 flex flex-col gap-6">
+<header class="mb-2">
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-1">错题本</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">深入分析亏损原因，优化交易行为模型。</p>
+</header>
+<!-- Top Metrics Grid -->
+<section class="grid grid-cols-2 md:grid-cols-4 gap-gutter">
+<!-- Card 1 -->
+<div class="bg-slate-900 rounded-xl p-4 border border-slate-800 flex flex-col justify-between">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-2">致命错误归因</h3>
+<div>
+<div class="text-[24px] md:text-[28px] font-bold text-rose-400 leading-tight mb-1">#听消息</div>
+<div class="font-label-md text-label-md text-on-surface-variant">占总亏损交易 70%</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-slate-900 rounded-xl p-4 border border-slate-800 flex flex-col justify-between">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-2">冲动交易频次</h3>
+<div>
+<div class="text-[24px] md:text-[28px] font-bold text-slate-200 leading-tight mb-1">12 笔</div>
+<div class="font-label-md text-label-md text-on-surface-variant">未按既定计划执行</div>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-slate-900 rounded-xl p-4 border border-slate-800 flex flex-col justify-between">
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-2">止损执行偏离</h3>
+<div>
+<div class="font-data-mono text-[24px] md:text-[28px] font-bold text-slate-200 leading-tight mb-1">14.2%</div>
+<div class="font-label-md text-label-md text-on-surface-variant">平均延迟离场时间</div>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-slate-900 rounded-xl p-4 border border-rose-500/30 bg-rose-500/5 flex flex-col justify-between relative overflow-hidden">
+<div class="absolute top-0 right-0 p-2 opacity-20">
+<span class="material-symbols-outlined text-4xl text-rose-500">warning</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-2 relative z-10">情绪过热预警</h3>
+<div class="relative z-10">
+<div class="text-[24px] md:text-[28px] font-bold text-rose-400 leading-tight mb-1">高</div>
+<div class="font-label-md text-label-md text-rose-400/80">近期焦虑指数上升</div>
+</div>
+</div>
+</section>
+<!-- List Section -->
+<section class="flex flex-col gap-4 mt-4">
+<div class="flex items-center justify-between border-b border-slate-800 pb-2">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">高频亏损行为流水黑名单</h2>
+<button class="text-primary hover:text-primary-container transition-colors font-label-md text-label-md flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">filter_list</span> 筛选
+                </button>
+</div>
+<div class="flex flex-col gap-3">
+<!-- List Item 1 -->
+<div class="bg-slate-900 rounded-r-xl border border-slate-800 border-l-2 border-l-rose-500 p-4 hover:bg-slate-800 transition-colors cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-body-lg text-body-lg font-semibold text-slate-200">Tencent (0700.HK)</span>
+<span class="bg-rose-500/10 text-rose-400 font-label-md text-label-md px-2 py-0.5 rounded-full border border-rose-500/20">#听消息</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2">盲目听信社群消息买入，未做基本面和技术面交叉验证，导致高位接盘。</p>
+</div>
+<div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-800 gap-2">
+<span class="font-data-mono text-data-mono text-rose-400 font-bold">-HKD 12,450.00</span>
+<span class="font-label-md text-label-md text-outline">2023-10-24</span>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="bg-slate-900 rounded-r-xl border border-slate-800 border-l-2 border-l-rose-500 p-4 hover:bg-slate-800 transition-colors cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-body-lg text-body-lg font-semibold text-slate-200">Meituan (3690.HK)</span>
+<span class="bg-orange-500/10 text-orange-400 font-label-md text-label-md px-2 py-0.5 rounded-full border border-orange-500/20">#冲动交易</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2">盘中急跌时恐慌性抛售，未触及预定止损位，打破交易纪律。</p>
+</div>
+<div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-800 gap-2">
+<span class="font-data-mono text-data-mono text-rose-400 font-bold">-HKD 8,200.00</span>
+<span class="font-label-md text-label-md text-outline">2023-10-18</span>
+</div>
+</div>
+<!-- List Item 3 -->
+<div class="bg-slate-900 rounded-r-xl border border-slate-800 border-l-2 border-l-rose-500 p-4 hover:bg-slate-800 transition-colors cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-body-lg text-body-lg font-semibold text-slate-200">TSLA</span>
+<span class="bg-rose-500/10 text-rose-400 font-label-md text-label-md px-2 py-0.5 rounded-full border border-rose-500/20">#扛单</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-2">财报发布前赌方向，方向错误后拒不认输，导致亏损严重放大。</p>
+</div>
+<div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-800 gap-2">
+<span class="font-data-mono text-data-mono text-rose-400 font-bold">-USD 4,150.00</span>
+<span class="font-label-md text-label-md text-outline">2023-10-12</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden bg-surface-container dark:bg-surface-container fixed bottom-0 w-full z-50 border-t border-outline-variant transition-transform duration-150 flex justify-around items-center h-16 px-gutter pb-safe">
+<button class="flex-1 flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant py-1 hover:bg-surface-container-high dark:hover:bg-surface-container-high rounded-xl transition-colors">
+<span class="material-symbols-outlined mb-1">edit_note</span>
+<span class="font-label-md text-label-md">记录</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant py-1 hover:bg-surface-container-high dark:hover:bg-surface-container-high rounded-xl transition-colors">
+<span class="material-symbols-outlined mb-1">analytics</span>
+<span class="font-label-md text-label-md">审计</span>
+</button>
+<button class="flex-1 flex flex-col items-center justify-center bg-secondary-container dark:bg-secondary-container text-on-secondary-container dark:text-on-secondary-container rounded-xl py-1">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">auto_stories</span>
+<span class="font-label-md text-label-md">错题本</span>
+</button>
+</nav>
+</body></html>

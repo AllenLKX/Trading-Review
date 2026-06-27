@@ -1,0 +1,72 @@
+export type TradeAction = "buy" | "sell" | "observe";
+
+export type TradeSource = "manual" | "ai_screenshot" | "sample";
+
+export type ReviewStatus = "draft" | "confirmed" | "archived";
+
+export type CurrencyCode = "HKD" | "USD" | "CNY" | "EUR" | "JPY" | "GBP";
+
+export type QuantityUnit = "shares" | "units";
+
+export type TradeDecision = {
+  id: string;
+  action: TradeAction;
+  assetName: string;
+  ticker: string;
+  market: string;
+  tradeTime: string;
+  currency: CurrencyCode;
+  price?: number;
+  quantity?: number;
+  quantityUnit?: QuantityUnit;
+  totalAmount?: number;
+  takeProfitPrice?: number;
+  stopLossPrice?: number;
+  decisionReason: string;
+  psychologyNote?: string;
+  emotionTags: string[];
+  strategyTags: string[];
+  source: TradeSource;
+  reviewStatus: ReviewStatus;
+  errorTags: string[];
+  realizedResult?: "profit" | "loss" | "breakeven" | "unknown";
+  profitLoss?: number;
+  violatedRules: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BatchRecognitionItem = {
+  id: string;
+  action: TradeAction;
+  assetName: string;
+  ticker: string;
+  market: string;
+  tradeTime: string;
+  currency: CurrencyCode;
+  price: number;
+  quantity?: number;
+  quantityUnit?: QuantityUnit;
+  totalAmount?: number;
+  sourceImageName: string;
+  confidence: number;
+  psychologyNote: string;
+  emotionTags: string[];
+};
+
+export type AuditReport = {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  title: string;
+  summary: string;
+  signalLabel: string;
+  signalLevel: "stable" | "watch" | "risk";
+  metrics: {
+    emotionHeat: number;
+    delayedExitRate: number;
+    recordCount: number;
+  };
+  findings: string[];
+  createdAt: string;
+};
