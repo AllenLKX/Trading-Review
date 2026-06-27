@@ -69,6 +69,8 @@ export type AuditReport = {
     emotionHeat: number;
     delayedExitRate: number;
     recordCount: number;
+    reviewCoverageRate: number;
+    violationRate: number;
   };
   findings: string[];
   createdAt: string;

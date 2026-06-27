@@ -142,7 +142,9 @@ export const sampleAuditReports: AuditReport[] = [
     metrics: {
       emotionHeat: 65,
       delayedExitRate: 14.2,
-      recordCount: 12
+      recordCount: 12,
+      reviewCoverageRate: 58.3,
+      violationRate: 25
     },
     findings: ["焦虑标签集中出现在卖出前后", "消息刺激类记录的理由较短", "观察记录能减少临时操作"],
     createdAt: "2026-06-07T18:00:00+08:00"
@@ -158,7 +160,9 @@ export const sampleAuditReports: AuditReport[] = [
     metrics: {
       emotionHeat: 42,
       delayedExitRate: 6.8,
-      recordCount: 9
+      recordCount: 9,
+      reviewCoverageRate: 44.4,
+      violationRate: 11.1
     },
     findings: ["记录频率稳定", "止盈止损字段需要更完整"],
     createdAt: "2026-05-07T18:00:00+08:00"

@@ -41,9 +41,11 @@ export function AuditSnapshotCard({ latest, archived }: AuditSnapshotCardProps) 
           {latest.summary}
         </p>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Metric label="记录" value={`${latest.metrics.recordCount} 笔`} />
           <Metric label="犹豫偏差" value={`${latest.metrics.delayedExitRate}%`} />
+          <Metric label="复盘覆盖" value={`${latest.metrics.reviewCoverageRate}%`} />
+          <Metric label="计划偏离" value={`${latest.metrics.violationRate}%`} />
           <Metric label="状态" value={latest.signalLabel} />
         </div>
 
