@@ -8,9 +8,9 @@ import { PlanOperationForm } from "@/features/trades/PlanOperationForm";
 import { PlanReviewForm } from "@/features/trades/PlanReviewForm";
 import { buildRollingAuditReport } from "@/lib/audit-summary";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
-import { sampleAuditReports } from "@/lib/sample-data";
+import { currencyOptions, sampleAuditReports } from "@/lib/sample-data";
 import { buildTradeDataFile, parseTradeDataFile } from "@/lib/trade-data-file";
-import type { PlanReview, TradeOperation, TradePlan } from "@/lib/types";
+import type { CurrencyCode, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
 import { AuditSnapshotCard } from "./AuditSnapshotCard";
 
 type HistoryPageProps = {
@@ -295,6 +295,14 @@ function PlanDetailView({
   onAddReview: (review: PlanReview) => void;
 }) {
   const [entryMode, setEntryMode] = useState<"operation" | "review">("operation");
+  const [isEditingPlan, setIsEditingPlan] = useState(false);
+  const [editTitle, setEditTitle] = useState(plan.title);
+  const [editAssetName, setEditAssetName] = useState(plan.assetName);
+  const [editTicker, setEditTicker] = useState(plan.ticker);
+  const [editMarket, setEditMarket] = useState(plan.market);
+  const [editCurrency, setEditCurrency] = useState<CurrencyCode>(plan.currency);
+  const [editThesis, setEditThesis] = useState(plan.thesis);
+  const [planEditError, setPlanEditError] = useState("");
   const timeline = [
     ...plan.operations.map((operation) => ({ type: "operation" as const, time: operation.tradeTime, item: operation })),
     ...plan.reviews.map((review) => ({ type: "review" as const, time: review.reviewTime, item: review }))
@@ -309,6 +317,37 @@ function PlanDetailView({
   const toggleStatus = () => {
     const now = new Date().toISOString();
     onUpdatePlan({ ...plan, status: plan.status === "active" ? "closed" : "active", updatedAt: now });
+  };
+
+  const startEditingPlan = () => {
+    setEditTitle(plan.title);
+    setEditAssetName(plan.assetName);
+    setEditTicker(plan.ticker);
+    setEditMarket(plan.market);
+    setEditCurrency(plan.currency);
+    setEditThesis(plan.thesis);
+    setPlanEditError("");
+    setIsEditingPlan(true);
+  };
+
+  const savePlanEdits = () => {
+    if (!editTitle.trim() || !editAssetName.trim() || !editThesis.trim()) {
+      setPlanEditError("请补全计划名称、标的和计划假设。");
+      return;
+    }
+
+    onUpdatePlan({
+      ...plan,
+      title: editTitle.trim(),
+      assetName: editAssetName.trim(),
+      ticker: editTicker.trim() || editAssetName.trim(),
+      market: editMarket.trim() || "自选",
+      currency: editCurrency,
+      thesis: editThesis.trim(),
+      updatedAt: new Date().toISOString()
+    });
+    setPlanEditError("");
+    setIsEditingPlan(false);
   };
 
   return (
@@ -346,7 +385,10 @@ function PlanDetailView({
           <DetailMetric label="状态" value={plan.status === "active" ? "进行中" : "已关闭"} />
         </div>
 
-        <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+        <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
+          <button type="button" onClick={startEditingPlan} className="h-10 rounded-xl border border-line bg-background text-xs font-bold text-muted-strong transition active:scale-[0.98]">
+            编辑计划
+          </button>
           <button type="button" onClick={toggleStatus} className="h-10 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]">
             {plan.status === "active" ? "关闭计划" : "重新打开"}
           </button>
@@ -355,6 +397,58 @@ function PlanDetailView({
           </button>
         </div>
       </section>
+
+      {isEditingPlan ? (
+        <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-white">编辑计划</h3>
+            <span className="text-xs font-semibold text-muted">基础信息</span>
+          </div>
+          <label className="space-y-2">
+            <span className="rt-label">计划名称</span>
+            <input className="rt-input" value={editTitle} onChange={(event) => setEditTitle(event.target.value)} />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="space-y-2">
+              <span className="rt-label">标的</span>
+              <input className="rt-input" value={editAssetName} onChange={(event) => setEditAssetName(event.target.value)} />
+            </label>
+            <label className="space-y-2">
+              <span className="rt-label">代码</span>
+              <input className="rt-input" value={editTicker} onChange={(event) => setEditTicker(event.target.value)} />
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="space-y-2">
+              <span className="rt-label">市场</span>
+              <input className="rt-input" value={editMarket} onChange={(event) => setEditMarket(event.target.value)} />
+            </label>
+            <label className="space-y-2">
+              <span className="rt-label">币种</span>
+              <select className="rt-input" value={editCurrency} onChange={(event) => setEditCurrency(event.target.value as CurrencyCode)}>
+                {currencyOptions.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <label className="space-y-2">
+            <span className="rt-label">计划假设</span>
+            <textarea className="rt-input min-h-24 resize-none leading-6" value={editThesis} onChange={(event) => setEditThesis(event.target.value)} />
+          </label>
+          {planEditError ? <p className="text-xs font-semibold text-risk">{planEditError}</p> : null}
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setIsEditingPlan(false)} className="h-11 rounded-xl border border-line bg-background text-xs font-bold text-muted-strong transition active:scale-[0.98]">
+              取消
+            </button>
+            <button type="button" onClick={savePlanEdits} className="h-11 rounded-xl bg-buy text-xs font-bold text-white transition active:scale-[0.98]">
+              保存计划
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
