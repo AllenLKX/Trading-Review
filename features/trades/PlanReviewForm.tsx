@@ -15,7 +15,7 @@ type PlanReviewFormProps = {
 };
 
 export function PlanReviewForm({ plan, onSave }: PlanReviewFormProps) {
-  const [realizedResult, setRealizedResult] = useState<RealizedResult>("unknown");
+  const [realizedResult, setRealizedResult] = useState<RealizedResult>("met");
   const [profitLoss, setProfitLoss] = useState("");
   const [violatedRules, setViolatedRules] = useState<string[]>([]);
   const [reviewNote, setReviewNote] = useState("");
@@ -50,7 +50,7 @@ export function PlanReviewForm({ plan, onSave }: PlanReviewFormProps) {
       updatedAt: now
     });
 
-    setRealizedResult("unknown");
+    setRealizedResult("met");
     setProfitLoss("");
     setViolatedRules([]);
     setReviewNote("");
@@ -72,10 +72,9 @@ export function PlanReviewForm({ plan, onSave }: PlanReviewFormProps) {
             value={realizedResult}
             onChange={setRealizedResult}
             options={[
-              { value: "unknown", label: "待复盘" },
-              { value: "profit", label: "盈利" },
-              { value: "loss", label: "亏损" },
-              { value: "breakeven", label: "持平" }
+              { value: "met", label: "符合预期" },
+              { value: "partial", label: "部分符合" },
+              { value: "missed", label: "不符合预期" }
             ]}
           />
         </div>

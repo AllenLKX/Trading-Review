@@ -8,7 +8,7 @@ export type CurrencyCode = "HKD" | "USD" | "CNY" | "EUR" | "JPY" | "GBP";
 
 export type QuantityUnit = "shares" | "units";
 
-export type RealizedResult = "profit" | "loss" | "breakeven" | "unknown";
+export type RealizedResult = "met" | "partial" | "missed" | "profit" | "loss" | "breakeven" | "unknown";
 
 export type PlanStatus = "active" | "closed" | "archived";
 

@@ -49,13 +49,15 @@ export function buildRollingAuditReport(plans: TradePlan[]): AuditReport {
   const delayedExitRate =
     recentOperations.length > 0 ? Number(((delayedExitCount / recentOperations.length) * 100).toFixed(1)) : 0;
   const violationCount = recentReviews.filter((review) => review.violatedRules.length > 0).length;
-  const lossCount = recentReviews.filter((review) => review.realizedResult === "loss" || (review.profitLoss ?? 0) < 0).length;
+  const missedExpectationCount = recentReviews.filter(
+    (review) => review.realizedResult === "loss" || review.realizedResult === "missed" || (review.profitLoss ?? 0) < 0
+  ).length;
   const reviewCoverageRate =
     recentOperations.length > 0 ? Number(((recentReviews.length / recentOperations.length) * 100).toFixed(1)) : 0;
   const violationRate = recentReviews.length > 0 ? Number(((violationCount / recentReviews.length) * 100).toFixed(1)) : 0;
 
   const signalLevel =
-    emotionHeat >= 60 || delayedExitRate >= 40 || violationRate >= 35 || lossCount >= 3
+    emotionHeat >= 60 || delayedExitRate >= 40 || violationRate >= 35 || missedExpectationCount >= 3
       ? "risk"
       : emotionHeat >= 30 || violationRate >= 15 || reviewCoverageRate < 50
         ? "watch"
@@ -75,7 +77,7 @@ export function buildRollingAuditReport(plans: TradePlan[]): AuditReport {
       delayedExitRate,
       reviewCoverageRate,
       violationRate,
-      lossCount
+      missedExpectationCount
     ),
     signalLabel,
     signalLevel,
@@ -94,7 +96,7 @@ export function buildRollingAuditReport(plans: TradePlan[]): AuditReport {
       delayedExitRate,
       reviewCoverageRate,
       violationRate,
-      lossCount
+      missedExpectationCount
     ),
     createdAt: now.toISOString()
   };
@@ -107,7 +109,7 @@ function buildSummary(
   delayedExitRate: number,
   reviewCoverageRate: number,
   violationRate: number,
-  lossCount: number
+  missedExpectationCount: number
 ) {
   if (operationCount === 0 && reviewCount === 0) {
     return "近 30 天还没有可审计记录。先沉淀几笔操作或复盘，系统才能开始观察行为和情绪模式。";
@@ -117,8 +119,8 @@ function buildSummary(
     return `近 30 天共有 ${operationCount} 次操作和 ${reviewCount} 次复盘，违反计划占比达到 ${violationRate}%。建议优先回看这些记录，区分计划问题和执行问题。`;
   }
 
-  if (lossCount >= 3) {
-    return `近 30 天共有 ${reviewCount} 次复盘，其中 ${lossCount} 次结果偏亏损。建议对照当时理由，检查是否存在重复触发的行为模式。`;
+  if (missedExpectationCount >= 3) {
+    return `近 30 天共有 ${reviewCount} 次复盘，其中 ${missedExpectationCount} 次结果未达预期。建议对照当时理由，检查是否存在重复触发的行为模式。`;
   }
 
   if (emotionHeat >= 60) {
@@ -144,7 +146,7 @@ function buildFindings(
   delayedExitRate: number,
   reviewCoverageRate: number,
   violationRate: number,
-  lossCount: number
+  missedExpectationCount: number
 ) {
   if (operations.length === 0 && reviews.length === 0) {
     return ["暂无近 30 天记录", "保存操作或独立复盘后，这里会自动更新", "审计仅用于行为复盘"];
@@ -177,8 +179,8 @@ function buildFindings(
     `记录来源：手动 ${sourceCounts.manual ?? 0} 次，截图 ${sourceCounts.ai_screenshot ?? 0} 次`
   ];
 
-  if (lossCount > 0) {
-    findings.splice(4, 0, `已复盘亏损结果 ${lossCount} 次`);
+  if (missedExpectationCount > 0) {
+    findings.splice(4, 0, `已复盘未达预期结果 ${missedExpectationCount} 次`);
   }
 
   if (topViolatedRule) {

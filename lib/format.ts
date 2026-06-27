@@ -62,10 +62,13 @@ export function getQuantityUnitLabel(unit: QuantityUnit) {
 
 export function getRealizedResultLabel(result: RealizedResult = "unknown") {
   const labels: Record<RealizedResult, string> = {
+    met: "符合预期",
+    partial: "部分符合",
+    missed: "不符合预期",
     profit: "盈利",
     loss: "亏损",
     breakeven: "持平",
-    unknown: "待复盘"
+    unknown: "旧版待复盘"
   };
 
   return labels[result];

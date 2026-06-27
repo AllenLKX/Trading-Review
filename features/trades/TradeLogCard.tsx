@@ -450,10 +450,9 @@ export function TradeLogCard({ trade, isHighlighted = false, onUpdate, onDelete 
                     setReviewSavedMessage("");
                   }}
                   options={[
-                    { value: "unknown", label: "待复盘" },
-                    { value: "profit", label: "盈利" },
-                    { value: "loss", label: "亏损" },
-                    { value: "breakeven", label: "持平" }
+                    { value: "met", label: "符合预期" },
+                    { value: "partial", label: "部分符合" },
+                    { value: "missed", label: "不符合预期" }
                   ]}
                 />
               </div>
@@ -558,7 +557,7 @@ function buildEditState(trade: TradeDecision): EditState {
 
 function buildReviewState(trade: TradeDecision): ReviewState {
   return {
-    realizedResult: trade.realizedResult ?? "unknown",
+    realizedResult: trade.realizedResult && trade.realizedResult !== "unknown" ? trade.realizedResult : "met",
     profitLoss: typeof trade.profitLoss === "number" ? String(trade.profitLoss) : "",
     violatedRules: trade.violatedRules,
     reviewNote: trade.reviewNote ?? ""
