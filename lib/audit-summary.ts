@@ -1,4 +1,4 @@
-import type { AuditReport, TradeDecision } from "@/lib/types";
+import type { AuditReport, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
 
 const EMOTION_PRESSURE: Record<string, number> = {
   焦虑: 1,
@@ -13,47 +13,46 @@ const EMOTION_COOLING: Record<string, number> = {
   观望: 0.35
 };
 
-export function buildRollingAuditReport(trades: TradeDecision[]): AuditReport {
+export function buildRollingAuditReport(plans: TradePlan[]): AuditReport {
   const now = new Date();
   const periodEnd = formatDate(now);
   const periodStartDate = new Date(now);
   periodStartDate.setDate(periodStartDate.getDate() - 30);
   const periodStart = formatDate(periodStartDate);
 
-  const recentTrades = trades.filter((trade) => {
-    const tradeTime = new Date(trade.tradeTime);
-    return tradeTime >= periodStartDate && tradeTime <= now;
+  const operations = plans.flatMap((plan) => plan.operations);
+  const reviews = plans.flatMap((plan) => plan.reviews);
+  const recentOperations = operations.filter((operation) => {
+    const operationTime = new Date(operation.tradeTime);
+    return operationTime >= periodStartDate && operationTime <= now;
   });
+  const recentReviews = reviews.filter((review) => {
+    const reviewTime = new Date(review.reviewTime);
+    return reviewTime >= periodStartDate && reviewTime <= now;
+  });
+  const emotionEvents = [...recentOperations, ...recentReviews];
 
-  const emotionPressure = recentTrades.reduce((total, trade) => {
-    const pressure = trade.emotionTags.reduce((sum, tag) => sum + (EMOTION_PRESSURE[tag] ?? 0), 0);
-    const cooling = trade.emotionTags.reduce((sum, tag) => sum + (EMOTION_COOLING[tag] ?? 0), 0);
+  const emotionPressure = emotionEvents.reduce((total, event) => {
+    const pressure = event.emotionTags.reduce((sum, tag) => sum + (EMOTION_PRESSURE[tag] ?? 0), 0);
+    const cooling = event.emotionTags.reduce((sum, tag) => sum + (EMOTION_COOLING[tag] ?? 0), 0);
     return total + Math.max(0, pressure - cooling);
   }, 0);
-  const emotionDenominator = Math.max(recentTrades.length, 6);
-  const emotionHeat = recentTrades.length > 0 ? Math.round((emotionPressure / emotionDenominator) * 100) : 0;
-  const delayedExitCount = recentTrades.filter(
-    (trade) =>
-      trade.errorTags.includes("止损执行偏差") ||
-      trade.emotionTags.includes("犹豫") ||
-      trade.emotionTags.includes("纠结") ||
-      trade.decisionReason.includes("犹豫") ||
-      trade.decisionReason.includes("纠结")
+  const emotionDenominator = Math.max(emotionEvents.length, 6);
+  const emotionHeat = emotionEvents.length > 0 ? Math.round((emotionPressure / emotionDenominator) * 100) : 0;
+  const delayedExitCount = recentOperations.filter(
+    (operation) =>
+      operation.emotionTags.includes("犹豫") ||
+      operation.emotionTags.includes("纠结") ||
+      operation.decisionReason.includes("犹豫") ||
+      operation.decisionReason.includes("纠结")
   ).length;
   const delayedExitRate =
-    recentTrades.length > 0 ? Number(((delayedExitCount / recentTrades.length) * 100).toFixed(1)) : 0;
-  const reviewedTrades = recentTrades.filter(
-    (trade) =>
-      trade.realizedResult !== undefined ||
-      typeof trade.profitLoss === "number" ||
-      trade.violatedRules.length > 0 ||
-      Boolean(trade.reviewNote)
-  );
-  const violationCount = recentTrades.filter((trade) => trade.violatedRules.length > 0).length;
-  const lossCount = recentTrades.filter((trade) => trade.realizedResult === "loss" || (trade.profitLoss ?? 0) < 0).length;
+    recentOperations.length > 0 ? Number(((delayedExitCount / recentOperations.length) * 100).toFixed(1)) : 0;
+  const violationCount = recentReviews.filter((review) => review.violatedRules.length > 0).length;
+  const lossCount = recentReviews.filter((review) => review.realizedResult === "loss" || (review.profitLoss ?? 0) < 0).length;
   const reviewCoverageRate =
-    recentTrades.length > 0 ? Number(((reviewedTrades.length / recentTrades.length) * 100).toFixed(1)) : 0;
-  const violationRate = recentTrades.length > 0 ? Number(((violationCount / recentTrades.length) * 100).toFixed(1)) : 0;
+    recentOperations.length > 0 ? Number(((recentReviews.length / recentOperations.length) * 100).toFixed(1)) : 0;
+  const violationRate = recentReviews.length > 0 ? Number(((violationCount / recentReviews.length) * 100).toFixed(1)) : 0;
 
   const signalLevel =
     emotionHeat >= 60 || delayedExitRate >= 40 || violationRate >= 35 || lossCount >= 3
@@ -69,76 +68,96 @@ export function buildRollingAuditReport(trades: TradeDecision[]): AuditReport {
     periodStart,
     periodEnd,
     title: "近 30 天系统智能审计",
-    summary: buildSummary(recentTrades.length, emotionHeat, delayedExitRate, reviewCoverageRate, violationRate, lossCount),
+    summary: buildSummary(
+      recentOperations.length,
+      recentReviews.length,
+      emotionHeat,
+      delayedExitRate,
+      reviewCoverageRate,
+      violationRate,
+      lossCount
+    ),
     signalLabel,
     signalLevel,
     metrics: {
       emotionHeat,
       delayedExitRate,
-      recordCount: recentTrades.length,
+      recordCount: recentOperations.length + recentReviews.length,
       reviewCoverageRate,
       violationRate
     },
-    findings: buildFindings(recentTrades, emotionPressure, delayedExitRate, reviewCoverageRate, violationRate, lossCount),
+    findings: buildFindings(
+      plans,
+      recentOperations,
+      recentReviews,
+      emotionPressure,
+      delayedExitRate,
+      reviewCoverageRate,
+      violationRate,
+      lossCount
+    ),
     createdAt: now.toISOString()
   };
 }
 
 function buildSummary(
-  recordCount: number,
+  operationCount: number,
+  reviewCount: number,
   emotionHeat: number,
   delayedExitRate: number,
   reviewCoverageRate: number,
   violationRate: number,
   lossCount: number
 ) {
-  if (recordCount === 0) {
-    return "近 30 天还没有可审计记录。先沉淀几笔决策，系统才能开始观察行为和情绪模式。";
+  if (operationCount === 0 && reviewCount === 0) {
+    return "近 30 天还没有可审计记录。先沉淀几笔操作或复盘，系统才能开始观察行为和情绪模式。";
   }
 
   if (violationRate >= 35) {
-    return `近 30 天共有 ${recordCount} 笔记录，违反计划占比达到 ${violationRate}%。建议优先回看这些记录，区分计划问题和执行问题。`;
+    return `近 30 天共有 ${operationCount} 次操作和 ${reviewCount} 次复盘，违反计划占比达到 ${violationRate}%。建议优先回看这些记录，区分计划问题和执行问题。`;
   }
 
   if (lossCount >= 3) {
-    return `近 30 天共有 ${recordCount} 笔记录，其中 ${lossCount} 笔复盘结果偏亏损。建议对照当时理由，检查是否存在重复触发的行为模式。`;
+    return `近 30 天共有 ${reviewCount} 次复盘，其中 ${lossCount} 次结果偏亏损。建议对照当时理由，检查是否存在重复触发的行为模式。`;
   }
 
   if (emotionHeat >= 60) {
-    return `近 30 天共有 ${recordCount} 笔记录，情绪热度偏高。建议复盘这些记录中，哪些操作来自原计划，哪些来自临场压力或错过感。`;
+    return `近 30 天共有 ${operationCount} 次操作和 ${reviewCount} 次复盘，情绪热度偏高。建议复盘哪些动作来自原计划，哪些来自临场压力或错过感。`;
   }
 
   if (delayedExitRate >= 40) {
-    return `近 30 天共有 ${recordCount} 笔记录，犹豫或止损执行偏差出现较集中。建议重点回看原计划与实际动作之间的差异。`;
+    return `近 30 天共有 ${operationCount} 次操作，犹豫或止损执行偏差出现较集中。建议重点回看原计划与实际动作之间的差异。`;
   }
 
-  if (reviewCoverageRate < 50) {
-    return `近 30 天共有 ${recordCount} 笔记录，事后复盘覆盖率为 ${reviewCoverageRate}%。建议先补齐实际结果和执行偏差，再判断行为趋势。`;
+  if (operationCount > 0 && reviewCoverageRate < 50) {
+    return `近 30 天共有 ${operationCount} 次操作，独立复盘覆盖率为 ${reviewCoverageRate}%。建议先补齐实际结果和执行偏差，再判断行为趋势。`;
   }
 
-  return `近 30 天共有 ${recordCount} 笔记录，目前情绪标签分布相对平稳。可以继续保持记录密度，等待更完整的周期样本。`;
+  return `近 30 天共有 ${operationCount} 次操作和 ${reviewCount} 次复盘，目前情绪标签分布相对平稳。可以继续保持记录密度，等待更完整的周期样本。`;
 }
 
 function buildFindings(
-  trades: TradeDecision[],
+  plans: TradePlan[],
+  operations: TradeOperation[],
+  reviews: PlanReview[],
   emotionPressure: number,
   delayedExitRate: number,
   reviewCoverageRate: number,
   violationRate: number,
   lossCount: number
 ) {
-  if (trades.length === 0) {
-    return ["暂无近 30 天记录", "保存手动记录或归档截图识别结果后，这里会自动更新", "审计仅用于行为复盘"];
+  if (operations.length === 0 && reviews.length === 0) {
+    return ["暂无近 30 天记录", "保存操作或独立复盘后，这里会自动更新", "审计仅用于行为复盘"];
   }
 
-  const sourceCounts = trades.reduce(
-    (counts, trade) => {
-      counts[trade.source] = (counts[trade.source] ?? 0) + 1;
+  const sourceCounts = operations.reduce(
+    (counts, operation) => {
+      counts[operation.source] = (counts[operation.source] ?? 0) + 1;
       return counts;
     },
-    {} as Record<TradeDecision["source"], number>
+    {} as Record<TradeOperation["source"], number>
   );
-  const violatedRuleCounts = trades.flatMap((trade) => trade.violatedRules).reduce(
+  const violatedRuleCounts = reviews.flatMap((review) => review.violatedRules).reduce(
     (counts, rule) => {
       counts[rule] = (counts[rule] ?? 0) + 1;
       return counts;
@@ -146,22 +165,24 @@ function buildFindings(
     {} as Record<string, number>
   );
   const topViolatedRule = Object.entries(violatedRuleCounts).sort((left, right) => right[1] - left[1])[0];
+  const activePlanCount = plans.filter((plan) => plan.status === "active").length;
 
   const findings = [
-    `近 30 天已确认 ${trades.length} 笔记录`,
+    `当前共有 ${plans.length} 个计划，其中 ${activePlanCount} 个进行中`,
+    `近 30 天新增 ${operations.length} 次操作、${reviews.length} 次复盘`,
     `净情绪压力分 ${Number(emotionPressure.toFixed(1))}`,
     `犹豫或止损执行偏差占比 ${delayedExitRate}%`,
-    `事后复盘覆盖率 ${reviewCoverageRate}%`,
+    `独立复盘覆盖率 ${reviewCoverageRate}%`,
     `违反计划占比 ${violationRate}%`,
-    `记录来源：手动 ${sourceCounts.manual ?? 0} 笔，截图 ${sourceCounts.ai_screenshot ?? 0} 笔`
+    `记录来源：手动 ${sourceCounts.manual ?? 0} 次，截图 ${sourceCounts.ai_screenshot ?? 0} 次`
   ];
 
   if (lossCount > 0) {
-    findings.splice(3, 0, `已复盘亏损记录 ${lossCount} 笔`);
+    findings.splice(4, 0, `已复盘亏损结果 ${lossCount} 次`);
   }
 
   if (topViolatedRule) {
-    findings.splice(4, 0, `最常见违反计划标签：${topViolatedRule[0]} ${topViolatedRule[1]} 次`);
+    findings.splice(5, 0, `最常见违反计划标签：${topViolatedRule[0]} ${topViolatedRule[1]} 次`);
   }
 
   return findings;

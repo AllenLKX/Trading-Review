@@ -5,48 +5,52 @@ import { BottomTabBar, type AppTab } from "@/components/BottomTabBar";
 import { TopAppBar } from "@/components/TopAppBar";
 import { HistoryPage } from "@/features/audits/HistoryPage";
 import { RecordPage } from "@/features/trades/RecordPage";
-import { useTradeDecisions } from "@/lib/use-trade-decisions";
-import type { TradeDecision } from "@/lib/types";
+import { useTradePlans } from "@/lib/use-trade-plans";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<AppTab>("record");
   const {
-    trades,
-    highlightedTradeId,
-    saveTrade,
-    archiveBatch,
-    updateTrade,
-    deleteTrade,
-    replaceTrades,
-    clearTrades,
-    restoreSampleTrades
-  } =
-    useTradeDecisions();
-
-  const handleSaveTrade = (trade: TradeDecision) => {
-    saveTrade(trade);
-    setActiveTab("history");
-  };
-
-  const handleArchiveBatch = (nextTrades: TradeDecision[]) => {
-    archiveBatch(nextTrades);
-    setActiveTab("history");
-  };
+    plans,
+    selectedPlanId,
+    highlightedPlanId,
+    setSelectedPlanId,
+    createPlan,
+    updatePlan,
+    deletePlan,
+    addOperation,
+    addReview,
+    replacePlans,
+    clearPlans,
+    restoreSamplePlans
+  } = useTradePlans();
 
   return (
     <div className="min-h-dvh bg-background text-muted-strong">
       <TopAppBar />
       {activeTab === "record" ? (
-        <RecordPage onSaveTrade={handleSaveTrade} onArchiveBatch={handleArchiveBatch} />
+        <RecordPage
+          plans={plans}
+          selectedPlanId={selectedPlanId}
+          onSelectPlan={setSelectedPlanId}
+          onCreatePlan={createPlan}
+          onAddOperation={(operation) => {
+            addOperation(operation);
+            setActiveTab("history");
+          }}
+          onAddReview={(review) => {
+            addReview(review);
+            setActiveTab("history");
+          }}
+        />
       ) : (
         <HistoryPage
-          trades={trades}
-          highlightedTradeId={highlightedTradeId}
-          onUpdateTrade={updateTrade}
-          onDeleteTrade={deleteTrade}
-          onReplaceTrades={replaceTrades}
-          onClearTrades={clearTrades}
-          onRestoreSamples={restoreSampleTrades}
+          plans={plans}
+          highlightedPlanId={highlightedPlanId}
+          onUpdatePlan={updatePlan}
+          onDeletePlan={deletePlan}
+          onReplacePlans={replacePlans}
+          onClearPlans={clearPlans}
+          onRestoreSamples={restoreSamplePlans}
         />
       )}
       <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />

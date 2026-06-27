@@ -1,3 +1,4 @@
+import { migrateTradesToPlans } from "@/lib/plan-migration";
 import type { AuditReport, BatchRecognitionItem, TradeDecision } from "@/lib/types";
 
 export const emotionOptions = ["冷静", "焦虑", "兴奋", "犹豫", "纠结", "不甘心", "观望"];
@@ -91,6 +92,8 @@ export const sampleTrades: TradeDecision[] = [
     updatedAt: "2026-06-04T09:47:00+08:00"
   }
 ];
+
+export const samplePlans = migrateTradesToPlans(sampleTrades);
 
 export const sampleBatchItems: BatchRecognitionItem[] = [
   {

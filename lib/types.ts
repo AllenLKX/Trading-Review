@@ -10,6 +10,58 @@ export type QuantityUnit = "shares" | "units";
 
 export type RealizedResult = "profit" | "loss" | "breakeven" | "unknown";
 
+export type PlanStatus = "active" | "closed" | "archived";
+
+export type TradeOperation = {
+  id: string;
+  planId: string;
+  action: TradeAction;
+  tradeTime: string;
+  currency: CurrencyCode;
+  price?: number;
+  quantity?: number;
+  quantityUnit?: QuantityUnit;
+  totalAmount?: number;
+  takeProfitPrice?: number;
+  stopLossPrice?: number;
+  decisionReason: string;
+  psychologyNote?: string;
+  emotionTags: string[];
+  strategyTags: string[];
+  source: TradeSource;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PlanReview = {
+  id: string;
+  planId: string;
+  reviewTime: string;
+  operationIds?: string[];
+  realizedResult: RealizedResult;
+  profitLoss?: number;
+  violatedRules: string[];
+  reviewNote: string;
+  emotionTags: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TradePlan = {
+  id: string;
+  title: string;
+  assetName: string;
+  ticker: string;
+  market: string;
+  currency: CurrencyCode;
+  status: PlanStatus;
+  thesis: string;
+  operations: TradeOperation[];
+  reviews: PlanReview[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TradeDecision = {
   id: string;
   action: TradeAction;
@@ -40,10 +92,11 @@ export type TradeDecision = {
 };
 
 export type TradeDataFile = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   exportedAt: string;
   source: "rationaltrade-local";
-  trades: TradeDecision[];
+  plans: TradePlan[];
+  trades?: TradeDecision[];
 };
 
 export type BatchRecognitionItem = {

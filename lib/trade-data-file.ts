@@ -1,40 +1,70 @@
-import type { TradeDataFile, TradeDecision } from "@/lib/types";
+import { migrateTradesToPlans } from "@/lib/plan-migration";
+import type { TradeDataFile, TradeDecision, TradePlan } from "@/lib/types";
 
 const TRADE_DATA_SOURCE = "rationaltrade-local";
 
-export function buildTradeDataFile(trades: TradeDecision[]): TradeDataFile {
+export function buildTradeDataFile(plans: TradePlan[]): TradeDataFile {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     exportedAt: new Date().toISOString(),
     source: TRADE_DATA_SOURCE,
-    trades
+    plans
   };
 }
 
-export function parseTradeDataFile(rawText: string): TradeDecision[] {
+export function parseTradeDataFile(rawText: string): TradePlan[] {
   const parsed = JSON.parse(rawText) as unknown;
-  const trades = Array.isArray(parsed) ? parsed : getTradesFromDataFile(parsed);
 
-  if (!Array.isArray(trades)) {
-    throw new Error("文件里没有可导入的历史记录。");
+  if (Array.isArray(parsed)) {
+    return migrateTradesToPlans(parsed.filter(isTradeDecisionLike));
   }
 
-  const validTrades = trades.filter(isTradeDecisionLike);
+  const data = getDataObject(parsed);
+  const plans = Array.isArray(data?.plans) ? data.plans : null;
 
-  if (validTrades.length === 0) {
-    throw new Error("没有找到有效的交易记录。");
+  if (plans) {
+    const validPlans = plans.filter(isTradePlanLike);
+    if (validPlans.length > 0) {
+      return validPlans;
+    }
   }
 
-  return validTrades;
+  const trades = Array.isArray(data?.trades) ? data.trades : null;
+
+  if (trades) {
+    const validTrades = trades.filter(isTradeDecisionLike);
+    if (validTrades.length > 0) {
+      return migrateTradesToPlans(validTrades);
+    }
+  }
+
+  throw new Error("没有找到有效的计划或旧版交易记录。");
 }
 
-function getTradesFromDataFile(value: unknown) {
+function getDataObject(value: unknown) {
   if (!value || typeof value !== "object") {
     return null;
   }
 
-  const dataFile = value as Partial<TradeDataFile>;
-  return dataFile.trades;
+  return value as Partial<TradeDataFile>;
+}
+
+function isTradePlanLike(value: unknown): value is TradePlan {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const plan = value as Partial<TradePlan>;
+
+  return (
+    typeof plan.id === "string" &&
+    typeof plan.title === "string" &&
+    typeof plan.assetName === "string" &&
+    typeof plan.ticker === "string" &&
+    typeof plan.currency === "string" &&
+    Array.isArray(plan.operations) &&
+    Array.isArray(plan.reviews)
+  );
 }
 
 function isTradeDecisionLike(value: unknown): value is TradeDecision {
