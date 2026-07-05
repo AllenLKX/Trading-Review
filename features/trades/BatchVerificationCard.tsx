@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ChipGroup } from "@/components/ChipGroup";
 import { emotionOptions } from "@/lib/sample-data";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone } from "@/lib/format";
-import type { BatchRecognitionItem } from "@/lib/types";
+import type { BatchRecognitionItem, QuantityUnit } from "@/lib/types";
 
 type BatchVerificationCardProps = {
   item: BatchRecognitionItem;
@@ -20,9 +20,13 @@ export function BatchVerificationCard({ item, defaultOpen = false, onChange, onR
   const updateItem = (patch: Partial<BatchRecognitionItem>) => {
     const nextItem = { ...item, ...patch };
 
-    if (patch.price !== undefined || patch.quantity !== undefined) {
+    if (patch.price !== undefined || patch.quantity !== undefined || patch.quantityUnit !== undefined) {
       nextItem.totalAmount =
-        typeof nextItem.price === "number" && typeof nextItem.quantity === "number"
+        nextItem.action === "observe"
+          ? undefined
+          : nextItem.quantityUnit === "units"
+            ? nextItem.quantity
+            : typeof nextItem.price === "number" && typeof nextItem.quantity === "number"
           ? nextItem.price * nextItem.quantity
           : undefined;
     }
@@ -30,7 +34,16 @@ export function BatchVerificationCard({ item, defaultOpen = false, onChange, onR
     onChange(nextItem);
   };
 
-  const localDateTime = item.tradeTime.slice(0, 16);
+  const localDateTime = (() => {
+    const date = new Date(item.tradeTime);
+
+    if (Number.isNaN(date.getTime())) {
+      return item.tradeTime.slice(0, 16);
+    }
+
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+    return localDate.toISOString().slice(0, 16);
+  })();
   const getFieldClassName = (isInvalid: boolean, extra = "") =>
     `rt-input ${isInvalid ? "border-risk bg-sell/15 ring-2 ring-risk/60" : ""} ${extra}`.trim();
   const isAssetNameInvalid = !item.assetName.trim();
@@ -102,7 +115,21 @@ export function BatchVerificationCard({ item, defaultOpen = false, onChange, onR
             </label>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {item.action !== "observe" ? (
+            <label className="space-y-2">
+              <span className="rt-label">数量单位</span>
+              <select
+                className="rt-input"
+                value={item.quantityUnit ?? "shares"}
+                onChange={(event) => updateItem({ quantityUnit: event.target.value as QuantityUnit, quantity: undefined, totalAmount: undefined })}
+              >
+                <option value="shares">股数</option>
+                <option value="units">份额</option>
+              </select>
+            </label>
+          ) : null}
+
+          <div className={item.action === "observe" ? "grid grid-cols-1 gap-3" : "grid grid-cols-2 gap-3"}>
             <label className="space-y-2">
               <span className="rt-label">价格 · {item.currency}</span>
               <input
@@ -115,25 +142,30 @@ export function BatchVerificationCard({ item, defaultOpen = false, onChange, onR
               {isPriceInvalid ? <p className="text-xs font-semibold text-risk">请填写有效价格。</p> : null}
             </label>
 
-            <label className="space-y-2">
-              <span className="rt-label">股数</span>
-              <input
-                aria-invalid={isQuantityInvalid}
-                className={getFieldClassName(isQuantityInvalid, "text-right tabular-nums")}
-                inputMode="decimal"
-                value={item.quantity ?? ""}
-                onChange={(event) => updateItem({ quantity: Number(event.target.value) || undefined })}
-              />
-              {isQuantityInvalid ? <p className="text-xs font-semibold text-risk">请填写股数。</p> : null}
-            </label>
+            {item.action !== "observe" ? (
+              <label className="space-y-2">
+                <span className="rt-label">{item.quantityUnit === "units" ? "份额" : "股数"}</span>
+                <input
+                  aria-invalid={isQuantityInvalid}
+                  className={getFieldClassName(isQuantityInvalid, "text-right tabular-nums")}
+                  inputMode="decimal"
+                  placeholder={item.quantityUnit === "units" ? `${item.currency} 0.00` : "0"}
+                  value={item.quantity ?? ""}
+                  onChange={(event) => updateItem({ quantity: Number(event.target.value) || undefined })}
+                />
+                {isQuantityInvalid ? <p className="text-xs font-semibold text-risk">{item.quantityUnit === "units" ? "请填写份额金额。" : "请填写股数。"}</p> : null}
+              </label>
+            ) : null}
           </div>
 
-          <div className="rounded-xl border border-line bg-background p-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="rt-label">归档金额</span>
-              <span className="font-bold tabular-nums text-white">{formatCurrency(item.totalAmount, item.currency)}</span>
+          {item.action !== "observe" ? (
+            <div className="rounded-xl border border-line bg-background p-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="rt-label">归档金额</span>
+                <span className="font-bold tabular-nums text-white">{formatCurrency(item.totalAmount, item.currency)}</span>
+              </div>
             </div>
-          </div>
+          ) : null}
 
           <label className="space-y-2">
             <span className="rt-label">心理活动补充</span>

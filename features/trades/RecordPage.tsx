@@ -7,8 +7,9 @@ import { currencyOptions } from "@/lib/sample-data";
 import type { CurrencyCode, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
 import { PlanOperationForm } from "./PlanOperationForm";
 import { PlanReviewForm } from "./PlanReviewForm";
+import { ScreenshotUploadPanel } from "./ScreenshotUploadPanel";
 
-type RecordMode = "operation" | "review";
+type RecordMode = "operation" | "review" | "screenshot";
 
 type RecordPageProps = {
   plans: TradePlan[];
@@ -30,6 +31,7 @@ export function RecordPage({
   onAddReview
 }: RecordPageProps) {
   const [mode, setMode] = useState<RecordMode>("operation");
+  const [showRecognized, setShowRecognized] = useState(false);
   const [showPlanForm, setShowPlanForm] = useState(plans.length === 0);
   const [title, setTitle] = useState("");
   const [assetName, setAssetName] = useState("");
@@ -184,16 +186,31 @@ export function RecordPage({
         <>
           <SegmentedControl
             value={mode}
-            onChange={setMode}
+            onChange={(nextMode) => {
+              setMode(nextMode);
+              if (nextMode !== "screenshot") {
+                setShowRecognized(false);
+              }
+            }}
             options={[
               { value: "operation", label: "添加操作" },
-              { value: "review", label: "添加复盘" }
+              { value: "review", label: "添加复盘" },
+              { value: "screenshot", label: "截图补账" }
             ]}
           />
           {mode === "operation" ? (
             <PlanOperationForm plan={selectedPlan} onSave={onAddOperation} />
-          ) : (
+          ) : mode === "review" ? (
             <PlanReviewForm plan={selectedPlan} onSave={onAddReview} />
+          ) : (
+            <ScreenshotUploadPanel
+              plans={plans}
+              showRecognized={showRecognized}
+              onShowRecognized={() => setShowRecognized(true)}
+              onReset={() => setShowRecognized(false)}
+              onCreatePlan={onCreatePlan}
+              onArchive={(operations) => operations.forEach(onAddOperation)}
+            />
           )}
         </>
       ) : (

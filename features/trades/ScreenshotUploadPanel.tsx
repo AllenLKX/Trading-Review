@@ -4,20 +4,24 @@ import { useState } from "react";
 import { Archive, ImagePlus, RotateCcw } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { sampleBatchItems } from "@/lib/sample-data";
-import type { BatchRecognitionItem, TradeDecision } from "@/lib/types";
+import type { BatchRecognitionItem, TradeOperation, TradePlan } from "@/lib/types";
 import { BatchVerificationCard } from "./BatchVerificationCard";
 
 type ScreenshotUploadPanelProps = {
+  plans: TradePlan[];
   showRecognized: boolean;
   onShowRecognized: () => void;
   onReset: () => void;
-  onArchive: (trades: TradeDecision[]) => void;
+  onCreatePlan: (plan: TradePlan) => void;
+  onArchive: (operations: TradeOperation[]) => void;
 };
 
 export function ScreenshotUploadPanel({
+  plans,
   showRecognized,
   onShowRecognized,
   onReset,
+  onCreatePlan,
   onArchive
 }: ScreenshotUploadPanelProps) {
   const [recognizedItems, setRecognizedItems] = useState<BatchRecognitionItem[]>(sampleBatchItems);
@@ -41,6 +45,32 @@ export function ScreenshotUploadPanel({
     setRecognizedItems((currentItems) => currentItems.filter((item) => item.id !== id));
   };
 
+  const findMatchingPlan = (item: BatchRecognitionItem, nextPlans: TradePlan[]) =>
+    nextPlans.find(
+      (plan) =>
+        plan.ticker.trim().toLowerCase() === item.ticker.trim().toLowerCase() ||
+        plan.assetName.trim().toLowerCase() === item.assetName.trim().toLowerCase()
+    );
+
+  const createPlanFromItem = (item: BatchRecognitionItem, archiveId: number, index: number) => {
+    const now = new Date().toISOString();
+
+    return {
+      id: `plan-${item.id}-${archiveId}-${index}`,
+      title: `${item.assetName} 截图补账计划`,
+      assetName: item.assetName.trim(),
+      ticker: item.ticker.trim() || item.assetName.trim(),
+      market: item.market.trim() || "自选",
+      currency: item.currency,
+      status: "active" as const,
+      thesis: "由截图识别补账自动建立，后续可在计划详情中补充完整计划假设。",
+      operations: [],
+      reviews: [],
+      createdAt: now,
+      updatedAt: now
+    };
+  };
+
   const archiveBatch = () => {
     const invalidItem = recognizedItems.find(
       (item) =>
@@ -57,33 +87,39 @@ export function ScreenshotUploadPanel({
 
     const now = new Date().toISOString();
     const archiveId = Date.now();
+    const nextPlans = [...plans];
+    const createdPlans: TradePlan[] = [];
+    const operations: TradeOperation[] = recognizedItems.map((item, index) => {
+      let matchedPlan = findMatchingPlan(item, nextPlans);
 
-    onArchive(
-      recognizedItems.map((item) => ({
-        id: `trade-${item.id}-${archiveId}`,
+      if (!matchedPlan) {
+        matchedPlan = createPlanFromItem(item, archiveId, index);
+        nextPlans.push(matchedPlan);
+        createdPlans.push(matchedPlan);
+      }
+
+      return {
+        id: `operation-${item.id}-${archiveId}`,
+        planId: matchedPlan.id,
         action: item.action,
-        assetName: item.assetName,
-        ticker: item.ticker,
-        market: item.market,
         tradeTime: item.tradeTime,
         currency: item.currency,
         price: item.price,
         quantity: item.quantity,
         quantityUnit: item.quantityUnit,
         totalAmount: item.totalAmount,
-        decisionReason: "来自截图识别结果，用户已确认并归档。",
+        decisionReason: "截图识别补账，用户已逐笔确认。",
         psychologyNote: item.psychologyNote,
         emotionTags: item.emotionTags,
         strategyTags: ["截图补账"],
         source: "ai_screenshot",
-        reviewStatus: "archived",
-        errorTags: [],
-        realizedResult: "unknown",
-        violatedRules: [],
         createdAt: now,
         updatedAt: now
-      }))
-    );
+      };
+    });
+
+    createdPlans.forEach(onCreatePlan);
+    onArchive(operations);
 
     resetRecognition();
   };
@@ -105,7 +141,7 @@ export function ScreenshotUploadPanel({
       <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
         <p className="text-sm font-bold text-primary-soft">识别到 {recognizedItems.length} 笔交易</p>
         <p className="mt-1 text-xs leading-5 text-muted">
-          请逐笔确认时间、标的、价格，并补写当时心理活动。未经确认的数据不会进入历史记录。
+          请逐笔确认时间、标的、价格，并补写当时心理活动。归档时会挂到同标的计划；没有匹配计划时会自动创建截图计划。
         </p>
       </div>
 
