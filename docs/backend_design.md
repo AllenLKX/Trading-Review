@@ -553,6 +553,166 @@ API 回归：
 - 重新 `pnpm build`
 - 重启服务
 
+## 10.4 服务器性能不够时如何迁移
+
+迁移目标是：
+
+- 应用代码可以重新部署
+- 数据库可以备份恢复
+- 截图文件不绑死在旧服务器
+- 域名可以切换到新服务器
+- 旧服务器保留一段时间作为回滚
+
+### 优先级 1：同一台服务器直接升级
+
+如果只是 CPU、内存不够，优先看腾讯云是否支持当前 CVM 升配。
+
+适合：
+
+- 数据量还小
+- 只是构建慢或运行内存偏紧
+- 不想迁移 IP 和环境
+
+流程：
+
+1. 在腾讯云控制台创建快照或镜像
+2. 停机升配 CPU/内存
+3. 启动后检查 Nginx、PM2、PostgreSQL
+4. 访问生产域名做冒烟测试
+
+优点：
+
+- 最简单
+- 不需要迁移数据库
+- 域名和部署目录基本不变
+
+### 优先级 2：购买新 CVM 后迁移应用和数据库
+
+适合：
+
+- 当前机器规格太低
+- 需要换系统盘、地域、可用区
+- 希望用一台新机器重新整理环境
+
+迁移前准备：
+
+- 确认当前线上 commit
+- 备份 `.env.production`
+- 备份 PostgreSQL
+- 记录 Nginx 配置
+- 记录 PM2 进程名
+- 确认 COS 文件不在本地磁盘
+
+数据库备份：
+
+```bash
+pg_dump "$DATABASE_URL" > rationaltrade_backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+新服务器恢复：
+
+```bash
+createdb rationaltrade
+psql rationaltrade < rationaltrade_backup.sql
+```
+
+应用迁移：
+
+```bash
+ssh ubuntu@NEW_SERVER_IP
+sudo mkdir -p /var/www/rationaltrade
+sudo chown -R ubuntu:ubuntu /var/www/rationaltrade
+cd /var/www/rationaltrade
+git clone git@github.com:AllenLKX/Trading-Review.git .
+git checkout main
+pnpm install --frozen-lockfile
+pnpm build
+pm2 start pnpm --name rationaltrade -- start
+```
+
+Nginx 迁移：
+
+- 复制旧服务器站点配置
+- 修改 upstream 到新本地端口
+- 重新申请或迁移 HTTPS 证书
+- `nginx -t`
+- reload Nginx
+
+域名切换：
+
+1. 新服务器完整部署
+2. 用 `http://NEW_SERVER_IP` 或临时域名验证
+3. 修改 DNS A 记录指向新服务器 IP
+4. 保留旧服务器至少 24-72 小时
+
+### 优先级 3：数据库拆出去
+
+如果瓶颈主要来自数据库，或者希望后续迁移服务器更轻松，可以把 PostgreSQL 从 CVM 拆到独立数据库。
+
+可选：
+
+- 腾讯云数据库 PostgreSQL
+- 自建独立 PostgreSQL CVM
+
+优点：
+
+- 应用服务器以后可以随时换
+- 数据迁移频率降低
+- 备份和监控更清晰
+
+代价：
+
+- 成本更高
+- 网络和权限配置更复杂
+- 需要管理数据库白名单或内网连接
+
+### COS 不随 CVM 迁移
+
+截图文件后续应放腾讯云 COS，而不是服务器本地磁盘。
+
+迁移服务器时只迁移：
+
+- 应用代码
+- 环境变量
+- 数据库
+- Nginx/PM2 配置
+
+不迁移：
+
+- 截图文件本体
+
+数据库里只保存 COS object key，不保存本地路径。
+
+### 迁移后的验证清单
+
+- 生产域名可访问
+- `/api/health` 返回 OK
+- `/api/audit` 返回正常
+- 登录状态正常
+- 计划列表可读
+- 创建计划可写
+- 添加操作和复盘可写
+- 审计归档可写
+- 导出 JSON 正常
+- 截图上传和读取正常
+- Nginx HTTPS 正常
+- PM2 重启后服务自动恢复
+
+### 回滚策略
+
+迁移完成后不要立刻释放旧服务器。
+
+保留旧服务器 24-72 小时。
+
+如果新服务器异常：
+
+1. DNS A 记录切回旧服务器 IP
+2. 停止新服务器写入
+3. 对比迁移期间是否产生新数据
+4. 必要时从新库导出增量再合并
+
+为了降低回滚复杂度，正式切 DNS 前应尽量短时间冻结写入或选择低使用时段迁移。
+
 ## 11. 关键风险
 
 - 过早做复杂同步会拖慢 MVP
