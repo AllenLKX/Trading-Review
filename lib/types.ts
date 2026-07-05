@@ -96,6 +96,7 @@ export type TradeDataFile = {
   exportedAt: string;
   source: "rationaltrade-local";
   plans: TradePlan[];
+  auditReports?: AuditReport[];
   trades?: TradeDecision[];
 };
 

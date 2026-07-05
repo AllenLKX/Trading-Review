@@ -152,7 +152,7 @@ export function HistoryPage({
   };
 
   const exportPlans = () => {
-    const dataFile = buildTradeDataFile(plans);
+    const dataFile = buildTradeDataFile(plans, userArchivedAudits);
     const blob = new Blob([JSON.stringify(dataFile, null, 2)], { type: "application/json" });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -175,16 +175,33 @@ export function HistoryPage({
 
     try {
       const text = await file.text();
-      const nextPlans = parseTradeDataFile(text);
+      const importedData = parseTradeDataFile(text);
 
       if (plans.length > 0 && !window.confirm(`导入会替换当前 ${plans.length} 个本地计划，确认继续吗？`)) {
         return;
       }
 
-      onReplacePlans(nextPlans);
-      setDataMessage(`已导入 ${nextPlans.length} 个计划。`);
+      onReplacePlans(importedData.plans);
+      setUserArchivedAudits(importedData.auditReports);
+      setDataMessage(`已导入 ${importedData.plans.length} 个计划和 ${importedData.auditReports.length} 条审计归档。`);
     } catch (error) {
       setDataMessage(error instanceof Error ? error.message : "导入失败，请检查 JSON 文件。");
+    }
+  };
+
+  const deleteArchivedAudit = (reportId: string) => {
+    setUserArchivedAudits((current) => current.filter((report) => report.id !== reportId));
+    setDataMessage("已删除审计归档。");
+  };
+
+  const clearArchivedAudits = () => {
+    if (userArchivedAudits.length === 0) {
+      return;
+    }
+
+    if (window.confirm(`确认清空 ${userArchivedAudits.length} 条审计归档吗？计划和操作记录不会被删除。`)) {
+      setUserArchivedAudits([]);
+      setDataMessage("已清空审计归档。");
     }
   };
 
@@ -220,6 +237,9 @@ export function HistoryPage({
         isRefreshing={isAuditRefreshing}
         onRefresh={() => refreshAudit()}
         onArchive={archiveCurrentAudit}
+        canManageArchives={userArchivedAudits.length > 0}
+        onDeleteArchive={deleteArchivedAudit}
+        onClearArchives={clearArchivedAudits}
       />
 
       {dataMessage ? <p className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-muted-strong">{dataMessage}</p> : null}

@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from "react";
-import { Archive, Brain, ChevronDown, RefreshCw } from "lucide-react";
+import { Archive, Brain, ChevronDown, RefreshCw, Trash2 } from "lucide-react";
 import type { AuditReport } from "@/lib/types";
 
 type AuditSnapshotCardProps = {
@@ -8,9 +8,21 @@ type AuditSnapshotCardProps = {
   isRefreshing: boolean;
   onRefresh: () => void;
   onArchive: () => void;
+  canManageArchives: boolean;
+  onDeleteArchive: (reportId: string) => void;
+  onClearArchives: () => void;
 };
 
-export function AuditSnapshotCard({ latest, archived, isRefreshing, onRefresh, onArchive }: AuditSnapshotCardProps) {
+export function AuditSnapshotCard({
+  latest,
+  archived,
+  isRefreshing,
+  onRefresh,
+  onArchive,
+  canManageArchives,
+  onDeleteArchive,
+  onClearArchives
+}: AuditSnapshotCardProps) {
   const [openSection, setOpenSection] = useState<"details" | "questions" | "aiInput" | "history" | null>(null);
   const heatTone =
     latest.signalLevel === "risk"
@@ -99,12 +111,36 @@ export function AuditSnapshotCard({ latest, archived, isRefreshing, onRefresh, o
 
       <CollapsibleSection title="历史审计快照归档" isOpen={openSection === "history"} onToggle={() => toggleSection("history")}>
         <div className="space-y-2">
+          {canManageArchives ? (
+            <button
+              type="button"
+              onClick={onClearArchives}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-sell/40 bg-sell/10 text-xs font-bold text-risk transition active:scale-[0.98]"
+            >
+              <Trash2 className="h-4 w-4" />
+              清空审计归档
+            </button>
+          ) : null}
           {archived.map((report) => (
             <div key={report.id} className="rounded-xl border border-line bg-surface-soft p-3">
-              <p className="text-sm font-bold text-white">{report.title}</p>
-              <p className="mt-1 text-xs text-muted">
-                {report.periodStart} 至 {report.periodEnd} · {report.signalLabel}
-              </p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-white">{report.title}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {report.periodStart} 至 {report.periodEnd} · {report.signalLabel}
+                  </p>
+                </div>
+                {canManageArchives ? (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteArchive(report.id)}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98]"
+                    aria-label="删除审计归档"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                ) : null}
+              </div>
               <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-strong">{report.summary}</p>
             </div>
           ))}

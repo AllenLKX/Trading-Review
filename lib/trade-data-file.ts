@@ -1,31 +1,44 @@
 import { migrateTradesToPlans } from "@/lib/plan-migration";
-import type { TradeDataFile, TradeDecision, TradePlan } from "@/lib/types";
+import type { AuditReport, TradeDataFile, TradeDecision, TradePlan } from "@/lib/types";
 
 const TRADE_DATA_SOURCE = "rationaltrade-local";
 
-export function buildTradeDataFile(plans: TradePlan[]): TradeDataFile {
+export type ParsedTradeDataFile = {
+  plans: TradePlan[];
+  auditReports: AuditReport[];
+};
+
+export function buildTradeDataFile(plans: TradePlan[], auditReports: AuditReport[] = []): TradeDataFile {
   return {
     schemaVersion: 2,
     exportedAt: new Date().toISOString(),
     source: TRADE_DATA_SOURCE,
-    plans
+    plans,
+    auditReports
   };
 }
 
-export function parseTradeDataFile(rawText: string): TradePlan[] {
+export function parseTradeDataFile(rawText: string): ParsedTradeDataFile {
   const parsed = JSON.parse(rawText) as unknown;
 
   if (Array.isArray(parsed)) {
-    return migrateTradesToPlans(parsed.filter(isTradeDecisionLike));
+    return {
+      plans: migrateTradesToPlans(parsed.filter(isTradeDecisionLike)),
+      auditReports: []
+    };
   }
 
   const data = getDataObject(parsed);
   const plans = Array.isArray(data?.plans) ? data.plans : null;
+  const auditReports = Array.isArray(data?.auditReports) ? data.auditReports.filter(isAuditReportLike) : [];
 
   if (plans) {
     const validPlans = plans.filter(isTradePlanLike);
-    if (validPlans.length > 0) {
-      return validPlans;
+    if (plans.length === 0 || validPlans.length > 0) {
+      return {
+        plans: validPlans,
+        auditReports
+      };
     }
   }
 
@@ -34,11 +47,34 @@ export function parseTradeDataFile(rawText: string): TradePlan[] {
   if (trades) {
     const validTrades = trades.filter(isTradeDecisionLike);
     if (validTrades.length > 0) {
-      return migrateTradesToPlans(validTrades);
+      return {
+        plans: migrateTradesToPlans(validTrades),
+        auditReports
+      };
     }
   }
 
   throw new Error("没有找到有效的计划或旧版交易记录。");
+}
+
+function isAuditReportLike(value: unknown): value is AuditReport {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const report = value as Partial<AuditReport>;
+
+  return (
+    typeof report.id === "string" &&
+    typeof report.periodStart === "string" &&
+    typeof report.periodEnd === "string" &&
+    typeof report.title === "string" &&
+    typeof report.summary === "string" &&
+    typeof report.signalLabel === "string" &&
+    Array.isArray(report.findings) &&
+    Array.isArray(report.aiInputDigest) &&
+    Array.isArray(report.reviewQuestions)
+  );
 }
 
 function getDataObject(value: unknown) {
