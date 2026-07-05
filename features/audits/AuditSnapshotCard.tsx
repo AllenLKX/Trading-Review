@@ -5,9 +5,11 @@ import type { AuditReport } from "@/lib/types";
 type AuditSnapshotCardProps = {
   latest: AuditReport;
   archived: AuditReport[];
+  isRefreshing: boolean;
+  onRefresh: () => void;
 };
 
-export function AuditSnapshotCard({ latest, archived }: AuditSnapshotCardProps) {
+export function AuditSnapshotCard({ latest, archived, isRefreshing, onRefresh }: AuditSnapshotCardProps) {
   const [openSection, setOpenSection] = useState<"details" | "questions" | "aiInput" | "history" | null>(null);
   const heatTone =
     latest.signalLevel === "risk"
@@ -27,8 +29,8 @@ export function AuditSnapshotCard({ latest, archived }: AuditSnapshotCardProps) 
           <Brain className="h-5 w-5 text-primary-soft" />
           <h2 className="text-lg font-bold text-white">{latest.title}</h2>
         </div>
-        <button type="button" aria-label="刷新审计" className="rounded-full p-2 text-muted active:bg-surface-raised">
-          <RefreshCw className="h-4 w-4" />
+        <button type="button" onClick={onRefresh} aria-label="刷新审计" className="rounded-full p-2 text-muted active:bg-surface-raised">
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin text-primary-soft" : ""}`} />
         </button>
       </div>
 

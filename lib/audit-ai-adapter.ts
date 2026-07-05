@@ -10,6 +10,12 @@ export type AuditAiRequest = {
   inputDigest: string[];
 };
 
+export type AuditApiResponse = {
+  report: AuditReport;
+  aiRequest: AuditAiRequest;
+  source: "mock-local";
+};
+
 export function buildAuditReport(plans: TradePlan[]): AuditReport {
   return buildRollingAuditReport(plans);
 }
@@ -23,4 +29,21 @@ export function buildAuditAiRequest(report: AuditReport): AuditAiRequest {
     },
     inputDigest: report.aiInputDigest
   };
+}
+
+export async function requestAuditReport(plans: TradePlan[], signal?: AbortSignal): Promise<AuditApiResponse> {
+  const response = await fetch("/api/audit", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ plans }),
+    signal
+  });
+
+  if (!response.ok) {
+    throw new Error("审计接口暂时不可用。");
+  }
+
+  return response.json() as Promise<AuditApiResponse>;
 }

@@ -1,12 +1,12 @@
 "use client";
 
-import { type ChangeEvent, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Download, FileSearch, Pencil, Search, Trash2, Upload } from "lucide-react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
 import { PlanOperationForm } from "@/features/trades/PlanOperationForm";
 import { PlanReviewForm } from "@/features/trades/PlanReviewForm";
-import { buildAuditReport } from "@/lib/audit-ai-adapter";
+import { buildAuditReport, requestAuditReport } from "@/lib/audit-ai-adapter";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
 import { currencyOptions, sampleAuditReports } from "@/lib/sample-data";
 import { buildTradeDataFile, parseTradeDataFile } from "@/lib/trade-data-file";
@@ -41,7 +41,8 @@ export function HistoryPage({
   const [selectedDetailPlanId, setSelectedDetailPlanId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [, ...archivedAudits] = sampleAuditReports;
-  const latestAudit = buildAuditReport(plans);
+  const [latestAudit, setLatestAudit] = useState(() => buildAuditReport(plans));
+  const [isAuditRefreshing, setIsAuditRefreshing] = useState(false);
   const normalizedQuery = query.trim().toLowerCase();
   const filteredPlans = useMemo(
     () =>
@@ -74,6 +75,34 @@ export function HistoryPage({
     [normalizedQuery, plans]
   );
   const selectedDetailPlan = plans.find((plan) => plan.id === selectedDetailPlanId) ?? null;
+
+  const refreshAudit = async (signal?: AbortSignal) => {
+    const fallbackReport = buildAuditReport(plans);
+    setLatestAudit(fallbackReport);
+    setIsAuditRefreshing(true);
+
+    try {
+      const response = await requestAuditReport(plans, signal);
+      if (!signal?.aborted) {
+        setLatestAudit(response.report);
+      }
+    } catch {
+      if (!signal?.aborted) {
+        setLatestAudit(fallbackReport);
+      }
+    } finally {
+      if (!signal?.aborted) {
+        setIsAuditRefreshing(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    refreshAudit(controller.signal);
+
+    return () => controller.abort();
+  }, [plans]);
 
   const confirmClearPlans = () => {
     if (plans.length === 0) {
@@ -149,7 +178,7 @@ export function HistoryPage({
         </p>
       </div>
 
-      <AuditSnapshotCard latest={latestAudit} archived={archivedAudits} />
+      <AuditSnapshotCard latest={latestAudit} archived={archivedAudits} isRefreshing={isAuditRefreshing} onRefresh={() => refreshAudit()} />
 
       <section className="space-y-3">
         <div className="space-y-3">
