@@ -1,3 +1,4 @@
+import { type ReactNode, useState } from "react";
 import { Brain, ChevronDown, RefreshCw } from "lucide-react";
 import type { AuditReport } from "@/lib/types";
 
@@ -7,12 +8,17 @@ type AuditSnapshotCardProps = {
 };
 
 export function AuditSnapshotCard({ latest, archived }: AuditSnapshotCardProps) {
+  const [openSection, setOpenSection] = useState<"details" | "questions" | "aiInput" | "history" | null>(null);
   const heatTone =
     latest.signalLevel === "risk"
       ? "border-sell/40 bg-sell/10 text-risk"
       : latest.signalLevel === "watch"
         ? "border-primary/40 bg-primary/10 text-primary-soft"
         : "border-buy/40 bg-buy/10 text-emerald-200";
+
+  const toggleSection = (section: NonNullable<typeof openSection>) => {
+    setOpenSection((current) => (current === section ? null : section));
+  };
 
   return (
     <section className="overflow-hidden rounded-2xl border border-primary/30 bg-surface shadow-glow">
@@ -43,12 +49,16 @@ export function AuditSnapshotCard({ latest, archived }: AuditSnapshotCardProps) 
 
         <div className="grid grid-cols-2 gap-2">
           <Metric label="记录" value={`${latest.metrics.recordCount} 笔`} />
-          <Metric label="犹豫偏差" value={`${latest.metrics.delayedExitRate}%`} />
           <Metric label="复盘覆盖" value={`${latest.metrics.reviewCoverageRate}%`} />
+        </div>
+      </div>
+
+      <CollapsibleSection title="审计细节" isOpen={openSection === "details"} onToggle={() => toggleSection("details")}>
+        <div className="grid grid-cols-2 gap-2">
+          <Metric label="犹豫偏差" value={`${latest.metrics.delayedExitRate}%`} />
           <Metric label="计划偏离" value={`${latest.metrics.violationRate}%`} />
           <Metric label="状态" value={latest.signalLabel} />
         </div>
-
         <div className="space-y-2 rounded-2xl bg-background p-3">
           {latest.findings.map((finding) => (
             <div key={finding} className="flex gap-2 text-sm text-muted-strong">
@@ -57,39 +67,30 @@ export function AuditSnapshotCard({ latest, archived }: AuditSnapshotCardProps) 
             </div>
           ))}
         </div>
+      </CollapsibleSection>
 
-        <div className="rounded-2xl border border-line bg-background p-3">
-          <p className="text-xs font-bold text-muted">复盘追问</p>
-          <div className="mt-2 space-y-2">
-            {latest.reviewQuestions.map((question) => (
-              <p key={question} className="text-sm leading-6 text-muted-strong">
-                {question}
-              </p>
-            ))}
-          </div>
+      <CollapsibleSection title="复盘追问" isOpen={openSection === "questions"} onToggle={() => toggleSection("questions")}>
+        <div className="space-y-2 rounded-2xl border border-line bg-background p-3">
+          {latest.reviewQuestions.map((question) => (
+            <p key={question} className="text-sm leading-6 text-muted-strong">
+              {question}
+            </p>
+          ))}
         </div>
-      </div>
+      </CollapsibleSection>
 
-      <details className="border-t border-line">
-        <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-sm font-bold text-muted-strong">
-          AI 输入摘要
-          <ChevronDown className="h-4 w-4" />
-        </summary>
-        <div className="space-y-2 bg-background/55 p-4 pt-0">
+      <CollapsibleSection title="AI 输入摘要" isOpen={openSection === "aiInput"} onToggle={() => toggleSection("aiInput")}>
+        <div className="space-y-2">
           {latest.aiInputDigest.map((line) => (
             <div key={line} className="rounded-xl border border-line bg-surface-soft p-3 text-xs leading-5 text-muted-strong">
               {line}
             </div>
           ))}
         </div>
-      </details>
+      </CollapsibleSection>
 
-      <details className="border-t border-line">
-        <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-sm font-bold text-muted-strong">
-          历史审计快照归档
-          <ChevronDown className="h-4 w-4" />
-        </summary>
-        <div className="space-y-2 bg-background/55 p-4 pt-0">
+      <CollapsibleSection title="历史审计快照归档" isOpen={openSection === "history"} onToggle={() => toggleSection("history")}>
+        <div className="space-y-2">
           {archived.map((report) => (
             <div key={report.id} className="rounded-xl border border-line bg-surface-soft p-3">
               <p className="text-sm font-bold text-white">{report.title}</p>
@@ -99,8 +100,35 @@ export function AuditSnapshotCard({ latest, archived }: AuditSnapshotCardProps) 
             </div>
           ))}
         </div>
-      </details>
+      </CollapsibleSection>
     </section>
+  );
+}
+
+function CollapsibleSection({
+  title,
+  isOpen,
+  onToggle,
+  children
+}: {
+  title: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-t border-line">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="flex w-full items-center justify-between p-4 text-left text-sm font-bold text-muted-strong transition active:bg-surface-raised"
+      >
+        {title}
+        <ChevronDown className={`h-4 w-4 transition ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      {isOpen ? <div className="space-y-3 bg-background/55 p-4 pt-0">{children}</div> : null}
+    </div>
   );
 }
 

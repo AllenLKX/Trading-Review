@@ -6,7 +6,7 @@ import { SegmentedControl } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
 import { PlanOperationForm } from "@/features/trades/PlanOperationForm";
 import { PlanReviewForm } from "@/features/trades/PlanReviewForm";
-import { buildRollingAuditReport } from "@/lib/audit-summary";
+import { buildAuditReport } from "@/lib/audit-ai-adapter";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
 import { currencyOptions, sampleAuditReports } from "@/lib/sample-data";
 import { buildTradeDataFile, parseTradeDataFile } from "@/lib/trade-data-file";
@@ -41,7 +41,7 @@ export function HistoryPage({
   const [selectedDetailPlanId, setSelectedDetailPlanId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [, ...archivedAudits] = sampleAuditReports;
-  const latestAudit = buildRollingAuditReport(plans);
+  const latestAudit = buildAuditReport(plans);
   const normalizedQuery = query.trim().toLowerCase();
   const filteredPlans = useMemo(
     () =>
