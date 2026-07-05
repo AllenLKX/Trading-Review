@@ -10,8 +10,10 @@ import { buildAuditReport, requestAuditReport } from "@/lib/audit-ai-adapter";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
 import { currencyOptions, sampleAuditReports } from "@/lib/sample-data";
 import { buildTradeDataFile, parseTradeDataFile } from "@/lib/trade-data-file";
-import type { CurrencyCode, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
+import type { AuditReport, CurrencyCode, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
 import { AuditSnapshotCard } from "./AuditSnapshotCard";
+
+const AUDIT_ARCHIVE_STORAGE_KEY = "rationaltrade.auditReports.v1";
 
 type HistoryPageProps = {
   plans: TradePlan[];
@@ -40,7 +42,9 @@ export function HistoryPage({
   const [dataMessage, setDataMessage] = useState("");
   const [selectedDetailPlanId, setSelectedDetailPlanId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [, ...archivedAudits] = sampleAuditReports;
+  const [, ...sampleArchivedAudits] = sampleAuditReports;
+  const [userArchivedAudits, setUserArchivedAudits] = useState<AuditReport[]>([]);
+  const [isAuditArchiveHydrated, setIsAuditArchiveHydrated] = useState(false);
   const [latestAudit, setLatestAudit] = useState(() => buildAuditReport(plans));
   const [isAuditRefreshing, setIsAuditRefreshing] = useState(false);
   const normalizedQuery = query.trim().toLowerCase();
@@ -75,6 +79,7 @@ export function HistoryPage({
     [normalizedQuery, plans]
   );
   const selectedDetailPlan = plans.find((plan) => plan.id === selectedDetailPlanId) ?? null;
+  const archivedAudits = userArchivedAudits.length > 0 ? userArchivedAudits : sampleArchivedAudits;
 
   const refreshAudit = async (signal?: AbortSignal) => {
     const fallbackReport = buildAuditReport(plans);
@@ -103,6 +108,37 @@ export function HistoryPage({
 
     return () => controller.abort();
   }, [plans]);
+
+  useEffect(() => {
+    try {
+      const rawReports = window.localStorage.getItem(AUDIT_ARCHIVE_STORAGE_KEY);
+      const parsedReports = rawReports ? (JSON.parse(rawReports) as AuditReport[]) : [];
+      setUserArchivedAudits(Array.isArray(parsedReports) ? parsedReports : []);
+    } finally {
+      setIsAuditArchiveHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAuditArchiveHydrated) {
+      return;
+    }
+
+    window.localStorage.setItem(AUDIT_ARCHIVE_STORAGE_KEY, JSON.stringify(userArchivedAudits));
+  }, [isAuditArchiveHydrated, userArchivedAudits]);
+
+  const archiveCurrentAudit = () => {
+    const now = new Date().toISOString();
+    const archivedReport: AuditReport = {
+      ...latestAudit,
+      id: `audit-archive-${Date.now()}`,
+      title: "归档审计快照",
+      createdAt: now
+    };
+
+    setUserArchivedAudits((current) => [archivedReport, ...current].slice(0, 20));
+    setDataMessage("已归档当前审计快照。");
+  };
 
   const confirmClearPlans = () => {
     if (plans.length === 0) {
@@ -178,7 +214,15 @@ export function HistoryPage({
         </p>
       </div>
 
-      <AuditSnapshotCard latest={latestAudit} archived={archivedAudits} isRefreshing={isAuditRefreshing} onRefresh={() => refreshAudit()} />
+      <AuditSnapshotCard
+        latest={latestAudit}
+        archived={archivedAudits}
+        isRefreshing={isAuditRefreshing}
+        onRefresh={() => refreshAudit()}
+        onArchive={archiveCurrentAudit}
+      />
+
+      {dataMessage ? <p className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-muted-strong">{dataMessage}</p> : null}
 
       <section className="space-y-3">
         <div className="space-y-3">
@@ -209,8 +253,6 @@ export function HistoryPage({
             </button>
             <input ref={fileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={importPlans} />
           </div>
-
-          {dataMessage ? <p className="rounded-xl border border-line bg-background px-3 py-2 text-xs font-semibold text-muted-strong">{dataMessage}</p> : null}
 
           <label className="relative block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />

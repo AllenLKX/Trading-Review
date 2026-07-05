@@ -1,5 +1,5 @@
 import { type ReactNode, useState } from "react";
-import { Brain, ChevronDown, RefreshCw } from "lucide-react";
+import { Archive, Brain, ChevronDown, RefreshCw } from "lucide-react";
 import type { AuditReport } from "@/lib/types";
 
 type AuditSnapshotCardProps = {
@@ -7,9 +7,10 @@ type AuditSnapshotCardProps = {
   archived: AuditReport[];
   isRefreshing: boolean;
   onRefresh: () => void;
+  onArchive: () => void;
 };
 
-export function AuditSnapshotCard({ latest, archived, isRefreshing, onRefresh }: AuditSnapshotCardProps) {
+export function AuditSnapshotCard({ latest, archived, isRefreshing, onRefresh, onArchive }: AuditSnapshotCardProps) {
   const [openSection, setOpenSection] = useState<"details" | "questions" | "aiInput" | "history" | null>(null);
   const heatTone =
     latest.signalLevel === "risk"
@@ -29,9 +30,14 @@ export function AuditSnapshotCard({ latest, archived, isRefreshing, onRefresh }:
           <Brain className="h-5 w-5 text-primary-soft" />
           <h2 className="text-lg font-bold text-white">{latest.title}</h2>
         </div>
-        <button type="button" onClick={onRefresh} aria-label="刷新审计" className="rounded-full p-2 text-muted active:bg-surface-raised">
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin text-primary-soft" : ""}`} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={onArchive} aria-label="归档当前审计" className="rounded-full p-2 text-muted active:bg-surface-raised">
+            <Archive className="h-4 w-4" />
+          </button>
+          <button type="button" onClick={onRefresh} aria-label="刷新审计" className="rounded-full p-2 text-muted active:bg-surface-raised">
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin text-primary-soft" : ""}`} />
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4 p-4">
@@ -99,6 +105,7 @@ export function AuditSnapshotCard({ latest, archived, isRefreshing, onRefresh }:
               <p className="mt-1 text-xs text-muted">
                 {report.periodStart} 至 {report.periodEnd} · {report.signalLabel}
               </p>
+              <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-strong">{report.summary}</p>
             </div>
           ))}
         </div>
