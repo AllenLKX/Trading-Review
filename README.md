@@ -44,6 +44,20 @@ http://localhost:3000
 
 当前版本仍是本地存储闭环，不建议立刻上传生产服务器。等 Backend M1 骨架完成、`pnpm build` 通过、生产环境变量清单明确后，再做第一次腾讯云部署。
 
+部署前复制环境变量模板：
+
+```bash
+cp .env.example .env.production
+```
+
+健康检查接口：
+
+```text
+/api/health
+```
+
+它只验证 Next.js 服务是否正常运行，不访问用户数据、数据库、AI 或 COS。
+
 ## 数据说明
 
 当前数据保存在浏览器本地存储中。

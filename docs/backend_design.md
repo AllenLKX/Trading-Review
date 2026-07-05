@@ -405,7 +405,7 @@ API：
 - 已有 `.env.production` 所需变量清单
 - Next.js 可以 `pnpm build`
 - Ubuntu 上 Node.js、pnpm、Nginx、PM2 已就绪
-- 至少有一个 `/api/health` 或同等健康检查接口
+- 已有 `/api/health` 健康检查接口
 
 目的：
 
@@ -531,7 +531,7 @@ H5 回归：
 API 回归：
 
 - `/api/audit` 返回 `AuditReport`
-- 后续新增 `/api/health` 后，确认返回 OK
+- `/api/health` 返回 OK
 - 后续云端 API 完成后，逐个确认增删改查
 
 发布步骤：
