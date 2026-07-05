@@ -190,6 +190,10 @@ export function HistoryPage({
   };
 
   const deleteArchivedAudit = (reportId: string) => {
+    if (!window.confirm("确认删除这条审计归档吗？计划和操作记录不会被删除。")) {
+      return;
+    }
+
     setUserArchivedAudits((current) => current.filter((report) => report.id !== reportId));
     setDataMessage("已删除审计归档。");
   };

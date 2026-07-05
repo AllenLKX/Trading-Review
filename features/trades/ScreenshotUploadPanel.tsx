@@ -41,6 +41,10 @@ export function ScreenshotUploadPanel({
   };
 
   const removeRecognizedItem = (id: string) => {
+    if (!window.confirm("确认移除这条识别结果吗？移除后不会归档。")) {
+      return;
+    }
+
     setArchiveError("");
     setRecognizedItems((currentItems) => currentItems.filter((item) => item.id !== id));
   };
