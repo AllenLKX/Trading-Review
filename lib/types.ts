@@ -132,6 +132,8 @@ export type AuditReport = {
     reviewCoverageRate: number;
     violationRate: number;
   };
+  aiInputDigest: string[];
   findings: string[];
+  reviewQuestions: string[];
   createdAt: string;
 };

@@ -57,7 +57,32 @@ export function AuditSnapshotCard({ latest, archived }: AuditSnapshotCardProps) 
             </div>
           ))}
         </div>
+
+        <div className="rounded-2xl border border-line bg-background p-3">
+          <p className="text-xs font-bold text-muted">复盘追问</p>
+          <div className="mt-2 space-y-2">
+            {latest.reviewQuestions.map((question) => (
+              <p key={question} className="text-sm leading-6 text-muted-strong">
+                {question}
+              </p>
+            ))}
+          </div>
+        </div>
       </div>
+
+      <details className="border-t border-line">
+        <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-sm font-bold text-muted-strong">
+          AI 输入摘要
+          <ChevronDown className="h-4 w-4" />
+        </summary>
+        <div className="space-y-2 bg-background/55 p-4 pt-0">
+          {latest.aiInputDigest.map((line) => (
+            <div key={line} className="rounded-xl border border-line bg-surface-soft p-3 text-xs leading-5 text-muted-strong">
+              {line}
+            </div>
+          ))}
+        </div>
+      </details>
 
       <details className="border-t border-line">
         <summary className="flex cursor-pointer list-none items-center justify-between p-4 text-sm font-bold text-muted-strong">

@@ -55,6 +55,10 @@ export function buildRollingAuditReport(plans: TradePlan[]): AuditReport {
   const reviewCoverageRate =
     recentOperations.length > 0 ? Number(((recentReviews.length / recentOperations.length) * 100).toFixed(1)) : 0;
   const violationRate = recentReviews.length > 0 ? Number(((violationCount / recentReviews.length) * 100).toFixed(1)) : 0;
+  const sourceCounts = countBy(recentOperations, (operation) => operation.source);
+  const topEmotions = topEntries(countTags(emotionEvents.flatMap((event) => event.emotionTags)), 3);
+  const topStrategies = topEntries(countTags(recentOperations.flatMap((operation) => operation.strategyTags)), 3);
+  const topViolations = topEntries(countTags(recentReviews.flatMap((review) => review.violatedRules)), 3);
 
   const signalLevel =
     emotionHeat >= 60 || delayedExitRate >= 40 || violationRate >= 35 || missedExpectationCount >= 3
@@ -88,6 +92,17 @@ export function buildRollingAuditReport(plans: TradePlan[]): AuditReport {
       reviewCoverageRate,
       violationRate
     },
+    aiInputDigest: buildAiInputDigest({
+      plans,
+      operations: recentOperations,
+      reviews: recentReviews,
+      sourceCounts,
+      topEmotions,
+      topStrategies,
+      topViolations,
+      periodStart,
+      periodEnd
+    }),
     findings: buildFindings(
       plans,
       recentOperations,
@@ -96,8 +111,21 @@ export function buildRollingAuditReport(plans: TradePlan[]): AuditReport {
       delayedExitRate,
       reviewCoverageRate,
       violationRate,
-      missedExpectationCount
+      missedExpectationCount,
+      sourceCounts,
+      topViolations
     ),
+    reviewQuestions: buildReviewQuestions({
+      recentOperations,
+      recentReviews,
+      emotionHeat,
+      delayedExitRate,
+      reviewCoverageRate,
+      violationRate,
+      topEmotions,
+      topStrategies,
+      topViolations
+    }),
     createdAt: now.toISOString()
   };
 }
@@ -146,27 +174,15 @@ function buildFindings(
   delayedExitRate: number,
   reviewCoverageRate: number,
   violationRate: number,
-  missedExpectationCount: number
+  missedExpectationCount: number,
+  sourceCounts: Record<string, number>,
+  topViolations: Array<[string, number]>
 ) {
   if (operations.length === 0 && reviews.length === 0) {
     return ["暂无近 30 天记录", "保存操作或独立复盘后，这里会自动更新", "审计仅用于行为复盘"];
   }
 
-  const sourceCounts = operations.reduce(
-    (counts, operation) => {
-      counts[operation.source] = (counts[operation.source] ?? 0) + 1;
-      return counts;
-    },
-    {} as Record<TradeOperation["source"], number>
-  );
-  const violatedRuleCounts = reviews.flatMap((review) => review.violatedRules).reduce(
-    (counts, rule) => {
-      counts[rule] = (counts[rule] ?? 0) + 1;
-      return counts;
-    },
-    {} as Record<string, number>
-  );
-  const topViolatedRule = Object.entries(violatedRuleCounts).sort((left, right) => right[1] - left[1])[0];
+  const topViolatedRule = topViolations[0];
   const activePlanCount = plans.filter((plan) => plan.status === "active").length;
 
   const findings = [
@@ -188,6 +204,143 @@ function buildFindings(
   }
 
   return findings;
+}
+
+function buildAiInputDigest({
+  plans,
+  operations,
+  reviews,
+  sourceCounts,
+  topEmotions,
+  topStrategies,
+  topViolations,
+  periodStart,
+  periodEnd
+}: {
+  plans: TradePlan[];
+  operations: TradeOperation[];
+  reviews: PlanReview[];
+  sourceCounts: Record<string, number>;
+  topEmotions: Array<[string, number]>;
+  topStrategies: Array<[string, number]>;
+  topViolations: Array<[string, number]>;
+  periodStart: string;
+  periodEnd: string;
+}) {
+  const recentEventLines = buildRecentEventLines(plans, operations, reviews);
+
+  return [
+    `审计周期：${periodStart} 至 ${periodEnd}`,
+    `计划概况：共 ${plans.length} 个计划，进行中 ${plans.filter((plan) => plan.status === "active").length} 个`,
+    `记录概况：${operations.length} 次操作，${reviews.length} 次复盘`,
+    `来源概况：手动 ${sourceCounts.manual ?? 0} 次，截图 ${sourceCounts.ai_screenshot ?? 0} 次`,
+    `高频情绪：${formatTopEntries(topEmotions)}`,
+    `高频策略：${formatTopEntries(topStrategies)}`,
+    `违反计划：${formatTopEntries(topViolations)}`,
+    ...recentEventLines
+  ];
+}
+
+function buildRecentEventLines(plans: TradePlan[], operations: TradeOperation[], reviews: PlanReview[]) {
+  const planNameById = new Map(plans.map((plan) => [plan.id, plan.title]));
+  const operationLines = operations.map((operation) => ({
+    time: operation.tradeTime,
+    line: `近期操作：${planNameById.get(operation.planId) ?? "未知计划"} / ${operation.action} / ${operation.decisionReason}`
+  }));
+  const reviewLines = reviews.map((review) => ({
+    time: review.reviewTime,
+    line: `近期复盘：${planNameById.get(review.planId) ?? "未知计划"} / ${review.realizedResult} / ${review.reviewNote}`
+  }));
+
+  return [...operationLines, ...reviewLines]
+    .sort((left, right) => new Date(right.time).getTime() - new Date(left.time).getTime())
+    .slice(0, 6)
+    .map((event) => event.line);
+}
+
+function buildReviewQuestions({
+  recentOperations,
+  recentReviews,
+  emotionHeat,
+  delayedExitRate,
+  reviewCoverageRate,
+  violationRate,
+  topEmotions,
+  topStrategies,
+  topViolations
+}: {
+  recentOperations: TradeOperation[];
+  recentReviews: PlanReview[];
+  emotionHeat: number;
+  delayedExitRate: number;
+  reviewCoverageRate: number;
+  violationRate: number;
+  topEmotions: Array<[string, number]>;
+  topStrategies: Array<[string, number]>;
+  topViolations: Array<[string, number]>;
+}) {
+  if (recentOperations.length === 0 && recentReviews.length === 0) {
+    return ["先记录 3-5 次操作或复盘，再让 AI 判断是否存在重复模式。"];
+  }
+
+  const questions = [];
+
+  if (reviewCoverageRate < 60) {
+    questions.push("哪些操作还没有复盘实际结果？先补复盘，再判断策略是否有效。");
+  }
+
+  if (emotionHeat >= 50 || topEmotions.length > 0) {
+    questions.push(`本周期最需要回看的情绪是 ${topEmotions[0]?.[0] ?? "情绪波动"}：它是否改变了原计划？`);
+  }
+
+  if (delayedExitRate >= 25) {
+    questions.push("出现犹豫或纠结时，实际动作是按计划执行，还是临场重新解释？");
+  }
+
+  if (violationRate > 0 || topViolations.length > 0) {
+    questions.push(`违反计划最常见标签是 ${topViolations[0]?.[0] ?? "未标记"}：它来自计划不清楚，还是执行偏差？`);
+  }
+
+  if (topStrategies.length > 0) {
+    questions.push(`高频策略「${topStrategies[0][0]}」对应的复盘结果是否稳定，还是只是在记录理由里反复出现？`);
+  }
+
+  return questions.slice(0, 4);
+}
+
+function countBy<T>(items: T[], getKey: (item: T) => string) {
+  return items.reduce(
+    (counts, item) => {
+      const key = getKey(item);
+      counts[key] = (counts[key] ?? 0) + 1;
+      return counts;
+    },
+    {} as Record<string, number>
+  );
+}
+
+function countTags(tags: string[]) {
+  return tags.reduce(
+    (counts, tag) => {
+      counts[tag] = (counts[tag] ?? 0) + 1;
+      return counts;
+    },
+    {} as Record<string, number>
+  );
+}
+
+function topEntries(counts: Record<string, number>, limit: number) {
+  return Object.entries(counts)
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, limit);
+}
+
+function formatTopEntries(entries: Array<[string, number]>) {
+  if (entries.length === 0) {
+    return "暂无";
+  }
+
+  return entries.map(([label, count]) => `${label} ${count} 次`).join("、");
 }
 
 function formatDate(date: Date) {

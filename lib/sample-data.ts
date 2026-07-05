@@ -149,7 +149,14 @@ export const sampleAuditReports: AuditReport[] = [
       reviewCoverageRate: 58.3,
       violationRate: 25
     },
+    aiInputDigest: [
+      "审计周期：2026-05-08 至 2026-06-07",
+      "记录概况：8 次操作，4 次复盘",
+      "高频情绪：焦虑 3 次、犹豫 2 次",
+      "高频策略：仓位调整 2 次、右侧交易 2 次"
+    ],
     findings: ["焦虑标签集中出现在卖出前后", "消息刺激类记录的理由较短", "观察记录能减少临时操作"],
+    reviewQuestions: ["焦虑出现时，实际动作是否偏离原计划？", "消息刺激类记录是否有完整的止损条件？"],
     createdAt: "2026-06-07T18:00:00+08:00"
   },
   {
@@ -167,7 +174,14 @@ export const sampleAuditReports: AuditReport[] = [
       reviewCoverageRate: 44.4,
       violationRate: 11.1
     },
+    aiInputDigest: [
+      "审计周期：2026-04-08 至 2026-05-07",
+      "记录概况：6 次操作，3 次复盘",
+      "高频情绪：冷静 3 次、观望 2 次",
+      "高频策略：突破 2 次"
+    ],
     findings: ["记录频率稳定", "止盈止损字段需要更完整"],
+    reviewQuestions: ["哪些操作还没有补齐实际结果？", "止盈止损为空时，是否更容易事后重构理由？"],
     createdAt: "2026-05-07T18:00:00+08:00"
   }
 ];
