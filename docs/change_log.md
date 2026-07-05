@@ -2,6 +2,15 @@
 
 ## 2026-06-27
 
+### 后台与 H5 架构设计文档
+
+新增：
+
+- `docs/backend_design.md`
+- `docs/frontend_architecture.md`
+
+后台设计使用 Backend M0/M1/M2 的分期命名，避免和产品 Product Phase 1 混淆。Product Phase 1 本身包含 AI 截图补账和 AI 审计，后台分期只是说明云端和真实 AI 接入顺序。
+
 ### README 与删除确认补充
 
 新增项目 README，记录当前 Phase 1 能力、本地运行方式、数据存储、AI 边界和常用验证步骤。
