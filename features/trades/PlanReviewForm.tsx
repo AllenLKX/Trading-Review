@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { ChipGroup } from "@/components/ChipGroup";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { emotionOptions } from "@/lib/sample-data";
@@ -12,14 +12,44 @@ const violatedRuleOptions = ["未按计划", "追高", "止损拖延", "仓位�
 type PlanReviewFormProps = {
   plan: TradePlan;
   onSave: (review: PlanReview) => void;
+  initialReview?: PlanReview;
+  submitLabel?: string;
+  onCancel?: () => void;
 };
 
-export function PlanReviewForm({ plan, onSave }: PlanReviewFormProps) {
-  const [realizedResult, setRealizedResult] = useState<RealizedResult>("met");
-  const [profitLoss, setProfitLoss] = useState("");
-  const [violatedRules, setViolatedRules] = useState<string[]>([]);
-  const [reviewNote, setReviewNote] = useState("");
-  const [emotions, setEmotions] = useState<string[]>(["冷静"]);
+const toDateTimeLocalValue = (isoValue?: string) => {
+  if (!isoValue) {
+    const now = new Date();
+    const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+    return localNow.toISOString().slice(0, 16);
+  }
+
+  const date = new Date(isoValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return isoValue.slice(0, 16);
+  }
+
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 16);
+};
+
+const toFieldValue = (value?: number) => (typeof value === "number" ? String(value) : "");
+
+export function PlanReviewForm({
+  plan,
+  onSave,
+  initialReview,
+  submitLabel = "保存独立复盘",
+  onCancel
+}: PlanReviewFormProps) {
+  const isEditing = Boolean(initialReview);
+  const [reviewTime, setReviewTime] = useState(toDateTimeLocalValue(initialReview?.reviewTime));
+  const [realizedResult, setRealizedResult] = useState<RealizedResult>(initialReview?.realizedResult ?? "met");
+  const [profitLoss, setProfitLoss] = useState(toFieldValue(initialReview?.profitLoss));
+  const [violatedRules, setViolatedRules] = useState<string[]>(initialReview?.violatedRules ?? []);
+  const [reviewNote, setReviewNote] = useState(initialReview?.reviewNote ?? "");
+  const [emotions, setEmotions] = useState<string[]>(initialReview?.emotionTags ?? ["冷静"]);
   const [error, setError] = useState("");
 
   const toggle = (value: string, current: string[], setter: (next: string[]) => void) => {
@@ -38,24 +68,30 @@ export function PlanReviewForm({ plan, onSave }: PlanReviewFormProps) {
     const numericProfitLoss = profitLoss.trim() === "" ? undefined : Number(profitLoss);
 
     onSave({
-      id: `review-${Date.now()}`,
+      id: initialReview?.id ?? `review-${Date.now()}`,
       planId: plan.id,
-      reviewTime: now,
+      reviewTime: new Date(reviewTime).toISOString(),
+      operationIds: initialReview?.operationIds,
       realizedResult,
       profitLoss: Number.isFinite(numericProfitLoss) ? numericProfitLoss : undefined,
       violatedRules,
       reviewNote: reviewNote.trim(),
       emotionTags: emotions,
-      createdAt: now,
+      createdAt: initialReview?.createdAt ?? now,
       updatedAt: now
     });
 
-    setRealizedResult("met");
-    setProfitLoss("");
-    setViolatedRules([]);
-    setReviewNote("");
-    setEmotions(["冷静"]);
     setError("");
+    if (isEditing) {
+      onCancel?.();
+    } else {
+      setReviewTime(toDateTimeLocalValue());
+      setRealizedResult("met");
+      setProfitLoss("");
+      setViolatedRules([]);
+      setReviewNote("");
+      setEmotions(["冷静"]);
+    }
   };
 
   return (
@@ -65,6 +101,11 @@ export function PlanReviewForm({ plan, onSave }: PlanReviewFormProps) {
           <p className="text-sm font-bold text-primary-soft">独立复盘 · {plan.title}</p>
           <p className="mt-1 text-xs text-muted">可以不关联任何操作，直接记录阶段性判断。</p>
         </div>
+
+        <label className="space-y-2">
+          <span className="rt-label">复盘时间</span>
+          <input className="rt-input" type="datetime-local" value={reviewTime} onChange={(event) => setReviewTime(event.target.value)} />
+        </label>
 
         <div className="space-y-2">
           <span className="rt-label">实际结果</span>
@@ -109,10 +150,18 @@ export function PlanReviewForm({ plan, onSave }: PlanReviewFormProps) {
         </div>
       </div>
 
-      <button type="submit" className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/20 transition active:scale-[0.99]">
-        <Check className="h-5 w-5" />
-        保存独立复盘
-      </button>
+      <div className={onCancel ? "grid grid-cols-[1fr_1.3fr] gap-2" : ""}>
+        {onCancel ? (
+          <button type="button" onClick={onCancel} className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-line bg-background text-sm font-bold text-muted-strong transition active:scale-[0.99]">
+            <X className="h-5 w-5" />
+            取消
+          </button>
+        ) : null}
+        <button type="submit" className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/20 transition active:scale-[0.99]">
+          <Check className="h-5 w-5" />
+          {submitLabel}
+        </button>
+      </div>
     </form>
   );
 }

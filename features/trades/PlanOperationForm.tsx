@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import { Save } from "lucide-react";
+import { Save, X } from "lucide-react";
 import { ChipGroup } from "@/components/ChipGroup";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { emotionOptions, strategyOptions } from "@/lib/sample-data";
@@ -12,22 +12,49 @@ import { TradeActionToggle } from "./TradeActionToggle";
 type PlanOperationFormProps = {
   plan: TradePlan;
   onSave: (operation: TradeOperation) => void;
+  initialOperation?: TradeOperation;
+  submitLabel?: string;
+  onCancel?: () => void;
 };
 
 type FieldErrors = Partial<Record<"price" | "positionSize" | "decisionReason" | "emotions", string>>;
 
-export function PlanOperationForm({ plan, onSave }: PlanOperationFormProps) {
-  const [action, setAction] = useState<TradeAction>("observe");
-  const [tradeTime, setTradeTime] = useState("2026-06-07T10:30");
-  const [price, setPrice] = useState("");
-  const [positionSize, setPositionSize] = useState("");
-  const [quantityUnit, setQuantityUnit] = useState<QuantityUnit>("shares");
-  const [takeProfitPrice, setTakeProfitPrice] = useState("");
-  const [stopLossPrice, setStopLossPrice] = useState("");
-  const [decisionReason, setDecisionReason] = useState("");
-  const [psychologyNote, setPsychologyNote] = useState("");
-  const [emotions, setEmotions] = useState<string[]>(["冷静"]);
-  const [strategies, setStrategies] = useState<string[]>(["右侧交易"]);
+const toDateTimeLocalValue = (isoValue?: string) => {
+  if (!isoValue) {
+    return "2026-06-07T10:30";
+  }
+
+  const date = new Date(isoValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return isoValue.slice(0, 16);
+  }
+
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localDate.toISOString().slice(0, 16);
+};
+
+const toFieldValue = (value?: number) => (typeof value === "number" ? String(value) : "");
+
+export function PlanOperationForm({
+  plan,
+  onSave,
+  initialOperation,
+  submitLabel = "保存到当前计划",
+  onCancel
+}: PlanOperationFormProps) {
+  const isEditing = Boolean(initialOperation);
+  const [action, setAction] = useState<TradeAction>(initialOperation?.action ?? "observe");
+  const [tradeTime, setTradeTime] = useState(toDateTimeLocalValue(initialOperation?.tradeTime));
+  const [price, setPrice] = useState(toFieldValue(initialOperation?.price));
+  const [positionSize, setPositionSize] = useState(toFieldValue(initialOperation?.quantity));
+  const [quantityUnit, setQuantityUnit] = useState<QuantityUnit>(initialOperation?.quantityUnit ?? "shares");
+  const [takeProfitPrice, setTakeProfitPrice] = useState(toFieldValue(initialOperation?.takeProfitPrice));
+  const [stopLossPrice, setStopLossPrice] = useState(toFieldValue(initialOperation?.stopLossPrice));
+  const [decisionReason, setDecisionReason] = useState(initialOperation?.decisionReason ?? "");
+  const [psychologyNote, setPsychologyNote] = useState(initialOperation?.psychologyNote ?? "");
+  const [emotions, setEmotions] = useState<string[]>(initialOperation?.emotionTags ?? ["冷静"]);
+  const [strategies, setStrategies] = useState<string[]>(initialOperation?.strategyTags ?? ["右侧交易"]);
   const [errors, setErrors] = useState<FieldErrors>({});
 
   const numericPrice = Number(price);
@@ -70,7 +97,7 @@ export function PlanOperationForm({ plan, onSave }: PlanOperationFormProps) {
     const now = new Date().toISOString();
 
     onSave({
-      id: `operation-${Date.now()}`,
+      id: initialOperation?.id ?? `operation-${Date.now()}`,
       planId: plan.id,
       action,
       tradeTime: new Date(tradeTime).toISOString(),
@@ -85,13 +112,17 @@ export function PlanOperationForm({ plan, onSave }: PlanOperationFormProps) {
       psychologyNote: psychologyNote.trim() || undefined,
       emotionTags: emotions,
       strategyTags: strategies,
-      source: "manual",
-      createdAt: now,
+      source: initialOperation?.source ?? "manual",
+      createdAt: initialOperation?.createdAt ?? now,
       updatedAt: now
     });
 
     setErrors({});
-    resetForm();
+    if (isEditing) {
+      onCancel?.();
+    } else {
+      resetForm();
+    }
   };
 
   const validateForm = () => {
@@ -270,10 +301,18 @@ export function PlanOperationForm({ plan, onSave }: PlanOperationFormProps) {
         </div>
       ) : null}
 
-      <button type="submit" className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-buy text-sm font-bold text-white shadow-lg shadow-buy/20 transition active:scale-[0.99]">
-        <Save className="h-5 w-5" />
-        保存到当前计划
-      </button>
+      <div className={onCancel ? "grid grid-cols-[1fr_1.3fr] gap-2" : ""}>
+        {onCancel ? (
+          <button type="button" onClick={onCancel} className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-line bg-background text-sm font-bold text-muted-strong transition active:scale-[0.99]">
+            <X className="h-5 w-5" />
+            取消
+          </button>
+        ) : null}
+        <button type="submit" className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-buy text-sm font-bold text-white shadow-lg shadow-buy/20 transition active:scale-[0.99]">
+          <Save className="h-5 w-5" />
+          {submitLabel}
+        </button>
+      </div>
     </form>
   );
 }

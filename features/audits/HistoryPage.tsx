@@ -1,7 +1,7 @@
 "use client";
 
 import { type ChangeEvent, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Download, FileSearch, Search, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Download, FileSearch, Pencil, Search, Trash2, Upload } from "lucide-react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
 import { PlanOperationForm } from "@/features/trades/PlanOperationForm";
@@ -295,6 +295,7 @@ function PlanDetailView({
   onAddReview: (review: PlanReview) => void;
 }) {
   const [entryMode, setEntryMode] = useState<"operation" | "review">("operation");
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [isEditingPlan, setIsEditingPlan] = useState(false);
   const [editTitle, setEditTitle] = useState(plan.title);
   const [editAssetName, setEditAssetName] = useState(plan.assetName);
@@ -348,6 +349,57 @@ function PlanDetailView({
     });
     setPlanEditError("");
     setIsEditingPlan(false);
+  };
+
+  const updateOperation = (operation: TradeOperation) => {
+    onUpdatePlan({
+      ...plan,
+      operations: plan.operations.map((item) => (item.id === operation.id ? operation : item)),
+      updatedAt: operation.updatedAt
+    });
+    setEditingEventId(null);
+  };
+
+  const updateReview = (review: PlanReview) => {
+    onUpdatePlan({
+      ...plan,
+      reviews: plan.reviews.map((item) => (item.id === review.id ? review : item)),
+      updatedAt: review.updatedAt
+    });
+    setEditingEventId(null);
+  };
+
+  const deleteOperation = (operation: TradeOperation) => {
+    if (!window.confirm("确认删除这条操作记录吗？")) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    onUpdatePlan({
+      ...plan,
+      operations: plan.operations.filter((item) => item.id !== operation.id),
+      reviews: plan.reviews.map((review) =>
+        review.operationIds?.includes(operation.id)
+          ? { ...review, operationIds: review.operationIds.filter((operationId) => operationId !== operation.id), updatedAt: now }
+          : review
+      ),
+      updatedAt: now
+    });
+    setEditingEventId(null);
+  };
+
+  const deleteReview = (review: PlanReview) => {
+    if (!window.confirm("确认删除这条复盘记录吗？")) {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    onUpdatePlan({
+      ...plan,
+      reviews: plan.reviews.filter((item) => item.id !== review.id),
+      updatedAt: now
+    });
+    setEditingEventId(null);
   };
 
   return (
@@ -480,40 +532,82 @@ function PlanDetailView({
           timeline.map((event) =>
             event.type === "operation" ? (
               <div key={event.item.id} className="rounded-2xl border border-line bg-surface p-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <span className={`rounded-lg border px-2 py-1 text-xs font-bold ${getActionTone(event.item.action)}`}>
-                    {getActionLabel(event.item.action)}
-                  </span>
-                  <span className="text-xs text-muted">{formatDateTime(event.item.tradeTime)}</span>
-                </div>
-                <p className="text-sm font-bold tabular-nums text-white">{formatCurrency(event.item.price, event.item.currency)}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-strong">{event.item.decisionReason}</p>
-                {event.item.psychologyNote ? <p className="mt-2 text-xs leading-5 text-muted">{event.item.psychologyNote}</p> : null}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {[...event.item.emotionTags, ...event.item.strategyTags].map((tag) => (
-                    <span key={tag} className="rounded-full border border-line bg-surface-soft px-2 py-1 text-xs text-muted-strong">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                {editingEventId === event.item.id ? (
+                  <PlanOperationForm
+                    plan={plan}
+                    initialOperation={event.item}
+                    onSave={updateOperation}
+                    onCancel={() => setEditingEventId(null)}
+                    submitLabel="保存操作修改"
+                  />
+                ) : (
+                  <>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className={`rounded-lg border px-2 py-1 text-xs font-bold ${getActionTone(event.item.action)}`}>
+                        {getActionLabel(event.item.action)}
+                      </span>
+                      <span className="text-xs text-muted">{formatDateTime(event.item.tradeTime)}</span>
+                    </div>
+                    <p className="text-sm font-bold tabular-nums text-white">{formatCurrency(event.item.price, event.item.currency)}</p>
+                    <p className="mt-2 text-sm leading-6 text-muted-strong">{event.item.decisionReason}</p>
+                    {event.item.psychologyNote ? <p className="mt-2 text-xs leading-5 text-muted">{event.item.psychologyNote}</p> : null}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {[...event.item.emotionTags, ...event.item.strategyTags].map((tag) => (
+                        <span key={tag} className="rounded-full border border-line bg-surface-soft px-2 py-1 text-xs text-muted-strong">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+                      <button type="button" onClick={() => setEditingEventId(event.item.id)} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-line bg-background text-xs font-bold text-muted-strong transition active:scale-[0.98]">
+                        <Pencil className="h-4 w-4" />
+                        编辑操作
+                      </button>
+                      <button type="button" onClick={() => deleteOperation(event.item)} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98]" aria-label="删除操作">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               <div key={event.item.id} className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <span className="text-xs font-bold text-primary-soft">独立复盘 · {getRealizedResultLabel(event.item.realizedResult)}</span>
-                  <span className="text-xs text-muted">{formatDateTime(event.item.reviewTime)}</span>
-                </div>
-                <p className="text-sm leading-6 text-muted-strong">{event.item.reviewNote}</p>
-                {typeof event.item.profitLoss === "number" ? (
-                  <p className="mt-2 text-sm font-bold tabular-nums text-white">{formatCurrency(event.item.profitLoss, plan.currency)}</p>
-                ) : null}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {[...event.item.violatedRules, ...event.item.emotionTags].map((tag) => (
-                    <span key={tag} className="rounded-full border border-line bg-surface-soft px-2 py-1 text-xs text-muted-strong">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                {editingEventId === event.item.id ? (
+                  <PlanReviewForm
+                    plan={plan}
+                    initialReview={event.item}
+                    onSave={updateReview}
+                    onCancel={() => setEditingEventId(null)}
+                    submitLabel="保存复盘修改"
+                  />
+                ) : (
+                  <>
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-xs font-bold text-primary-soft">独立复盘 · {getRealizedResultLabel(event.item.realizedResult)}</span>
+                      <span className="text-xs text-muted">{formatDateTime(event.item.reviewTime)}</span>
+                    </div>
+                    <p className="text-sm leading-6 text-muted-strong">{event.item.reviewNote}</p>
+                    {typeof event.item.profitLoss === "number" ? (
+                      <p className="mt-2 text-sm font-bold tabular-nums text-white">{formatCurrency(event.item.profitLoss, plan.currency)}</p>
+                    ) : null}
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {[...event.item.violatedRules, ...event.item.emotionTags].map((tag) => (
+                        <span key={tag} className="rounded-full border border-line bg-surface-soft px-2 py-1 text-xs text-muted-strong">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+                      <button type="button" onClick={() => setEditingEventId(event.item.id)} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-background text-xs font-bold text-primary-soft transition active:scale-[0.98]">
+                        <Pencil className="h-4 w-4" />
+                        编辑复盘
+                      </button>
+                      <button type="button" onClick={() => deleteReview(event.item)} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98]" aria-label="删除复盘">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )
           )
