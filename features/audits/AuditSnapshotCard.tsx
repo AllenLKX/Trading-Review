@@ -37,17 +37,28 @@ export function AuditSnapshotCard({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-primary/30 bg-surface shadow-glow">
-      <div className="flex items-center justify-between border-b border-line p-4">
+      <div className="border-b border-line p-4">
         <div className="flex items-center gap-2">
           <Brain className="h-5 w-5 text-primary-soft" />
           <h2 className="text-lg font-bold text-white">{latest.title}</h2>
         </div>
-        <div className="flex items-center gap-1">
-          <button type="button" onClick={onArchive} aria-label="归档当前审计" className="rounded-full p-2 text-muted active:bg-surface-raised">
-            <Archive className="h-4 w-4" />
-          </button>
-          <button type="button" onClick={onRefresh} aria-label="刷新审计" className="rounded-full p-2 text-muted active:bg-surface-raised">
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-3 text-sm font-bold text-white transition active:scale-[0.98] disabled:cursor-wait disabled:opacity-70"
+          >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin text-primary-soft" : ""}`} />
+            {isRefreshing ? "分析中" : "AI 分析"}
+          </button>
+          <button
+            type="button"
+            onClick={onArchive}
+            className="flex h-10 items-center justify-center gap-2 rounded-xl border border-line bg-surface-raised px-3 text-sm font-bold text-muted-strong transition active:scale-[0.98]"
+          >
+            <Archive className="h-4 w-4" />
+            归档分析
           </button>
         </div>
       </div>
