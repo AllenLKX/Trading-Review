@@ -13,7 +13,9 @@ export type AuditAiRequest = {
 export type AuditApiResponse = {
   report: AuditReport;
   aiRequest: AuditAiRequest;
-  source: "mock-local";
+  source: "deepseek" | "local-fallback";
+  model?: string;
+  fallbackReason?: "not-configured" | "timeout" | "provider-error" | "invalid-output";
 };
 
 export function buildAuditReport(plans: TradePlan[]): AuditReport {

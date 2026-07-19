@@ -97,10 +97,17 @@ export function HistoryPage({
       const response = await requestAuditReport(plans, signal);
       if (!signal?.aborted) {
         setLatestAudit(response.report);
+        if (!signal) {
+          notify(
+            response.source === "deepseek" ? "DeepSeek 行为审计已更新。" : "DeepSeek 暂不可用，已显示本地规则审计。",
+            response.source === "deepseek" ? "success" : "info"
+          );
+        }
       }
     } catch {
       if (!signal?.aborted) {
         setLatestAudit(fallbackReport);
+        if (!signal) notify("审计接口暂不可用，已显示本地规则审计。", "error");
       }
     } finally {
       if (!signal?.aborted) {
@@ -110,10 +117,7 @@ export function HistoryPage({
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-    refreshAudit(controller.signal);
-
-    return () => controller.abort();
+    setLatestAudit(buildAuditReport(plans));
   }, [plans]);
 
   useEffect(() => {

@@ -11,6 +11,8 @@ export type ServerRuntimeConfig = {
   };
   ai: {
     configured: boolean;
+    provider: "deepseek";
+    model: string;
   };
   cos: {
     configured: boolean;
@@ -35,7 +37,9 @@ export function readServerRuntimeConfig(): ServerRuntimeConfig {
       publicOrigin: process.env.APP_PUBLIC_ORIGIN
     },
     ai: {
-      configured: Boolean(process.env.AI_API_KEY)
+      configured: Boolean(process.env.DEEPSEEK_API_KEY ?? process.env.AI_API_KEY),
+      provider: "deepseek",
+      model: process.env.AI_MODEL ?? "deepseek-v4-flash"
     },
     cos: {
       configured: Boolean(

@@ -95,7 +95,10 @@ nano .env.production
 - `APP_ACCESS_PASSWORD`
 - `DATABASE_URL`
 - `RATIONALTRADE_SINGLE_USER_ID`
-- `AI_API_KEY`
+- `DEEPSEEK_API_KEY`
+- `AI_BASE_URL=https://api.deepseek.com`
+- `AI_MODEL=deepseek-v4-flash`
+- `AI_TIMEOUT_MS=20000`
 - `TENCENT_COS_SECRET_ID`
 - `TENCENT_COS_SECRET_KEY`
 - `TENCENT_COS_BUCKET`
@@ -104,9 +107,20 @@ nano .env.production
 注意：
 
 - `.env.production` 不提交到 GitHub。
-- 数据库密码、AI Key、COS Key 只放服务器环境变量或服务器本地文件。
+- 数据库密码、DeepSeek Key、COS Key 只放服务器环境变量或服务器本地文件。
 - `APP_ACCESS_PASSWORD` 在服务器上执行 `openssl rand -base64 24` 生成，不在聊天、文档或 GitHub 中保存明文。
 - 生产环境缺少访问用户名或密码时，除 `/api/health` 外统一返回 503，避免公网裸露业务数据。
+
+DeepSeek Key 可在服务器代码目录中交互配置，输入内容不会回显：
+
+```bash
+cd /var/www/rationaltrade
+./scripts/configure-deepseek.sh .env.production
+source /root/.nvm/nvm.sh
+pm2 restart rationaltrade --update-env
+```
+
+随后访问 `/api/system/status`，确认 `integrations.ai.configured` 为 `true`；再在历史页点击“AI 分析”，成功时会显示 DeepSeek 更新 Toast。
 
 ## 6. PostgreSQL 初始化
 

@@ -99,11 +99,11 @@ GET /api/audit/reports
 DELETE /api/audit/reports/:reportId
 ```
 
-当前前端仍使用本地存储，以上接口先作为云端数据 API 骨架。未配置数据库时返回 `storage: "not-configured"`；配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后，可以管理计划、操作和复盘。`PATCH` 接收记录的完整可编辑字段；`DELETE` 必须携带 `X-Confirm-Delete: true`，并由前端先完成二次确认。
+当前前端以 PostgreSQL 为正式数据源，localStorage 只保留最近一次成功读取的只读缓存。未配置数据库时返回 `storage: "not-configured"`；配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后，可以管理计划、操作和复盘。`DELETE` 必须携带 `X-Confirm-Delete: true`，并由前端先完成二次确认。
 
 `POST /api/sync/import-local` 接收当前导出的 RationalTrade JSON，批量导入计划、操作、复盘和审计归档。导入会保留本地字符串 ID，用于维持复盘和操作之间的关联。
 
-审计生成和审计归档相互独立：`POST /api/audit` 当前生成 mock-local 报告；`/api/audit/archive` 和 `/api/audit/reports` 负责用户明确保存的云端快照。前端默认仍使用本地归档 repository，不会在数据库未配置时用空云端结果覆盖本地数据。
+审计生成和审计归档相互独立：`POST /api/audit` 在配置 `DEEPSEEK_API_KEY` 后调用 DeepSeek，未配置、超时或输出校验失败时返回本地规则报告；`/api/audit/archive` 和 `/api/audit/reports` 负责用户明确保存的云端快照。
 
 历史页云端同步卡片明确以本地工作区为准。数据库可用后，可以先预览云端的计划、操作、复盘和审计数量；只有再次确认，才会把云端数据下载并替换本地工作副本。当前不做静默拉取或自动双向同步。
 
@@ -123,9 +123,15 @@ DELETE /api/audit/reports/:reportId
 
 ## AI 边界
 
-当前没有接真实 AI。
+审计接口 `/api/audit` 已接入 DeepSeek。模型只接收 `aiInputDigest` 并生成行为总结、发现和复盘追问；确定性指标仍由本地规则生成。所有模型输出都经过结构和投资建议边界校验，失败时自动回退本地规则报告。
 
-审计接口 `/api/audit` 现在返回 `mock-local` 报告，内部仍复用本地规则。后续接真实 AI 时，优先使用 `aiInputDigest` 作为模型输入，并返回同样的 `AuditReport` 结构。
+安全配置本地密钥：
+
+```bash
+./scripts/configure-deepseek.sh .env.local
+```
+
+脚本静默读取密钥，不把密钥写入命令历史；`.env.local` 已被 Git 忽略。配置后需要重启 `pnpm dev`。
 
 截图补账当前使用 Mock 识别结果。识别结果必须由用户逐条确认后才会归档。
 
