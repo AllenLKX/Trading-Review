@@ -137,6 +137,8 @@ Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管�
 - 已新增 `/api/system/status` 用于检查服务端配置状态。
 - 已新增服务端数据库连接边界，数据库未配置时不影响本地 H5 使用。
 - 已新增 `/api/plans` 只读列表接口，作为云端计划数据 API 的第一步。
+- 已新增 `POST /api/plans`、`POST /api/plans/:planId/operations`、`POST /api/plans/:planId/reviews`，用于云端写入骨架。
+- 已新增服务端输入校验模块，先不用第三方校验库，减少 Backend M1 早期依赖面。
 - `.env.production`、`.env.local` 等真实配置文件不提交到 GitHub。
 - 初始 schema 只定义结构和约束，不包含任何真实用户数据、token、AI Key 或 COS Key。
 
@@ -583,6 +585,9 @@ API 回归：
 - `/api/system/status` 只返回配置状态，不暴露 token、数据库连接字符串或 COS Secret
 - `/api/system/status?db=1` 在配置数据库后可检查 PostgreSQL 连接
 - `/api/plans` 未配置数据库时返回空数组；配置数据库和单用户 ID 后返回云端计划列表
+- `POST /api/plans` 可创建云端计划
+- `POST /api/plans/:planId/operations` 可给计划追加云端操作
+- `POST /api/plans/:planId/reviews` 可给计划追加云端复盘
 - 后续云端 API 完成后，逐个确认增删改查
 
 发布步骤：

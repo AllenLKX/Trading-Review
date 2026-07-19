@@ -70,10 +70,13 @@ cp .env.example .env.production
 云端计划列表接口：
 
 ```text
-/api/plans
+GET /api/plans
+POST /api/plans
+POST /api/plans/:planId/operations
+POST /api/plans/:planId/reviews
 ```
 
-当前只读。未配置数据库时返回空数组和 `storage: "not-configured"`；配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后，从云端读取该用户的计划、操作和复盘。
+当前前端仍使用本地存储，以上接口先作为云端数据 API 骨架。未配置数据库时返回 `storage: "not-configured"`；配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后，可以创建计划、追加操作和追加复盘。
 
 ## 数据说明
 

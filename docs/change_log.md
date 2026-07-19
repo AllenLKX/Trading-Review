@@ -2,6 +2,22 @@
 
 ## 2026-07-19
 
+### Backend M1 云端写入 API 骨架
+
+新增：
+
+- `POST /api/plans`
+- `POST /api/plans/:planId/operations`
+- `POST /api/plans/:planId/reviews`
+- `lib/server/trade-validation.ts`
+
+当前行为：
+
+- 可以在配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后创建计划、追加操作、追加复盘。
+- 未配置数据库时返回 `storage: "not-configured"`，不影响当前本地 H5。
+- 服务端校验会阻止观察操作携带股数/份额，也会保证份额模式下总金额等于份额金额。
+- 前端保存逻辑暂不切换到云端，等 API 骨架稳定后再做本地数据上传和云端同步。
+
 ### Backend M1 云端计划列表接口骨架
 
 新增：
