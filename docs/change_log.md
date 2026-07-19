@@ -2,6 +2,21 @@
 
 ## 2026-07-19
 
+### 本地 PostgreSQL 真实联调与状态契约修复
+
+验证范围：
+
+- PostgreSQL schema 实际应用。
+- 计划、操作、复盘和审计的创建、读取与更新。
+- 云端数据预览入口。
+
+修复：
+
+- `/api/system/status` 现在始终返回 `singleUserConfigured`。
+- 修复数据库已连通但前端仍显示“待配置”、云端按钮无法启用的问题。
+- `.env.local` 只保存本机回环地址和本地测试用户 ID，并保持 Git 忽略。
+- 新增本地 PostgreSQL 初始化、启停脚本和 `pnpm verify:database` 自动 CRUD 检查。
+
 ### 云端计划 adapter 与安全下载预览
 
 新增：

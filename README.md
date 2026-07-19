@@ -30,6 +30,13 @@ http://localhost:3000
 
 手机同局域网体验时，使用电脑局域网 IP 加端口访问。
 
+需要验证真实 PostgreSQL API 时，参照 `docs/local_database.md` 初始化隔离的本地测试库。日常启停使用：
+
+```bash
+./scripts/local-db.sh start
+./scripts/local-db.sh stop
+```
+
 ## 腾讯云 Ubuntu 部署方向
 
 生产环境计划使用腾讯云 Ubuntu 云服务器。
