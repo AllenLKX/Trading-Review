@@ -2,6 +2,18 @@
 
 ## 2026-07-19
 
+### Next.js 开发态 Devtools 报错修复
+
+修复本地开发时偶发的 Next.js runtime overlay 报错：
+
+- `__webpack_modules__[moduleId] is not a function`
+- `SegmentViewNode` 找不到 React Client Manifest
+
+处理方式：
+
+- 在 `next.config.mjs` 中关闭 `experimental.devtoolSegmentExplorer`。
+- 该配置只影响 Next.js 开发态 segment explorer，不影响业务页面、生产构建或云端 API。
+
 ### H5 云端同步入口
 
 历史页新增云端同步卡片。
