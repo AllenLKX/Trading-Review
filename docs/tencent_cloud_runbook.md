@@ -244,7 +244,8 @@ cat /root/rationaltrade-access.txt
 
 - 代码目录：`/var/www/rationaltrade`
 - 部署分支：`codex/phase-1-local-loop`
-- 已部署 commit：`a81d2a4`
+- 首次部署 commit：`a81d2a4`
+- 当前运行 commit：以服务器 `/var/www/rationaltrade` 的 `git rev-parse --short HEAD` 为准
 - PostgreSQL 15：已启动并设置开机启动
 - PM2 `rationaltrade`：已在线并保存进程列表
 - PM2 systemd 服务：已启用并启动，服务器重启后自动恢复

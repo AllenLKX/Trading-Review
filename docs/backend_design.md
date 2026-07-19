@@ -98,7 +98,7 @@ Docker 可以作为后续选项，但 Backend M1 第一轮可以先用普通 Nod
 - 计划、操作、复盘、审计归档可以保存到云端
 - 浏览器缓存只作为读取失败时的只读 fallback
 
-腾讯云 Ubuntu 自部署下，账户体系有两种选择：
+腾讯云自部署下，账户体系有两种选择：
 
 ### 方案 A：自建 NextAuth/Auth.js
 
@@ -483,7 +483,7 @@ API：
 推荐顺序：
 
 1. 写 PostgreSQL schema SQL
-2. 确认腾讯云 Ubuntu 基础环境
+2. 确认腾讯云 OpenCloudOS 基础环境
 3. 建本地 repository / cloud repository 抽象
 4. 云端读写 plans
 5. 云端读写 operations 和 reviews
@@ -554,7 +554,7 @@ API：
 
 - 验证生产环境 AI/OCR 调用链路
 
-## 10.2 怎么上传到腾讯云 Ubuntu
+## 10.2 怎么上传到腾讯云服务器
 
 推荐发布方式：
 
@@ -566,7 +566,7 @@ API：
 
 1. 本地开发并提交到 GitHub
 2. 本地推送分支
-3. SSH 登录腾讯云 Ubuntu
+3. SSH 登录腾讯云服务器
 4. 服务器拉取代码
 5. 安装依赖
 6. 构建

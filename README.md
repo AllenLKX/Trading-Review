@@ -37,9 +37,9 @@ http://localhost:3000
 ./scripts/local-db.sh stop
 ```
 
-## 腾讯云 Ubuntu 部署方向
+## 腾讯云 OpenCloudOS 部署
 
-生产环境计划使用腾讯云 Ubuntu 云服务器。
+生产环境已部署到腾讯云 OpenCloudOS 9.4 云服务器。
 
 建议形态：
 
@@ -49,7 +49,7 @@ http://localhost:3000
 - PostgreSQL 保存业务数据
 - 腾讯云 COS 保存后续截图文件
 
-当前版本仍是本地存储闭环，不建议立刻上传生产服务器。等 Backend M1 骨架完成、`pnpm build` 通过、生产环境变量清单明确后，再做第一次腾讯云部署。
+当前 Backend M1 已部署，PostgreSQL 是正式数据源，localStorage 只作为最近一次成功读取的缓存。公网入口等待域名审核和 HTTPS 配置。
 
 详细部署步骤见：
 
