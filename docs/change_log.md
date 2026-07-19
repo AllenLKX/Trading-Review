@@ -2,6 +2,20 @@
 
 ## 2026-07-19
 
+### Backend M1 本地数据批量导入云端
+
+新增：
+
+- `POST /api/sync/import-local`
+
+当前行为：
+
+- 接收当前导出的 RationalTrade JSON。
+- 批量导入计划、操作、复盘和审计归档。
+- 使用数据库事务，失败时回滚，避免只导入一部分。
+- 保留本地字符串 ID，维持 `operationIds` 等关联关系。
+- 同步把 PostgreSQL schema 的主键和外键调整为 `text`，默认仍生成 UUID 字符串，但兼容本地 `plan-...`、`operation-...`、`review-...` ID。
+
 ### Backend M1 云端写入 API 骨架
 
 新增：

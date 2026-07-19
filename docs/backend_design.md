@@ -138,6 +138,7 @@ Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管�
 - 已新增服务端数据库连接边界，数据库未配置时不影响本地 H5 使用。
 - 已新增 `/api/plans` 只读列表接口，作为云端计划数据 API 的第一步。
 - 已新增 `POST /api/plans`、`POST /api/plans/:planId/operations`、`POST /api/plans/:planId/reviews`，用于云端写入骨架。
+- 已新增 `POST /api/sync/import-local`，用于把本地导出的 JSON 批量导入云端。
 - 已新增服务端输入校验模块，先不用第三方校验库，减少 Backend M1 早期依赖面。
 - `.env.production`、`.env.local` 等真实配置文件不提交到 GitHub。
 - 初始 schema 只定义结构和约束，不包含任何真实用户数据、token、AI Key 或 COS Key。
@@ -147,6 +148,12 @@ Backend M1 初期采用私有单用户模式：
 - 服务器环境变量 `RATIONALTRADE_SINGLE_USER_ID` 指向 `profiles.id`。
 - API 只读取该用户的数据。
 - 完整账号体系接入前，不开放多用户注册和跨用户查询。
+
+ID 设计：
+
+- 主键和外键使用 `text`，数据库默认生成 UUID 字符串。
+- 这样既兼容未来正式账号体系，也兼容当前本地存储里的 `plan-...`、`operation-...`、`review-...` 等字符串 ID。
+- 本地数据上传云端时可以保留原始 ID，避免复盘关联的 `operationIds` 断裂。
 
 建议表：
 
@@ -588,6 +595,7 @@ API 回归：
 - `POST /api/plans` 可创建云端计划
 - `POST /api/plans/:planId/operations` 可给计划追加云端操作
 - `POST /api/plans/:planId/reviews` 可给计划追加云端复盘
+- `POST /api/sync/import-local` 可把本地导出的 JSON 批量导入云端，且保留原始 ID
 - 后续云端 API 完成后，逐个确认增删改查
 
 发布步骤：

@@ -46,7 +46,7 @@ exception
 end $$;
 
 create table if not exists profiles (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key default gen_random_uuid()::text,
   email text unique,
   display_name text,
   created_at timestamptz not null default now(),
@@ -54,8 +54,8 @@ create table if not exists profiles (
 );
 
 create table if not exists trade_plans (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  user_id text not null references profiles(id) on delete cascade,
   title text not null,
   asset_name text not null,
   ticker text not null,
@@ -68,9 +68,9 @@ create table if not exists trade_plans (
 );
 
 create table if not exists trade_operations (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
-  plan_id uuid not null references trade_plans(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  user_id text not null references profiles(id) on delete cascade,
+  plan_id text not null references trade_plans(id) on delete cascade,
   action trade_action not null,
   trade_time timestamptz not null,
   currency char(3) not null,
@@ -98,11 +98,11 @@ create table if not exists trade_operations (
 );
 
 create table if not exists plan_reviews (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
-  plan_id uuid not null references trade_plans(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  user_id text not null references profiles(id) on delete cascade,
+  plan_id text not null references trade_plans(id) on delete cascade,
   review_time timestamptz not null,
-  operation_ids uuid[] not null default '{}',
+  operation_ids text[] not null default '{}',
   realized_result realized_result not null default 'unknown',
   profit_loss numeric(20, 2),
   violated_rules text[] not null default '{}',
@@ -113,8 +113,8 @@ create table if not exists plan_reviews (
 );
 
 create table if not exists audit_reports (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  user_id text not null references profiles(id) on delete cascade,
   period_start date not null,
   period_end date not null,
   title text not null,
@@ -133,8 +133,8 @@ create table if not exists audit_reports (
 -- These tables are not implemented in the H5 flow yet, but reserving them avoids
 -- a future data migration when user-defined rules and AI review records are added.
 create table if not exists trading_rules (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
+  id text primary key default gen_random_uuid()::text,
+  user_id text not null references profiles(id) on delete cascade,
   title text not null,
   description text not null default '',
   is_active boolean not null default true,
@@ -143,12 +143,12 @@ create table if not exists trading_rules (
 );
 
 create table if not exists ai_reviews (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references profiles(id) on delete cascade,
-  plan_id uuid references trade_plans(id) on delete cascade,
-  operation_id uuid references trade_operations(id) on delete cascade,
-  review_id uuid references plan_reviews(id) on delete cascade,
-  audit_report_id uuid references audit_reports(id) on delete set null,
+  id text primary key default gen_random_uuid()::text,
+  user_id text not null references profiles(id) on delete cascade,
+  plan_id text references trade_plans(id) on delete cascade,
+  operation_id text references trade_operations(id) on delete cascade,
+  review_id text references plan_reviews(id) on delete cascade,
+  audit_report_id text references audit_reports(id) on delete set null,
   summary text not null,
   findings text[] not null default '{}',
   questions text[] not null default '{}',

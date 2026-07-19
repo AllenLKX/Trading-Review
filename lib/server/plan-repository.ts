@@ -1,8 +1,9 @@
-import type { QueryResultRow } from "pg";
+import type { PoolClient, QueryResultRow } from "pg";
 
 import { getDatabasePool, isDatabaseConfigured } from "@/lib/server/db";
 import type { CreateOperationInput, CreatePlanInput, CreateReviewInput } from "@/lib/server/trade-validation";
 import type {
+  AuditReport,
   CurrencyCode,
   PlanReview,
   PlanStatus,
@@ -29,6 +30,23 @@ type MutationResult<T> =
   | {
       ok: false;
       storage: "not-configured" | "missing-user" | "not-found" | "error";
+      message: string;
+    };
+
+type ImportLocalDataResult =
+  | {
+      ok: true;
+      storage: "postgres";
+      imported: {
+        plans: number;
+        operations: number;
+        reviews: number;
+        auditReports: number;
+      };
+    }
+  | {
+      ok: false;
+      storage: "not-configured" | "missing-user" | "error";
       message: string;
     };
 
@@ -289,6 +307,70 @@ export async function createServerPlanReview(planId: string, input: CreateReview
   }
 }
 
+export async function importLocalTradeData(
+  plans: TradePlan[],
+  auditReports: AuditReport[]
+): Promise<ImportLocalDataResult> {
+  const userResult = getConfiguredUserId();
+
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  let client: PoolClient | null = null;
+
+  try {
+    client = await getDatabasePool().connect();
+    await client.query("begin");
+
+    let operationCount = 0;
+    let reviewCount = 0;
+
+    for (const plan of plans) {
+      await upsertPlan(client, userResult.userId, plan);
+
+      for (const operation of plan.operations) {
+        await upsertOperation(client, userResult.userId, operation);
+        operationCount += 1;
+      }
+
+      for (const review of plan.reviews) {
+        await upsertReview(client, userResult.userId, review);
+        reviewCount += 1;
+      }
+    }
+
+    for (const report of auditReports) {
+      await upsertAuditReport(client, userResult.userId, report);
+    }
+
+    await client.query("commit");
+
+    return {
+      ok: true,
+      storage: "postgres",
+      imported: {
+        plans: plans.length,
+        operations: operationCount,
+        reviews: reviewCount,
+        auditReports: auditReports.length
+      }
+    };
+  } catch {
+    if (client) {
+      await client.query("rollback");
+    }
+
+    return {
+      ok: false,
+      storage: "error",
+      message: "Failed to import local data into PostgreSQL."
+    };
+  } finally {
+    client?.release();
+  }
+}
+
 function getConfiguredUserId():
   | {
       ok: true;
@@ -337,6 +419,160 @@ async function touchPlan(planId: string, userId: string) {
     planId,
     userId
   ]);
+}
+
+async function upsertPlan(client: PoolClient, userId: string, plan: TradePlan) {
+  await client.query(
+    `insert into trade_plans (
+        id, user_id, title, asset_name, ticker, market, currency, status, thesis, created_at, updated_at
+     )
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+     on conflict (id) do update set
+       title = excluded.title,
+       asset_name = excluded.asset_name,
+       ticker = excluded.ticker,
+       market = excluded.market,
+       currency = excluded.currency,
+       status = excluded.status,
+       thesis = excluded.thesis,
+       updated_at = excluded.updated_at
+     where trade_plans.user_id = excluded.user_id`,
+    [
+      plan.id,
+      userId,
+      plan.title,
+      plan.assetName,
+      plan.ticker,
+      plan.market,
+      plan.currency,
+      plan.status,
+      plan.thesis,
+      plan.createdAt,
+      plan.updatedAt
+    ]
+  );
+}
+
+async function upsertOperation(client: PoolClient, userId: string, operation: TradeOperation) {
+  await client.query(
+    `insert into trade_operations (
+        id, user_id, plan_id, action, trade_time, currency, price, quantity, quantity_unit,
+        total_amount, take_profit_price, stop_loss_price, decision_reason, psychology_note,
+        emotion_tags, strategy_tags, source, created_at, updated_at
+     )
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+     on conflict (id) do update set
+       action = excluded.action,
+       trade_time = excluded.trade_time,
+       currency = excluded.currency,
+       price = excluded.price,
+       quantity = excluded.quantity,
+       quantity_unit = excluded.quantity_unit,
+       total_amount = excluded.total_amount,
+       take_profit_price = excluded.take_profit_price,
+       stop_loss_price = excluded.stop_loss_price,
+       decision_reason = excluded.decision_reason,
+       psychology_note = excluded.psychology_note,
+       emotion_tags = excluded.emotion_tags,
+       strategy_tags = excluded.strategy_tags,
+       source = excluded.source,
+       updated_at = excluded.updated_at
+     where trade_operations.user_id = excluded.user_id`,
+    [
+      operation.id,
+      userId,
+      operation.planId,
+      operation.action,
+      operation.tradeTime,
+      operation.currency,
+      operation.price,
+      operation.quantity,
+      operation.quantityUnit,
+      operation.totalAmount,
+      operation.takeProfitPrice,
+      operation.stopLossPrice,
+      operation.decisionReason,
+      operation.psychologyNote,
+      operation.emotionTags,
+      operation.strategyTags,
+      operation.source,
+      operation.createdAt,
+      operation.updatedAt
+    ]
+  );
+}
+
+async function upsertReview(client: PoolClient, userId: string, review: PlanReview) {
+  await client.query(
+    `insert into plan_reviews (
+        id, user_id, plan_id, review_time, operation_ids, realized_result, profit_loss,
+        violated_rules, review_note, emotion_tags, created_at, updated_at
+     )
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+     on conflict (id) do update set
+       review_time = excluded.review_time,
+       operation_ids = excluded.operation_ids,
+       realized_result = excluded.realized_result,
+       profit_loss = excluded.profit_loss,
+       violated_rules = excluded.violated_rules,
+       review_note = excluded.review_note,
+       emotion_tags = excluded.emotion_tags,
+       updated_at = excluded.updated_at
+     where plan_reviews.user_id = excluded.user_id`,
+    [
+      review.id,
+      userId,
+      review.planId,
+      review.reviewTime,
+      review.operationIds ?? [],
+      review.realizedResult,
+      review.profitLoss,
+      review.violatedRules,
+      review.reviewNote,
+      review.emotionTags,
+      review.createdAt,
+      review.updatedAt
+    ]
+  );
+}
+
+async function upsertAuditReport(client: PoolClient, userId: string, report: AuditReport) {
+  await client.query(
+    `insert into audit_reports (
+        id, user_id, period_start, period_end, title, summary, signal_label, signal_level,
+        metrics, ai_input_digest, findings, review_questions, source, created_at
+     )
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+     on conflict (id) do update set
+       period_start = excluded.period_start,
+       period_end = excluded.period_end,
+       title = excluded.title,
+       summary = excluded.summary,
+       signal_label = excluded.signal_label,
+       signal_level = excluded.signal_level,
+       metrics = excluded.metrics,
+       ai_input_digest = excluded.ai_input_digest,
+       findings = excluded.findings,
+       review_questions = excluded.review_questions,
+       source = excluded.source
+     where audit_reports.user_id = excluded.user_id`,
+    [
+      report.id,
+      userId,
+      report.periodStart,
+      report.periodEnd,
+      report.title,
+      report.summary,
+      report.signalLabel,
+      report.signalLevel,
+      JSON.stringify(report.metrics),
+      report.aiInputDigest,
+      report.findings,
+      report.reviewQuestions,
+      "local-import",
+      report.createdAt
+    ]
+  );
 }
 
 function mapPlanRow(row: PlanRow, operations: TradeOperation[], reviews: PlanReview[]): TradePlan {
