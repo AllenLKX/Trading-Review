@@ -13,20 +13,16 @@ export default function Home() {
     plans,
     selectedPlanId,
     highlightedPlanId,
-    workspaceMode,
-    cloudWriteStatus,
-    setWorkspaceMode,
-    retryCloudWrite,
-    queueCloudWrite,
+    dataStatus,
+    dataMessage,
+    isMutating,
+    reload,
     setSelectedPlanId,
     createPlan,
     updatePlan,
     deletePlan,
     addOperation,
-    addReview,
-    replacePlans,
-    clearPlans,
-    restoreSamplePlans
+    addReview
   } = useTradePlans();
 
   return (
@@ -36,14 +32,16 @@ export default function Home() {
         <RecordPage
           plans={plans}
           selectedPlanId={selectedPlanId}
+          dataStatus={dataStatus}
+          dataMessage={dataMessage}
           onSelectPlan={setSelectedPlanId}
           onCreatePlan={createPlan}
-          onAddOperation={(operation) => {
-            addOperation(operation);
+          onAddOperation={async (operation) => {
+            await addOperation(operation);
             setActiveTab("history");
           }}
-          onAddReview={(review) => {
-            addReview(review);
+          onAddReview={async (review) => {
+            await addReview(review);
             setActiveTab("history");
           }}
         />
@@ -51,18 +49,14 @@ export default function Home() {
         <HistoryPage
           plans={plans}
           highlightedPlanId={highlightedPlanId}
-          workspaceMode={workspaceMode}
-          cloudWriteStatus={cloudWriteStatus}
-          onWorkspaceModeChange={setWorkspaceMode}
-          onRetryCloudWrite={retryCloudWrite}
-          onQueueCloudWrite={queueCloudWrite}
+          dataStatus={dataStatus}
+          connectionMessage={dataMessage}
+          isMutating={isMutating}
+          onReload={reload}
           onUpdatePlan={updatePlan}
           onDeletePlan={deletePlan}
           onAddOperation={addOperation}
           onAddReview={addReview}
-          onReplacePlans={replacePlans}
-          onClearPlans={clearPlans}
-          onRestoreSamples={restoreSamplePlans}
         />
       )}
       <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />

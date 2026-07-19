@@ -7,10 +7,10 @@ type AuditSnapshotCardProps = {
   archived: AuditReport[];
   isRefreshing: boolean;
   onRefresh: () => void;
-  onArchive: () => void;
+  onArchive: () => Promise<void>;
   canManageArchives: boolean;
-  onDeleteArchive: (reportId: string) => void;
-  onClearArchives: () => void;
+  onDeleteArchive: (reportId: string) => Promise<void>;
+  onClearArchives: () => Promise<void>;
 };
 
 export function AuditSnapshotCard({
@@ -24,6 +24,7 @@ export function AuditSnapshotCard({
   onClearArchives
 }: AuditSnapshotCardProps) {
   const [openSection, setOpenSection] = useState<"details" | "questions" | "aiInput" | "history" | null>(null);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const heatTone =
     latest.signalLevel === "risk"
       ? "border-sell/40 bg-sell/10 text-risk"
@@ -33,6 +34,16 @@ export function AuditSnapshotCard({
 
   const toggleSection = (section: NonNullable<typeof openSection>) => {
     setOpenSection((current) => (current === section ? null : section));
+  };
+
+  const runAction = async (key: string, action: () => Promise<void>) => {
+    if (pendingAction) return;
+    setPendingAction(key);
+    try {
+      await action();
+    } finally {
+      setPendingAction(null);
+    }
   };
 
   return (
@@ -54,11 +65,12 @@ export function AuditSnapshotCard({
           </button>
           <button
             type="button"
-            onClick={onArchive}
-            className="flex h-10 items-center justify-center gap-2 rounded-xl border border-line bg-surface-raised px-3 text-sm font-bold text-muted-strong transition active:scale-[0.98]"
+            onClick={() => void runAction("archive", onArchive)}
+            disabled={Boolean(pendingAction)}
+            className="flex h-10 items-center justify-center gap-2 rounded-xl border border-line bg-surface-raised px-3 text-sm font-bold text-muted-strong transition active:scale-[0.98] disabled:opacity-60"
           >
             <Archive className="h-4 w-4" />
-            归档分析
+            {pendingAction === "archive" ? "归档中" : "归档分析"}
           </button>
         </div>
       </div>
@@ -125,11 +137,12 @@ export function AuditSnapshotCard({
           {canManageArchives ? (
             <button
               type="button"
-              onClick={onClearArchives}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-sell/40 bg-sell/10 text-xs font-bold text-risk transition active:scale-[0.98]"
+              onClick={() => void runAction("clear", onClearArchives)}
+              disabled={Boolean(pendingAction)}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-sell/40 bg-sell/10 text-xs font-bold text-risk transition active:scale-[0.98] disabled:opacity-60"
             >
               <Trash2 className="h-4 w-4" />
-              清空审计归档
+              {pendingAction === "clear" ? "清空中" : "清空审计归档"}
             </button>
           ) : null}
           {archived.map((report) => (
@@ -144,8 +157,9 @@ export function AuditSnapshotCard({
                 {canManageArchives ? (
                   <button
                     type="button"
-                    onClick={() => onDeleteArchive(report.id)}
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98]"
+                    onClick={() => void runAction(`delete-${report.id}`, () => onDeleteArchive(report.id))}
+                    disabled={Boolean(pendingAction)}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98] disabled:opacity-60"
                     aria-label="删除审计归档"
                   >
                     <Trash2 className="h-4 w-4" />

@@ -12,8 +12,8 @@ type ScreenshotUploadPanelProps = {
   showRecognized: boolean;
   onShowRecognized: () => void;
   onReset: () => void;
-  onCreatePlan: (plan: TradePlan) => void;
-  onArchive: (operations: TradeOperation[]) => void;
+  onCreatePlan: (plan: TradePlan) => Promise<void>;
+  onArchive: (operations: TradeOperation[]) => Promise<void>;
 };
 
 export function ScreenshotUploadPanel({
@@ -26,6 +26,7 @@ export function ScreenshotUploadPanel({
 }: ScreenshotUploadPanelProps) {
   const [recognizedItems, setRecognizedItems] = useState<BatchRecognitionItem[]>(sampleBatchItems);
   const [archiveError, setArchiveError] = useState("");
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const resetRecognition = () => {
     setRecognizedItems(sampleBatchItems);
@@ -75,7 +76,7 @@ export function ScreenshotUploadPanel({
     };
   };
 
-  const archiveBatch = () => {
+  const archiveBatch = async () => {
     const invalidItem = recognizedItems.find(
       (item) =>
         !item.assetName.trim() ||
@@ -122,10 +123,16 @@ export function ScreenshotUploadPanel({
       };
     });
 
-    createdPlans.forEach(onCreatePlan);
-    onArchive(operations);
-
-    resetRecognition();
+    setIsArchiving(true);
+    try {
+      for (const plan of createdPlans) await onCreatePlan(plan);
+      await onArchive(operations);
+      resetRecognition();
+    } catch (error) {
+      setArchiveError(error instanceof Error ? `${error.message} 已成功保存的项目不会重复创建，请重试剩余项目。` : "批量归档失败，请重试。");
+    } finally {
+      setIsArchiving(false);
+    }
   };
 
   if (!showRecognized) {
@@ -181,12 +188,12 @@ export function ScreenshotUploadPanel({
           </button>
           <button
             type="button"
-            onClick={archiveBatch}
-            disabled={recognizedItems.length === 0}
+            onClick={() => void archiveBatch()}
+            disabled={recognizedItems.length === 0 || isArchiving}
             className="flex h-12 flex-[1.6] items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-bold text-white shadow-lg shadow-primary/25 transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
           >
             <Archive className="h-4 w-4" />
-            批量归档
+            {isArchiving ? "正在归档…" : "批量归档"}
           </button>
         </div>
       </div>

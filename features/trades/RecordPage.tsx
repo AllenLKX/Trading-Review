@@ -14,10 +14,12 @@ type RecordMode = "operation" | "review" | "screenshot";
 type RecordPageProps = {
   plans: TradePlan[];
   selectedPlanId: string | null;
+  dataStatus: "loading" | "ready" | "cached";
+  dataMessage: string;
   onSelectPlan: (planId: string) => void;
-  onCreatePlan: (plan: TradePlan) => void;
-  onAddOperation: (operation: TradeOperation) => void;
-  onAddReview: (review: PlanReview) => void;
+  onCreatePlan: (plan: TradePlan) => Promise<void>;
+  onAddOperation: (operation: TradeOperation) => Promise<void>;
+  onAddReview: (review: PlanReview) => Promise<void>;
 };
 
 type PlanErrors = Partial<Record<"assetName" | "title" | "thesis", string>>;
@@ -25,6 +27,8 @@ type PlanErrors = Partial<Record<"assetName" | "title" | "thesis", string>>;
 export function RecordPage({
   plans,
   selectedPlanId,
+  dataStatus,
+  dataMessage,
   onSelectPlan,
   onCreatePlan,
   onAddOperation,
@@ -40,12 +44,14 @@ export function RecordPage({
   const [currency, setCurrency] = useState<CurrencyCode>("HKD");
   const [thesis, setThesis] = useState("");
   const [errors, setErrors] = useState<PlanErrors>({});
+  const [isCreatingPlan, setIsCreatingPlan] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const selectedPlan = useMemo(
     () => plans.find((plan) => plan.id === selectedPlanId) ?? plans[0],
     [plans, selectedPlanId]
   );
 
-  const createPlan = (event: FormEvent<HTMLFormElement>) => {
+  const createPlan = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const nextErrors: PlanErrors = {};
 
@@ -82,15 +88,23 @@ export function RecordPage({
       updatedAt: now
     };
 
-    onCreatePlan(plan);
-    setTitle("");
-    setAssetName("");
-    setTicker("");
-    setMarket("HKG");
-    setCurrency("HKD");
-    setThesis("");
-    setErrors({});
-    setShowPlanForm(false);
+    setIsCreatingPlan(true);
+    setSaveError("");
+    try {
+      await onCreatePlan(plan);
+      setTitle("");
+      setAssetName("");
+      setTicker("");
+      setMarket("HKG");
+      setCurrency("HKD");
+      setThesis("");
+      setErrors({});
+      setShowPlanForm(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "创建计划失败，请重试。");
+    } finally {
+      setIsCreatingPlan(false);
+    }
   };
 
   const fieldClassName = (field: keyof PlanErrors) =>
@@ -105,6 +119,12 @@ export function RecordPage({
           先建立一个标的计划，再把观察、买卖操作和独立复盘挂到这个计划里。
         </p>
       </div>
+
+      {dataStatus !== "ready" ? (
+        <div className={`rounded-xl border px-3 py-3 text-xs font-semibold leading-5 ${dataStatus === "cached" ? "border-sell/50 bg-sell/10 text-risk" : "border-line bg-surface text-muted-strong"}`}>
+          {dataMessage}
+        </div>
+      ) : null}
 
       <section className="rt-card space-y-3 p-4">
         <div className="flex items-center justify-between gap-3">
@@ -175,8 +195,9 @@ export function RecordPage({
               <textarea className={`${fieldClassName("thesis")} min-h-24 resize-none leading-6`} value={thesis} onChange={(event) => setThesis(event.target.value)} />
               {errors.thesis ? <p className="text-xs font-semibold text-risk">{errors.thesis}</p> : null}
             </label>
-            <button type="submit" className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white">
-              创建计划
+            {saveError ? <p className="text-xs font-semibold text-risk">{saveError} 已填写内容仍保留。</p> : null}
+            <button type="submit" disabled={isCreatingPlan} className="h-11 w-full rounded-xl bg-primary text-sm font-bold text-white disabled:opacity-60">
+              {isCreatingPlan ? "正在创建…" : "创建计划"}
             </button>
           </form>
         ) : null}
@@ -209,7 +230,9 @@ export function RecordPage({
               onShowRecognized={() => setShowRecognized(true)}
               onReset={() => setShowRecognized(false)}
               onCreatePlan={onCreatePlan}
-              onArchive={(operations) => operations.forEach(onAddOperation)}
+              onArchive={async (operations) => {
+                for (const operation of operations) await onAddOperation(operation);
+              }}
             />
           )}
         </>

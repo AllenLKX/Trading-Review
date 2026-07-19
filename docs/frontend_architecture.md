@@ -12,7 +12,7 @@
 - Mock 截图补账
 - 近 30 天审计
 - 审计归档
-- 本地导入导出
+- JSON 导出
 
 ## 2. 技术栈
 
@@ -23,7 +23,8 @@
 - TypeScript
 - Tailwind CSS
 - lucide-react
-- localStorage
+- PostgreSQL（正式数据源）
+- localStorage（最近成功数据缓存）
 - Next.js API Route
 
 暂未引入：
@@ -81,26 +82,25 @@
 - 计划详情
 - 时间线编辑和删除
 - 审计卡
-- 云端备份状态、预览、冲突处理和失败重试
+- 服务端连接异常提示和重试
 
 ### lib
 
-数据模型、数据处理和本地状态。
+数据模型、数据处理和客户端状态。
 
 - `types.ts`：核心 TypeScript 类型
-- `use-trade-plans.ts`：本地计划状态管理
-- `trade-repository.ts`：本地计划 repository 与完整云端 CRUD adapter
+- `use-trade-plans.ts`：服务端优先的计划状态管理
+- `trade-repository.ts`：服务端 CRUD adapter 与浏览器缓存 repository
 - `trade-data-file.ts`：导入导出 JSON
 - `audit-summary.ts`：本地审计规则
 - `audit-ai-adapter.ts`：AI 审计服务边界
 - `audit-repository.ts`：本地与云端审计归档访问边界
 - `plan-migration.ts`：旧交易记录迁移到计划模型
-- `sync-state.ts`：同步基线指纹、冲突判断和无损合并
 - `sample-data.ts`：示例数据
 
 ## 4. 状态管理
 
-当前使用 React state + localStorage。
+当前使用 React state + PostgreSQL API，localStorage 只保留最近一次成功缓存。
 
 核心 hook：
 
@@ -108,38 +108,22 @@
 
 负责：
 
-- 加载本地 plans
-- 保存 plans
+- 优先加载服务端 plans
+- 服务端不可用时展示最近成功缓存和明确错误
 - 创建计划
 - 更新计划
 - 删除计划
 - 添加操作
 - 添加复盘
-- 导入替换
-- 恢复示例
-- 本地/云端工作模式
-- 云端写入顺序队列
-- 保存失败状态与最后一次失败操作重试
+- 所有写操作等待服务端成功后才更新 React state 和 localStorage 缓存
+- 写入期间锁定相关操作，失败时保留表单和原数据
 
 审计归档状态目前在 `HistoryPage` 内管理，持久化已经下沉到 repository：
 
 - localStorage key：`rationaltrade.auditReports.v1`
-- `localAuditRepository` 保持现有本地行为
-- `cloudAuditRepository` 已支持读取、归档和确认删除
-- 页面尚未自动切换云端数据源
-
-云端备份元数据使用独立 localStorage key：
-
-- `rationaltrade.cloudSync.v2`
-- 只保存同步指纹、成功时间和方向
-- 不保存计划正文、数据库地址或任何 Token
-
-工作模式使用：
-
-- `rationaltrade.workspaceMode.v1`
-- `local`：所有修改只写本地工作副本
-- `cloud`：本地先乐观更新，再由顺序队列写入 PostgreSQL
-- 云端失败时不丢本地修改，用户可重试最后一次失败写入
+- `cloudAuditRepository` 负责读取、归档和确认删除
+- `localAuditRepository` 只缓存最近一次成功读取的归档
+- 用户界面不提供“本地/云端”模式切换
 
 ## 5. 数据流
 
@@ -151,7 +135,9 @@
 ↓
 `useTradePlans.addOperation/addReview`
 ↓
-localStorage
+等待 PostgreSQL API 成功
+↓
+更新 React state 与 localStorage 缓存
 ↓
 `HistoryPage`
 
@@ -169,7 +155,7 @@ Mock `sampleBatchItems`
 ↓
 匹配或创建计划
 ↓
-归档到 localStorage
+等待 PostgreSQL API 逐项成功后更新界面
 
 ### 审计
 
@@ -190,7 +176,6 @@ Mock `sampleBatchItems`
 包括：
 
 - 删除计划
-- 清空本地计划
 - 删除操作
 - 删除复盘
 - 删除审计归档
@@ -219,38 +204,23 @@ Mock `sampleBatchItems`
 - 旧版 `trades`
 - 旧数组格式 trades
 
-## 7.1 云端同步入口
+## 7.1 服务端保存约定
 
-历史页新增云端同步卡片。
-
-当前行为：
-
-- 展示数据库、AI、COS 是否已配置。
-- 可刷新 `/api/system/status?db=1`。
-- 数据库、单用户 ID 和连接状态通过后，允许上传当前本地数据。
-- 上传使用 `POST /api/sync/import-local`。
-- 明确显示“本地编辑，确认后同步到 PostgreSQL”。
-- 可读取云端计划和审计归档并先展示数量预览。
-- 只有用户再次确认后，才会把云端数据下载为当前本地工作副本。
-- 显示未建立基线、存在本地修改、已同步和失败状态。
-- 上传前读取云端并比较同步基线，云端变化时暂停上传。
-- 冲突时可下载云端替换本地，或合并后上传；同 ID 以本地版本为准，云端独有记录保留。
-- 状态、预览和上传失败后可直接重试。
-- 同步基线一致且启用前再次检查云端无变化时，可切换到云端自动保存。
-- 云端模式覆盖计划、操作、复盘和审计归档的新增、编辑与明确删除。
+- 正式界面不展示云端同步卡片、工作模式或数据库迁移工具。
+- HTTP 请求在技术上仍是异步调用，但用户交互采用阻塞式服务端优先流程。
+- 计划、操作、复盘和审计归档的新增、修改、删除均等待 API 成功后再更新页面。
+- 请求中按钮显示进行中状态并禁止重复提交。
+- 失败时不清空表单、不关闭编辑态、不删除当前界面数据。
+- `POST /api/sync/import-local` 仅供首次迁移和运维使用，不是普通用户功能。
 - 云端创建保留客户端 ID，重复提交同一 ID 不制造重复记录。
-- 当前不做实时双向同步，也不会自动拉取或覆盖本地数据。
+- 当前不做多设备实时协作；启动时会读取服务端权威数据。
 
 设计原则：
 
-- 云端未配置时给明确状态，不让用户误以为上传成功。
-- 上传前必须二次确认。
-- 云端下载替换前必须展示计划、操作、复盘、审计数量，并再次确认。
-- 第一轮只做明确的上传和下载，不做复杂双向同步。
-- 当前批量上传是 upsert，不隐式删除云端独有记录；只有云端自动保存模式中的明确删除会同步到云端。
-- 云端自动保存中的删除通过现有显式 DELETE API 执行，仍要求用户二次确认。
-- 批量导入、整库清空和恢复示例只能在本地模式执行。
-- 旧版观察记录在读取和上传边界统一移除数量字段，避免历史数据违反当前规则。
+- 服务端不可用时给明确状态，不让用户误以为保存成功。
+- 所有删除仍需用户二次确认，并通过显式 DELETE API 执行。
+- 运维批量导入是 upsert，不隐式删除服务端独有记录。
+- 旧版观察记录在读取和导入边界统一移除数量字段，避免历史数据违反当前规则。
 
 ## 8. H5 设计原则
 
@@ -269,7 +239,7 @@ Mock `sampleBatchItems`
 
 1. 增加 auth 状态
 2. 为正式多设备场景增加服务端版本号或 ETag 冲突控制
-3. 完成账号体系后，把单用户云端模式升级为正式用户工作区
+3. 完成账号体系后，把当前单用户数据源升级为正式用户工作区
 4. 把审计归档状态完全下沉到 hook
 5. 截图补账从 Mock 切换到 recognition job
 6. 增加服务端云端导出
@@ -290,7 +260,7 @@ pnpm dev --hostname 0.0.0.0
 - H5 首屏能打开
 - 记录和历史两个 tab 能切换
 - 表单错误状态清晰
-- 删除和清空动作有二次确认
+- 删除动作有二次确认
 - 审计卡默认收起次要内容
 - 手机宽度无横向溢出
 
@@ -316,5 +286,4 @@ pnpm dev --hostname 0.0.0.0
 - 归档审计
 - 删除和清空审计归档
 - 导出 JSON
-- 导入 JSON
 - 手机宽度无横向溢出

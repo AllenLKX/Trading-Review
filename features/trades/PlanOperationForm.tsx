@@ -11,7 +11,7 @@ import { TradeActionToggle } from "./TradeActionToggle";
 
 type PlanOperationFormProps = {
   plan: TradePlan;
-  onSave: (operation: TradeOperation) => void;
+  onSave: (operation: TradeOperation) => Promise<void>;
   initialOperation?: TradeOperation;
   submitLabel?: string;
   onCancel?: () => void;
@@ -56,6 +56,8 @@ export function PlanOperationForm({
   const [emotions, setEmotions] = useState<string[]>(initialOperation?.emotionTags ?? ["冷静"]);
   const [strategies, setStrategies] = useState<string[]>(initialOperation?.strategyTags ?? ["右侧交易"]);
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [saveError, setSaveError] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const numericPrice = Number(price);
   const numericPositionSize = Number(positionSize);
@@ -85,7 +87,7 @@ export function PlanOperationForm({
     setStrategies(["右侧交易"]);
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const validationErrors = validateForm();
 
@@ -96,32 +98,37 @@ export function PlanOperationForm({
 
     const now = new Date().toISOString();
 
-    onSave({
-      id: initialOperation?.id ?? `operation-${Date.now()}`,
-      planId: plan.id,
-      action,
-      tradeTime: new Date(tradeTime).toISOString(),
-      currency: plan.currency,
-      price: numericPrice || undefined,
-      quantity: action === "observe" ? undefined : numericPositionSize || undefined,
-      quantityUnit: action === "observe" ? undefined : quantityUnit,
-      totalAmount,
-      takeProfitPrice: Number(takeProfitPrice) || undefined,
-      stopLossPrice: Number(stopLossPrice) || undefined,
-      decisionReason: decisionReason.trim(),
-      psychologyNote: psychologyNote.trim() || undefined,
-      emotionTags: emotions,
-      strategyTags: strategies,
-      source: initialOperation?.source ?? "manual",
-      createdAt: initialOperation?.createdAt ?? now,
-      updatedAt: now
-    });
+    setIsSaving(true);
+    setSaveError("");
+    try {
+      await onSave({
+        id: initialOperation?.id ?? `operation-${Date.now()}`,
+        planId: plan.id,
+        action,
+        tradeTime: new Date(tradeTime).toISOString(),
+        currency: plan.currency,
+        price: numericPrice || undefined,
+        quantity: action === "observe" ? undefined : numericPositionSize || undefined,
+        quantityUnit: action === "observe" ? undefined : quantityUnit,
+        totalAmount,
+        takeProfitPrice: Number(takeProfitPrice) || undefined,
+        stopLossPrice: Number(stopLossPrice) || undefined,
+        decisionReason: decisionReason.trim(),
+        psychologyNote: psychologyNote.trim() || undefined,
+        emotionTags: emotions,
+        strategyTags: strategies,
+        source: initialOperation?.source ?? "manual",
+        createdAt: initialOperation?.createdAt ?? now,
+        updatedAt: now
+      });
 
-    setErrors({});
-    if (isEditing) {
-      onCancel?.();
-    } else {
-      resetForm();
+      setErrors({});
+      if (isEditing) onCancel?.();
+      else resetForm();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "保存失败，请重试。");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -301,16 +308,18 @@ export function PlanOperationForm({
         </div>
       ) : null}
 
+      {saveError ? <p className="rounded-xl border border-sell/50 bg-sell/10 px-3 py-2 text-xs font-semibold text-risk">{saveError} 已填写内容仍保留。</p> : null}
+
       <div className={onCancel ? "grid grid-cols-[1fr_1.3fr] gap-2" : ""}>
         {onCancel ? (
-          <button type="button" onClick={onCancel} className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-line bg-background text-sm font-bold text-muted-strong transition active:scale-[0.99]">
+          <button type="button" onClick={onCancel} disabled={isSaving} className="flex h-14 items-center justify-center gap-2 rounded-2xl border border-line bg-background text-sm font-bold text-muted-strong transition active:scale-[0.99] disabled:opacity-60">
             <X className="h-5 w-5" />
             取消
           </button>
         ) : null}
-        <button type="submit" className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-buy text-sm font-bold text-white shadow-lg shadow-buy/20 transition active:scale-[0.99]">
+        <button type="submit" disabled={isSaving} className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-buy text-sm font-bold text-white shadow-lg shadow-buy/20 transition active:scale-[0.99] disabled:opacity-60">
           <Save className="h-5 w-5" />
-          {submitLabel}
+          {isSaving ? "正在保存…" : submitLabel}
         </button>
       </div>
     </form>

@@ -1,7 +1,7 @@
 "use client";
 
-import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Download, FileSearch, Pencil, Search, Trash2, Upload } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Download, FileSearch, Pencil, RefreshCw, Search, Trash2 } from "lucide-react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
 import { Toast, type ToastMessage } from "@/components/Toast";
@@ -11,51 +11,39 @@ import { buildAuditReport, requestAuditReport } from "@/lib/audit-ai-adapter";
 import { cloudAuditRepository, localAuditRepository } from "@/lib/audit-repository";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
 import { currencyOptions, sampleAuditReports } from "@/lib/sample-data";
-import { buildTradeDataFile, parseTradeDataFile } from "@/lib/trade-data-file";
-import type { CloudWriteStatus } from "@/lib/use-trade-plans";
-import type { WorkspaceMode } from "@/lib/sync-state";
+import { buildTradeDataFile } from "@/lib/trade-data-file";
 import type { AuditReport, CurrencyCode, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
 import { AuditSnapshotCard } from "./AuditSnapshotCard";
-import { CloudSyncPanel } from "./CloudSyncPanel";
 
 type HistoryPageProps = {
   plans: TradePlan[];
   highlightedPlanId: string | null;
-  workspaceMode: WorkspaceMode;
-  cloudWriteStatus: CloudWriteStatus;
-  onWorkspaceModeChange: (mode: WorkspaceMode) => void;
-  onRetryCloudWrite: () => void;
-  onQueueCloudWrite: (label: string, action: () => Promise<void>) => void;
-  onUpdatePlan: (plan: TradePlan) => void;
-  onDeletePlan: (planId: string) => void;
-  onAddOperation: (operation: TradeOperation) => void;
-  onAddReview: (review: PlanReview) => void;
-  onReplacePlans: (plans: TradePlan[]) => void;
-  onClearPlans: () => void;
-  onRestoreSamples: () => void;
+  dataStatus: "loading" | "ready" | "cached";
+  connectionMessage: string;
+  isMutating: boolean;
+  onReload: () => Promise<void>;
+  onUpdatePlan: (plan: TradePlan) => Promise<void>;
+  onDeletePlan: (planId: string) => Promise<void>;
+  onAddOperation: (operation: TradeOperation) => Promise<void>;
+  onAddReview: (review: PlanReview) => Promise<void>;
 };
 
 export function HistoryPage({
   plans,
   highlightedPlanId,
-  workspaceMode,
-  cloudWriteStatus,
-  onWorkspaceModeChange,
-  onRetryCloudWrite,
-  onQueueCloudWrite,
+  dataStatus,
+  connectionMessage,
+  isMutating,
+  onReload,
   onUpdatePlan,
   onDeletePlan,
   onAddOperation,
-  onAddReview,
-  onReplacePlans,
-  onClearPlans,
-  onRestoreSamples
+  onAddReview
 }: HistoryPageProps) {
   const [query, setQuery] = useState("");
   const [dataMessage, setDataMessage] = useState("");
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [selectedDetailPlanId, setSelectedDetailPlanId] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [, ...sampleArchivedAudits] = sampleAuditReports;
   const [userArchivedAudits, setUserArchivedAudits] = useState<AuditReport[]>([]);
   const [isAuditArchiveHydrated, setIsAuditArchiveHydrated] = useState(false);
@@ -129,11 +117,21 @@ export function HistoryPage({
   }, [plans]);
 
   useEffect(() => {
-    try {
-      setUserArchivedAudits(localAuditRepository.load());
-    } finally {
-      setIsAuditArchiveHydrated(true);
-    }
+    let active = true;
+    cloudAuditRepository
+      .load()
+      .then((reports) => {
+        if (active) setUserArchivedAudits(reports);
+      })
+      .catch(() => {
+        if (active) setUserArchivedAudits(localAuditRepository.load());
+      })
+      .finally(() => {
+        if (active) setIsAuditArchiveHydrated(true);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -144,13 +142,7 @@ export function HistoryPage({
     localAuditRepository.persist(userArchivedAudits);
   }, [isAuditArchiveHydrated, userArchivedAudits]);
 
-  useEffect(() => {
-    if (cloudWriteStatus.state === "error" && cloudWriteStatus.message) {
-      notify(cloudWriteStatus.message, "error");
-    }
-  }, [cloudWriteStatus.message, cloudWriteStatus.state, notify]);
-
-  const archiveCurrentAudit = () => {
+  const archiveCurrentAudit = async () => {
     const now = new Date().toISOString();
     const archivedReport: AuditReport = {
       ...latestAudit,
@@ -159,32 +151,12 @@ export function HistoryPage({
       createdAt: now
     };
 
-    if (workspaceMode === "cloud") {
-      onQueueCloudWrite("归档云端审计", async () => {
-        const savedReport = await cloudAuditRepository.archive(archivedReport);
-        setUserArchivedAudits((current) => [savedReport, ...current].slice(0, 20));
-        notify("审计分析已成功归档到云端。", "success");
-      });
-      return;
-    }
-
-    setUserArchivedAudits((current) => [archivedReport, ...current].slice(0, 20));
-    notify("审计分析已成功归档到本地。", "success");
-  };
-
-  const confirmClearPlans = () => {
-    if (workspaceMode === "cloud") {
-      notify("请先切换到本地编辑模式，再执行整库清空。", "info");
-      return;
-    }
-
-    if (plans.length === 0) {
-      onClearPlans();
-      return;
-    }
-
-    if (window.confirm("确认清空当前浏览器里的本地计划记录吗？")) {
-      onClearPlans();
+    try {
+      const savedReport = await cloudAuditRepository.archive(archivedReport);
+      setUserArchivedAudits((current) => [savedReport, ...current.filter((report) => report.id !== savedReport.id)].slice(0, 20));
+      notify("审计分析已成功归档。", "success");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "审计归档失败，请重试。", "error");
     }
   };
 
@@ -202,87 +174,56 @@ export function HistoryPage({
     setDataMessage(`已导出 ${plans.length} 个计划。`);
   };
 
-  const importPlans = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-
-    if (!file) {
-      return;
-    }
-
-    if (workspaceMode === "cloud") {
-      notify("请先切换到本地编辑模式，再导入整包数据。", "info");
-      return;
-    }
-
-    try {
-      const text = await file.text();
-      const importedData = parseTradeDataFile(text);
-
-      if (plans.length > 0 && !window.confirm(`导入会替换当前 ${plans.length} 个本地计划，确认继续吗？`)) {
-        return;
-      }
-
-      onReplacePlans(importedData.plans);
-      setUserArchivedAudits(importedData.auditReports);
-      setDataMessage(`已导入 ${importedData.plans.length} 个计划和 ${importedData.auditReports.length} 条审计归档。`);
-    } catch (error) {
-      setDataMessage(error instanceof Error ? error.message : "导入失败，请检查 JSON 文件。");
-    }
-  };
-
-  const deleteArchivedAudit = (reportId: string) => {
+  const deleteArchivedAudit = async (reportId: string) => {
     if (!window.confirm("确认删除这条审计归档吗？计划和操作记录不会被删除。")) {
       return;
     }
 
-    if (workspaceMode === "cloud") {
-      onQueueCloudWrite("删除云端审计归档", async () => {
-        await cloudAuditRepository.delete(reportId);
-        setUserArchivedAudits((current) => current.filter((report) => report.id !== reportId));
-        notify("已删除云端审计归档。", "success");
-      });
-      return;
+    try {
+      await cloudAuditRepository.delete(reportId);
+      setUserArchivedAudits((current) => current.filter((report) => report.id !== reportId));
+      notify("已删除审计归档。", "success");
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "删除审计归档失败，请重试。", "error");
     }
-
-    setUserArchivedAudits((current) => current.filter((report) => report.id !== reportId));
-    notify("已删除本地审计归档。", "success");
   };
 
-  const clearArchivedAudits = () => {
+  const clearArchivedAudits = async () => {
     if (userArchivedAudits.length === 0) {
       return;
     }
 
     if (window.confirm(`确认清空 ${userArchivedAudits.length} 条审计归档吗？计划和操作记录不会被删除。`)) {
-      if (workspaceMode === "cloud") {
-        const reportsToDelete = [...userArchivedAudits];
-        onQueueCloudWrite("清空云端审计归档", async () => {
-          await Promise.all(reportsToDelete.map((report) => cloudAuditRepository.delete(report.id)));
-          setUserArchivedAudits([]);
-          notify("已清空云端审计归档。", "success");
-        });
-        return;
+      try {
+        for (const report of userArchivedAudits) await cloudAuditRepository.delete(report.id);
+        setUserArchivedAudits([]);
+        notify("已清空审计归档。", "success");
+      } catch (error) {
+        const serverReports = await cloudAuditRepository.load().catch(() => null);
+        if (serverReports) setUserArchivedAudits(serverReports);
+        notify(error instanceof Error ? error.message : "清空审计归档失败，请重试。", "error");
       }
-
-      setUserArchivedAudits([]);
-      notify("已清空本地审计归档。", "success");
     }
   };
 
   if (selectedDetailPlan) {
     return (
-      <PlanDetailView
-        plan={selectedDetailPlan}
-        onBack={() => setSelectedDetailPlanId(null)}
-        onDeletePlan={(planId) => {
-          onDeletePlan(planId);
-          setSelectedDetailPlanId(null);
-        }}
-        onUpdatePlan={onUpdatePlan}
-        onAddOperation={onAddOperation}
-        onAddReview={onAddReview}
-      />
+      <>
+        <PlanDetailView
+          plan={selectedDetailPlan}
+          onBack={() => setSelectedDetailPlanId(null)}
+          onDeletePlan={async (planId) => {
+            await onDeletePlan(planId);
+            setSelectedDetailPlanId(null);
+          }}
+          onUpdatePlan={onUpdatePlan}
+          onAddOperation={onAddOperation}
+          onAddReview={onAddReview}
+          isMutating={isMutating}
+          onNotify={notify}
+        />
+        <Toast message={toast} onDismiss={dismissToast} />
+      </>
     );
   }
 
@@ -307,21 +248,16 @@ export function HistoryPage({
         onClearArchives={clearArchivedAudits}
       />
 
-      {dataMessage ? <p className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-muted-strong">{dataMessage}</p> : null}
+      {dataStatus !== "ready" ? (
+        <div className={`flex items-start justify-between gap-3 rounded-xl border px-3 py-3 text-xs font-semibold leading-5 ${dataStatus === "cached" ? "border-sell/50 bg-sell/10 text-risk" : "border-line bg-surface text-muted-strong"}`}>
+          <span>{connectionMessage}</span>
+          <button type="button" onClick={() => void onReload()} className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-current px-2">
+            <RefreshCw className="h-3.5 w-3.5" />重试
+          </button>
+        </div>
+      ) : null}
 
-      <CloudSyncPanel
-        plans={plans}
-        auditReports={userArchivedAudits}
-        workspaceMode={workspaceMode}
-        cloudWriteStatus={cloudWriteStatus}
-        onWorkspaceModeChange={onWorkspaceModeChange}
-        onRetryCloudWrite={onRetryCloudWrite}
-        onNotify={notify}
-        onLoadCloudData={(cloudPlans, cloudAuditReports) => {
-          onReplacePlans(cloudPlans);
-          setUserArchivedAudits(cloudAuditReports);
-        }}
-      />
+      {dataMessage ? <p className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-muted-strong">{dataMessage}</p> : null}
 
       <Toast message={toast} onDismiss={dismissToast} />
 
@@ -334,45 +270,11 @@ export function HistoryPage({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={confirmClearPlans} className="h-10 rounded-xl border border-line bg-surface text-xs font-bold text-muted-strong transition active:scale-[0.98]">
-              清空本地计划
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (workspaceMode === "cloud") {
-                  notify("请先切换到本地编辑模式，再恢复示例数据。", "info");
-                  return;
-                }
-                onRestoreSamples();
-              }}
-              className="h-10 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]"
-            >
-              恢复示例数据
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button type="button" onClick={exportPlans} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-line bg-surface text-xs font-bold text-muted-strong transition active:scale-[0.98]">
+          <div>
+            <button type="button" onClick={exportPlans} className="flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface text-xs font-bold text-muted-strong transition active:scale-[0.98]">
               <Download className="h-4 w-4" />
               导出 JSON
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (workspaceMode === "cloud") {
-                  notify("请先切换到本地编辑模式，再导入整包数据。", "info");
-                  return;
-                }
-                fileInputRef.current?.click();
-              }}
-              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]"
-            >
-              <Upload className="h-4 w-4" />
-              导入 JSON
-            </button>
-            <input ref={fileInputRef} className="hidden" type="file" accept="application/json,.json" onChange={importPlans} />
           </div>
 
           <label className="relative block">
@@ -390,6 +292,8 @@ export function HistoryPage({
               onDeletePlan={onDeletePlan}
               onUpdatePlan={onUpdatePlan}
               onOpenDetail={setSelectedDetailPlanId}
+              isMutating={isMutating}
+              onNotify={notify}
             />
           ))
         ) : plans.length > 0 ? (
@@ -407,23 +311,37 @@ function PlanCard({
   isHighlighted,
   onDeletePlan,
   onUpdatePlan,
-  onOpenDetail
+  onOpenDetail,
+  isMutating,
+  onNotify
 }: {
   plan: TradePlan;
   isHighlighted: boolean;
-  onDeletePlan: (planId: string) => void;
-  onUpdatePlan: (plan: TradePlan) => void;
+  onDeletePlan: (planId: string) => Promise<void>;
+  onUpdatePlan: (plan: TradePlan) => Promise<void>;
   onOpenDetail: (planId: string) => void;
+  isMutating: boolean;
+  onNotify: (text: string, tone?: ToastMessage["tone"]) => void;
 }) {
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (window.confirm(`确认删除「${plan.title}」以及其中所有操作和复盘吗？`)) {
-      onDeletePlan(plan.id);
+      try {
+        await onDeletePlan(plan.id);
+        onNotify("计划已删除。", "success");
+      } catch (error) {
+        onNotify(error instanceof Error ? error.message : "删除计划失败，请重试。", "error");
+      }
     }
   };
 
-  const toggleStatus = () => {
+  const toggleStatus = async () => {
     const now = new Date().toISOString();
-    onUpdatePlan({ ...plan, status: plan.status === "active" ? "closed" : "active", updatedAt: now });
+    try {
+      await onUpdatePlan({ ...plan, status: plan.status === "active" ? "closed" : "active", updatedAt: now });
+      onNotify(plan.status === "active" ? "计划已关闭。" : "计划已重新打开。", "success");
+    } catch (error) {
+      onNotify(error instanceof Error ? error.message : "更新计划失败，请重试。", "error");
+    }
   };
 
   return (
@@ -460,10 +378,10 @@ function PlanCard({
         <button type="button" onClick={() => onOpenDetail(plan.id)} className="h-10 rounded-xl border border-line bg-background text-xs font-bold text-muted-strong transition active:scale-[0.98]">
           查看详情
         </button>
-        <button type="button" onClick={toggleStatus} className="h-10 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]">
+        <button type="button" onClick={() => void toggleStatus()} disabled={isMutating} className="h-10 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98] disabled:opacity-60">
           {plan.status === "active" ? "关闭计划" : "重新打开"}
         </button>
-        <button type="button" onClick={confirmDelete} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98]" aria-label={`删除 ${plan.title}`}>
+        <button type="button" onClick={() => void confirmDelete()} disabled={isMutating} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98] disabled:opacity-60" aria-label={`删除 ${plan.title}`}>
           <Trash2 className="h-4 w-4" />
         </button>
       </div>
@@ -477,14 +395,18 @@ function PlanDetailView({
   onDeletePlan,
   onUpdatePlan,
   onAddOperation,
-  onAddReview
+  onAddReview,
+  isMutating,
+  onNotify
 }: {
   plan: TradePlan;
   onBack: () => void;
-  onDeletePlan: (planId: string) => void;
-  onUpdatePlan: (plan: TradePlan) => void;
-  onAddOperation: (operation: TradeOperation) => void;
-  onAddReview: (review: PlanReview) => void;
+  onDeletePlan: (planId: string) => Promise<void>;
+  onUpdatePlan: (plan: TradePlan) => Promise<void>;
+  onAddOperation: (operation: TradeOperation) => Promise<void>;
+  onAddReview: (review: PlanReview) => Promise<void>;
+  isMutating: boolean;
+  onNotify: (text: string, tone?: ToastMessage["tone"]) => void;
 }) {
   const [entryMode, setEntryMode] = useState<"operation" | "review">("operation");
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -501,15 +423,25 @@ function PlanDetailView({
     ...plan.reviews.map((review) => ({ type: "review" as const, time: review.reviewTime, item: review }))
   ].sort((left, right) => new Date(right.time).getTime() - new Date(left.time).getTime());
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (window.confirm(`确认删除「${plan.title}」以及其中所有操作和复盘吗？`)) {
-      onDeletePlan(plan.id);
+      try {
+        await onDeletePlan(plan.id);
+        onNotify("计划已删除。", "success");
+      } catch (error) {
+        onNotify(error instanceof Error ? error.message : "删除计划失败，请重试。", "error");
+      }
     }
   };
 
-  const toggleStatus = () => {
+  const toggleStatus = async () => {
     const now = new Date().toISOString();
-    onUpdatePlan({ ...plan, status: plan.status === "active" ? "closed" : "active", updatedAt: now });
+    try {
+      await onUpdatePlan({ ...plan, status: plan.status === "active" ? "closed" : "active", updatedAt: now });
+      onNotify(plan.status === "active" ? "计划已关闭。" : "计划已重新打开。", "success");
+    } catch (error) {
+      onNotify(error instanceof Error ? error.message : "更新计划失败，请重试。", "error");
+    }
   };
 
   const startEditingPlan = () => {
@@ -523,75 +455,92 @@ function PlanDetailView({
     setIsEditingPlan(true);
   };
 
-  const savePlanEdits = () => {
+  const savePlanEdits = async () => {
     if (!editTitle.trim() || !editAssetName.trim() || !editThesis.trim()) {
       setPlanEditError("请补全计划名称、标的和计划假设。");
       return;
     }
 
-    onUpdatePlan({
-      ...plan,
-      title: editTitle.trim(),
-      assetName: editAssetName.trim(),
-      ticker: editTicker.trim() || editAssetName.trim(),
-      market: editMarket.trim() || "自选",
-      currency: editCurrency,
-      thesis: editThesis.trim(),
-      updatedAt: new Date().toISOString()
-    });
-    setPlanEditError("");
-    setIsEditingPlan(false);
+    try {
+      await onUpdatePlan({
+        ...plan,
+        title: editTitle.trim(),
+        assetName: editAssetName.trim(),
+        ticker: editTicker.trim() || editAssetName.trim(),
+        market: editMarket.trim() || "自选",
+        currency: editCurrency,
+        thesis: editThesis.trim(),
+        updatedAt: new Date().toISOString()
+      });
+      setPlanEditError("");
+      setIsEditingPlan(false);
+      onNotify("计划修改已保存。", "success");
+    } catch (error) {
+      setPlanEditError(error instanceof Error ? error.message : "保存计划失败，请重试。");
+    }
   };
 
-  const updateOperation = (operation: TradeOperation) => {
-    onUpdatePlan({
+  const updateOperation = async (operation: TradeOperation) => {
+    await onUpdatePlan({
       ...plan,
       operations: plan.operations.map((item) => (item.id === operation.id ? operation : item)),
       updatedAt: operation.updatedAt
     });
     setEditingEventId(null);
+    onNotify("操作修改已保存。", "success");
   };
 
-  const updateReview = (review: PlanReview) => {
-    onUpdatePlan({
+  const updateReview = async (review: PlanReview) => {
+    await onUpdatePlan({
       ...plan,
       reviews: plan.reviews.map((item) => (item.id === review.id ? review : item)),
       updatedAt: review.updatedAt
     });
     setEditingEventId(null);
+    onNotify("复盘修改已保存。", "success");
   };
 
-  const deleteOperation = (operation: TradeOperation) => {
+  const deleteOperation = async (operation: TradeOperation) => {
     if (!window.confirm("确认删除这条操作记录吗？")) {
       return;
     }
 
     const now = new Date().toISOString();
-    onUpdatePlan({
-      ...plan,
-      operations: plan.operations.filter((item) => item.id !== operation.id),
-      reviews: plan.reviews.map((review) =>
-        review.operationIds?.includes(operation.id)
-          ? { ...review, operationIds: review.operationIds.filter((operationId) => operationId !== operation.id), updatedAt: now }
-          : review
-      ),
-      updatedAt: now
-    });
-    setEditingEventId(null);
+    try {
+      await onUpdatePlan({
+        ...plan,
+        operations: plan.operations.filter((item) => item.id !== operation.id),
+        reviews: plan.reviews.map((review) =>
+          review.operationIds?.includes(operation.id)
+            ? { ...review, operationIds: review.operationIds.filter((operationId) => operationId !== operation.id), updatedAt: now }
+            : review
+        ),
+        updatedAt: now
+      });
+      setEditingEventId(null);
+      onNotify("操作记录已删除。", "success");
+    } catch (error) {
+      onNotify(error instanceof Error ? error.message : "删除操作失败，请重试。", "error");
+    }
   };
 
-  const deleteReview = (review: PlanReview) => {
+  const deleteReview = async (review: PlanReview) => {
     if (!window.confirm("确认删除这条复盘记录吗？")) {
       return;
     }
 
     const now = new Date().toISOString();
-    onUpdatePlan({
-      ...plan,
-      reviews: plan.reviews.filter((item) => item.id !== review.id),
-      updatedAt: now
-    });
-    setEditingEventId(null);
+    try {
+      await onUpdatePlan({
+        ...plan,
+        reviews: plan.reviews.filter((item) => item.id !== review.id),
+        updatedAt: now
+      });
+      setEditingEventId(null);
+      onNotify("复盘记录已删除。", "success");
+    } catch (error) {
+      onNotify(error instanceof Error ? error.message : "删除复盘失败，请重试。", "error");
+    }
   };
 
   return (
@@ -633,10 +582,10 @@ function PlanDetailView({
           <button type="button" onClick={startEditingPlan} className="h-10 rounded-xl border border-line bg-background text-xs font-bold text-muted-strong transition active:scale-[0.98]">
             编辑计划
           </button>
-          <button type="button" onClick={toggleStatus} className="h-10 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]">
+          <button type="button" onClick={() => void toggleStatus()} disabled={isMutating} className="h-10 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98] disabled:opacity-60">
             {plan.status === "active" ? "关闭计划" : "重新打开"}
           </button>
-          <button type="button" onClick={confirmDelete} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98]" aria-label={`删除 ${plan.title}`}>
+          <button type="button" onClick={() => void confirmDelete()} disabled={isMutating} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98] disabled:opacity-60" aria-label={`删除 ${plan.title}`}>
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
@@ -687,8 +636,8 @@ function PlanDetailView({
             <button type="button" onClick={() => setIsEditingPlan(false)} className="h-11 rounded-xl border border-line bg-background text-xs font-bold text-muted-strong transition active:scale-[0.98]">
               取消
             </button>
-            <button type="button" onClick={savePlanEdits} className="h-11 rounded-xl bg-buy text-xs font-bold text-white transition active:scale-[0.98]">
-              保存计划
+            <button type="button" onClick={() => void savePlanEdits()} disabled={isMutating} className="h-11 rounded-xl bg-buy text-xs font-bold text-white transition active:scale-[0.98] disabled:opacity-60">
+              {isMutating ? "正在保存…" : "保存计划"}
             </button>
           </div>
         </section>
@@ -755,7 +704,7 @@ function PlanDetailView({
                         <Pencil className="h-4 w-4" />
                         编辑操作
                       </button>
-                      <button type="button" onClick={() => deleteOperation(event.item)} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98]" aria-label="删除操作">
+                      <button type="button" onClick={() => void deleteOperation(event.item)} disabled={isMutating} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98] disabled:opacity-60" aria-label="删除操作">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
@@ -794,7 +743,7 @@ function PlanDetailView({
                         <Pencil className="h-4 w-4" />
                         编辑复盘
                       </button>
-                      <button type="button" onClick={() => deleteReview(event.item)} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98]" aria-label="删除复盘">
+                      <button type="button" onClick={() => void deleteReview(event.item)} disabled={isMutating} className="flex h-10 w-12 items-center justify-center rounded-xl border border-sell/40 bg-sell/10 text-risk transition active:scale-[0.98] disabled:opacity-60" aria-label="删除复盘">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
