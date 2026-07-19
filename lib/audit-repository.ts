@@ -49,6 +49,10 @@ export const cloudAuditRepository = {
       method: "DELETE",
       headers: { "X-Confirm-Delete": "true" }
     });
+    if (response.status === 404) {
+      return;
+    }
+
     if (!response.ok) {
       const result = (await response.json()) as { meta?: { message?: string }; errors?: string[] };
       throw new Error(result.meta?.message ?? result.errors?.[0] ?? "删除云端审计归档失败。");

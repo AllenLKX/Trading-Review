@@ -1,8 +1,10 @@
 import type { AuditReport, TradePlan } from "@/lib/types";
 
-const SYNC_STATE_KEY = "rationaltrade.cloudSync.v1";
+const SYNC_STATE_KEY = "rationaltrade.cloudSync.v2";
+const WORKSPACE_MODE_KEY = "rationaltrade.workspaceMode.v1";
 
 export type SyncDirection = "upload" | "download";
+export type WorkspaceMode = "local" | "cloud";
 
 export type SyncState = {
   baselineFingerprint: string;
@@ -46,6 +48,14 @@ export function loadSyncState(): SyncState | null {
 
 export function persistSyncState(state: SyncState) {
   window.localStorage.setItem(SYNC_STATE_KEY, JSON.stringify(state));
+}
+
+export function loadWorkspaceMode(): WorkspaceMode {
+  return window.localStorage.getItem(WORKSPACE_MODE_KEY) === "cloud" ? "cloud" : "local";
+}
+
+export function persistWorkspaceMode(mode: WorkspaceMode) {
+  window.localStorage.setItem(WORKSPACE_MODE_KEY, mode);
 }
 
 export function fingerprintTradeData(plans: TradePlan[], auditReports: AuditReport[]) {
@@ -149,7 +159,7 @@ function canonicalize(value: unknown): unknown {
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
-        .filter(([, item]) => item !== undefined)
+        .filter(([key, item]) => item !== undefined && key !== "createdAt" && key !== "updatedAt")
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([key, item]) => [key, canonicalize(item)])
     );

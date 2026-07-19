@@ -6,6 +6,7 @@ import {
   parseCreateOperationInput,
   parseCreatePlanInput,
   parseCreateReviewInput,
+  type CreateEntityIdentity,
   type CreateOperationInput,
   type CreatePlanInput,
   type CreateReviewInput
@@ -163,7 +164,10 @@ export async function listServerTradePlans(): Promise<PlanListResult> {
   }
 }
 
-export async function createServerTradePlan(input: CreatePlanInput): Promise<MutationResult<TradePlan>> {
+export async function createServerTradePlan(
+  input: CreatePlanInput,
+  identity: CreateEntityIdentity = {}
+): Promise<MutationResult<TradePlan>> {
   const userResult = getConfiguredUserId();
 
   if (!userResult.ok) {
@@ -172,10 +176,32 @@ export async function createServerTradePlan(input: CreatePlanInput): Promise<Mut
 
   try {
     const result = await getDatabasePool().query<PlanRow>(
-      `insert into trade_plans (user_id, title, asset_name, ticker, market, currency, status, thesis)
-       values ($1, $2, $3, $4, $5, $6, $7, $8)
+      `insert into trade_plans (id, user_id, title, asset_name, ticker, market, currency, status, thesis, created_at, updated_at)
+       values (coalesce($1, gen_random_uuid()::text), $2, $3, $4, $5, $6, $7, $8, $9, coalesce($10, now()), coalesce($11, now()))
+       on conflict (id) do update set
+         title = excluded.title,
+         asset_name = excluded.asset_name,
+         ticker = excluded.ticker,
+         market = excluded.market,
+         currency = excluded.currency,
+         status = excluded.status,
+         thesis = excluded.thesis,
+         updated_at = excluded.updated_at
+       where trade_plans.user_id = excluded.user_id
        returning id, title, asset_name, ticker, market, currency, status, thesis, created_at, updated_at`,
-      [userResult.userId, input.title, input.assetName, input.ticker, input.market, input.currency, input.status, input.thesis]
+      [
+        identity.id,
+        userResult.userId,
+        input.title,
+        input.assetName,
+        input.ticker,
+        input.market,
+        input.currency,
+        input.status,
+        input.thesis,
+        identity.createdAt,
+        identity.updatedAt
+      ]
     );
 
     return {
@@ -250,7 +276,8 @@ export async function deleteServerTradePlan(planId: string): Promise<MutationRes
 
 export async function createServerTradeOperation(
   planId: string,
-  input: CreateOperationInput
+  input: CreateOperationInput,
+  identity: CreateEntityIdentity = {}
 ): Promise<MutationResult<TradeOperation>> {
   const userResult = getConfiguredUserId();
 
@@ -272,15 +299,33 @@ export async function createServerTradeOperation(
 
     const result = await pool.query<OperationRow>(
       `insert into trade_operations (
-          user_id, plan_id, action, trade_time, currency, price, quantity, quantity_unit,
+          id, user_id, plan_id, action, trade_time, currency, price, quantity, quantity_unit,
           total_amount, take_profit_price, stop_loss_price, decision_reason,
-          psychology_note, emotion_tags, strategy_tags, source
+          psychology_note, emotion_tags, strategy_tags, source, created_at, updated_at
        )
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+       values (coalesce($1, gen_random_uuid()::text), $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, coalesce($18, now()), coalesce($19, now()))
+       on conflict (id) do update set
+         action = excluded.action,
+         trade_time = excluded.trade_time,
+         currency = excluded.currency,
+         price = excluded.price,
+         quantity = excluded.quantity,
+         quantity_unit = excluded.quantity_unit,
+         total_amount = excluded.total_amount,
+         take_profit_price = excluded.take_profit_price,
+         stop_loss_price = excluded.stop_loss_price,
+         decision_reason = excluded.decision_reason,
+         psychology_note = excluded.psychology_note,
+         emotion_tags = excluded.emotion_tags,
+         strategy_tags = excluded.strategy_tags,
+         source = excluded.source,
+         updated_at = excluded.updated_at
+       where trade_operations.user_id = excluded.user_id
        returning id, plan_id, action, trade_time, currency, price, quantity, quantity_unit,
                  total_amount, take_profit_price, stop_loss_price, decision_reason,
                  psychology_note, emotion_tags, strategy_tags, source, created_at, updated_at`,
       [
+        identity.id,
         userResult.userId,
         planId,
         input.action,
@@ -296,7 +341,9 @@ export async function createServerTradeOperation(
         input.psychologyNote,
         input.emotionTags,
         input.strategyTags,
-        input.source
+        input.source,
+        identity.createdAt,
+        identity.updatedAt
       ]
     );
 
@@ -397,7 +444,11 @@ export async function deleteServerTradeOperation(
   }
 }
 
-export async function createServerPlanReview(planId: string, input: CreateReviewInput): Promise<MutationResult<PlanReview>> {
+export async function createServerPlanReview(
+  planId: string,
+  input: CreateReviewInput,
+  identity: CreateEntityIdentity = {}
+): Promise<MutationResult<PlanReview>> {
   const userResult = getConfiguredUserId();
 
   if (!userResult.ok) {
@@ -418,13 +469,24 @@ export async function createServerPlanReview(planId: string, input: CreateReview
 
     const result = await pool.query<ReviewRow>(
       `insert into plan_reviews (
-          user_id, plan_id, review_time, operation_ids, realized_result,
-          profit_loss, violated_rules, review_note, emotion_tags
+          id, user_id, plan_id, review_time, operation_ids, realized_result,
+          profit_loss, violated_rules, review_note, emotion_tags, created_at, updated_at
        )
-       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       values (coalesce($1, gen_random_uuid()::text), $2, $3, $4, $5, $6, $7, $8, $9, $10, coalesce($11, now()), coalesce($12, now()))
+       on conflict (id) do update set
+         review_time = excluded.review_time,
+         operation_ids = excluded.operation_ids,
+         realized_result = excluded.realized_result,
+         profit_loss = excluded.profit_loss,
+         violated_rules = excluded.violated_rules,
+         review_note = excluded.review_note,
+         emotion_tags = excluded.emotion_tags,
+         updated_at = excluded.updated_at
+       where plan_reviews.user_id = excluded.user_id
        returning id, plan_id, review_time, operation_ids, realized_result, profit_loss,
                  violated_rules, review_note, emotion_tags, created_at, updated_at`,
       [
+        identity.id,
         userResult.userId,
         planId,
         input.reviewTime,
@@ -433,7 +495,9 @@ export async function createServerPlanReview(planId: string, input: CreateReview
         input.profitLoss,
         input.violatedRules,
         input.reviewNote,
-        input.emotionTags
+        input.emotionTags,
+        identity.createdAt,
+        identity.updatedAt
       ]
     );
 

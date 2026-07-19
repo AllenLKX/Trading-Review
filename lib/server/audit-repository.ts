@@ -65,6 +65,19 @@ export async function createServerAuditReport(report: AuditReport): Promise<Audi
          id, user_id, period_start, period_end, title, summary, signal_label, signal_level,
          metrics, ai_input_digest, findings, review_questions, source, created_at
        ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       on conflict (id) do update set
+         period_start = excluded.period_start,
+         period_end = excluded.period_end,
+         title = excluded.title,
+         summary = excluded.summary,
+         signal_label = excluded.signal_label,
+         signal_level = excluded.signal_level,
+         metrics = excluded.metrics,
+         ai_input_digest = excluded.ai_input_digest,
+         findings = excluded.findings,
+         review_questions = excluded.review_questions,
+         source = excluded.source
+       where audit_reports.user_id = excluded.user_id
        returning ${auditColumns}`,
       [
         report.id,

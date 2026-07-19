@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createServerTradeOperation } from "@/lib/server/plan-repository";
-import { parseCreateOperationInput } from "@/lib/server/trade-validation";
+import { parseCreateEntityIdentity, parseCreateOperationInput } from "@/lib/server/trade-validation";
 
 export const runtime = "nodejs";
 
@@ -13,13 +13,18 @@ type RouteContext = {
 
 export async function POST(request: Request, context: RouteContext) {
   const { planId } = await context.params;
-  const parsed = parseCreateOperationInput(await request.json().catch(() => null));
+  const body = await request.json().catch(() => null);
+  const parsed = parseCreateOperationInput(body);
+  const identity = parseCreateEntityIdentity(body);
 
-  if (!parsed.ok) {
-    return NextResponse.json({ ok: false, errors: parsed.errors }, { status: 400 });
+  if (!parsed.ok || !identity.ok) {
+    return NextResponse.json(
+      { ok: false, errors: [...(!parsed.ok ? parsed.errors : []), ...(!identity.ok ? identity.errors : [])] },
+      { status: 400 }
+    );
   }
 
-  const result = await createServerTradeOperation(planId, parsed.value);
+  const result = await createServerTradeOperation(planId, parsed.value, identity.value);
 
   if (!result.ok) {
     return NextResponse.json(

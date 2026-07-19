@@ -1,6 +1,9 @@
 const baseUrl = process.argv[2] ?? "http://localhost:3000";
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const auditId = `audit-contract-${runId}`;
+const clientPlanId = `plan-client-${runId}`;
+const clientOperationId = `operation-client-${runId}`;
+const clientReviewId = `review-client-${runId}`;
 
 let planId;
 let operationId;
@@ -15,16 +18,29 @@ try {
   const createdPlan = await request("/api/plans", {
     method: "POST",
     body: {
+      id: clientPlanId,
       title: `API contract ${runId}`,
       assetName: "Synthetic Asset",
       ticker: "TEST",
       market: "LOCAL",
       currency: "USD",
       status: "active",
-      thesis: "Synthetic database verification only."
+      thesis: "Synthetic database verification only.",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
   });
   planId = createdPlan.plan.id;
+  assert(planId === clientPlanId, "Cloud plan create did not preserve the client id.");
+  const retriedPlan = await request("/api/plans", {
+    method: "POST",
+    body: {
+      ...createdPlan.plan,
+      operations: undefined,
+      reviews: undefined
+    }
+  });
+  assert(retriedPlan.plan.id === clientPlanId, "Retrying cloud plan create changed the client id.");
 
   const updatedPlan = await request(`/api/plans/${planId}`, {
     method: "PATCH",
@@ -43,6 +59,7 @@ try {
   const createdOperation = await request(`/api/plans/${planId}/operations`, {
     method: "POST",
     body: {
+      id: clientOperationId,
       action: "buy",
       tradeTime: new Date().toISOString(),
       currency: "USD",
@@ -55,10 +72,18 @@ try {
       decisionReason: "Synthetic operation.",
       emotionTags: ["calm"],
       strategyTags: ["contract-test"],
-      source: "manual"
+      source: "manual",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
   });
   operationId = createdOperation.operation.id;
+  assert(operationId === clientOperationId, "Cloud operation create did not preserve the client id.");
+  const retriedOperation = await request(`/api/plans/${planId}/operations`, {
+    method: "POST",
+    body: createdOperation.operation
+  });
+  assert(retriedOperation.operation.id === clientOperationId, "Retrying cloud operation create changed the client id.");
 
   const updatedOperation = await request(`/api/plans/${planId}/operations/${operationId}`, {
     method: "PATCH",
@@ -84,16 +109,25 @@ try {
   const createdReview = await request(`/api/plans/${planId}/reviews`, {
     method: "POST",
     body: {
+      id: clientReviewId,
       reviewTime: new Date().toISOString(),
       operationIds: [operationId],
       realizedResult: "met",
       profitLoss: 5,
       violatedRules: [],
       reviewNote: "Synthetic review.",
-      emotionTags: ["calm"]
+      emotionTags: ["calm"],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
   });
   reviewId = createdReview.review.id;
+  assert(reviewId === clientReviewId, "Cloud review create did not preserve the client id.");
+  const retriedReview = await request(`/api/plans/${planId}/reviews`, {
+    method: "POST",
+    body: createdReview.review
+  });
+  assert(retriedReview.review.id === clientReviewId, "Retrying cloud review create changed the client id.");
 
   const updatedReview = await request(`/api/plans/${planId}/reviews/${reviewId}`, {
     method: "PATCH",

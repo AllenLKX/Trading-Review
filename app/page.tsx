@@ -13,6 +13,11 @@ export default function Home() {
     plans,
     selectedPlanId,
     highlightedPlanId,
+    workspaceMode,
+    cloudWriteStatus,
+    setWorkspaceMode,
+    retryCloudWrite,
+    queueCloudWrite,
     setSelectedPlanId,
     createPlan,
     updatePlan,
@@ -46,6 +51,11 @@ export default function Home() {
         <HistoryPage
           plans={plans}
           highlightedPlanId={highlightedPlanId}
+          workspaceMode={workspaceMode}
+          cloudWriteStatus={cloudWriteStatus}
+          onWorkspaceModeChange={setWorkspaceMode}
+          onRetryCloudWrite={retryCloudWrite}
+          onQueueCloudWrite={queueCloudWrite}
           onUpdatePlan={updatePlan}
           onDeletePlan={deletePlan}
           onAddOperation={addOperation}

@@ -8,10 +8,12 @@ import { Toast, type ToastMessage } from "@/components/Toast";
 import { PlanOperationForm } from "@/features/trades/PlanOperationForm";
 import { PlanReviewForm } from "@/features/trades/PlanReviewForm";
 import { buildAuditReport, requestAuditReport } from "@/lib/audit-ai-adapter";
-import { localAuditRepository } from "@/lib/audit-repository";
+import { cloudAuditRepository, localAuditRepository } from "@/lib/audit-repository";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
 import { currencyOptions, sampleAuditReports } from "@/lib/sample-data";
 import { buildTradeDataFile, parseTradeDataFile } from "@/lib/trade-data-file";
+import type { CloudWriteStatus } from "@/lib/use-trade-plans";
+import type { WorkspaceMode } from "@/lib/sync-state";
 import type { AuditReport, CurrencyCode, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
 import { AuditSnapshotCard } from "./AuditSnapshotCard";
 import { CloudSyncPanel } from "./CloudSyncPanel";
@@ -19,6 +21,11 @@ import { CloudSyncPanel } from "./CloudSyncPanel";
 type HistoryPageProps = {
   plans: TradePlan[];
   highlightedPlanId: string | null;
+  workspaceMode: WorkspaceMode;
+  cloudWriteStatus: CloudWriteStatus;
+  onWorkspaceModeChange: (mode: WorkspaceMode) => void;
+  onRetryCloudWrite: () => void;
+  onQueueCloudWrite: (label: string, action: () => Promise<void>) => void;
   onUpdatePlan: (plan: TradePlan) => void;
   onDeletePlan: (planId: string) => void;
   onAddOperation: (operation: TradeOperation) => void;
@@ -31,6 +38,11 @@ type HistoryPageProps = {
 export function HistoryPage({
   plans,
   highlightedPlanId,
+  workspaceMode,
+  cloudWriteStatus,
+  onWorkspaceModeChange,
+  onRetryCloudWrite,
+  onQueueCloudWrite,
   onUpdatePlan,
   onDeletePlan,
   onAddOperation,
@@ -132,6 +144,12 @@ export function HistoryPage({
     localAuditRepository.persist(userArchivedAudits);
   }, [isAuditArchiveHydrated, userArchivedAudits]);
 
+  useEffect(() => {
+    if (cloudWriteStatus.state === "error" && cloudWriteStatus.message) {
+      notify(cloudWriteStatus.message, "error");
+    }
+  }, [cloudWriteStatus.message, cloudWriteStatus.state, notify]);
+
   const archiveCurrentAudit = () => {
     const now = new Date().toISOString();
     const archivedReport: AuditReport = {
@@ -141,11 +159,25 @@ export function HistoryPage({
       createdAt: now
     };
 
+    if (workspaceMode === "cloud") {
+      onQueueCloudWrite("归档云端审计", async () => {
+        const savedReport = await cloudAuditRepository.archive(archivedReport);
+        setUserArchivedAudits((current) => [savedReport, ...current].slice(0, 20));
+        notify("审计分析已成功归档到云端。", "success");
+      });
+      return;
+    }
+
     setUserArchivedAudits((current) => [archivedReport, ...current].slice(0, 20));
-    notify("审计分析已成功归档。", "success");
+    notify("审计分析已成功归档到本地。", "success");
   };
 
   const confirmClearPlans = () => {
+    if (workspaceMode === "cloud") {
+      notify("请先切换到本地编辑模式，再执行整库清空。", "info");
+      return;
+    }
+
     if (plans.length === 0) {
       onClearPlans();
       return;
@@ -178,6 +210,11 @@ export function HistoryPage({
       return;
     }
 
+    if (workspaceMode === "cloud") {
+      notify("请先切换到本地编辑模式，再导入整包数据。", "info");
+      return;
+    }
+
     try {
       const text = await file.text();
       const importedData = parseTradeDataFile(text);
@@ -199,8 +236,17 @@ export function HistoryPage({
       return;
     }
 
+    if (workspaceMode === "cloud") {
+      onQueueCloudWrite("删除云端审计归档", async () => {
+        await cloudAuditRepository.delete(reportId);
+        setUserArchivedAudits((current) => current.filter((report) => report.id !== reportId));
+        notify("已删除云端审计归档。", "success");
+      });
+      return;
+    }
+
     setUserArchivedAudits((current) => current.filter((report) => report.id !== reportId));
-    setDataMessage("已删除审计归档。");
+    notify("已删除本地审计归档。", "success");
   };
 
   const clearArchivedAudits = () => {
@@ -209,8 +255,18 @@ export function HistoryPage({
     }
 
     if (window.confirm(`确认清空 ${userArchivedAudits.length} 条审计归档吗？计划和操作记录不会被删除。`)) {
+      if (workspaceMode === "cloud") {
+        const reportsToDelete = [...userArchivedAudits];
+        onQueueCloudWrite("清空云端审计归档", async () => {
+          await Promise.all(reportsToDelete.map((report) => cloudAuditRepository.delete(report.id)));
+          setUserArchivedAudits([]);
+          notify("已清空云端审计归档。", "success");
+        });
+        return;
+      }
+
       setUserArchivedAudits([]);
-      setDataMessage("已清空审计归档。");
+      notify("已清空本地审计归档。", "success");
     }
   };
 
@@ -256,6 +312,10 @@ export function HistoryPage({
       <CloudSyncPanel
         plans={plans}
         auditReports={userArchivedAudits}
+        workspaceMode={workspaceMode}
+        cloudWriteStatus={cloudWriteStatus}
+        onWorkspaceModeChange={onWorkspaceModeChange}
+        onRetryCloudWrite={onRetryCloudWrite}
         onNotify={notify}
         onLoadCloudData={(cloudPlans, cloudAuditReports) => {
           onReplacePlans(cloudPlans);
@@ -278,7 +338,17 @@ export function HistoryPage({
             <button type="button" onClick={confirmClearPlans} className="h-10 rounded-xl border border-line bg-surface text-xs font-bold text-muted-strong transition active:scale-[0.98]">
               清空本地计划
             </button>
-            <button type="button" onClick={onRestoreSamples} className="h-10 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]">
+            <button
+              type="button"
+              onClick={() => {
+                if (workspaceMode === "cloud") {
+                  notify("请先切换到本地编辑模式，再恢复示例数据。", "info");
+                  return;
+                }
+                onRestoreSamples();
+              }}
+              className="h-10 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]"
+            >
               恢复示例数据
             </button>
           </div>
@@ -288,7 +358,17 @@ export function HistoryPage({
               <Download className="h-4 w-4" />
               导出 JSON
             </button>
-            <button type="button" onClick={() => fileInputRef.current?.click()} className="flex h-10 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]">
+            <button
+              type="button"
+              onClick={() => {
+                if (workspaceMode === "cloud") {
+                  notify("请先切换到本地编辑模式，再导入整包数据。", "info");
+                  return;
+                }
+                fileInputRef.current?.click();
+              }}
+              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98]"
+            >
               <Upload className="h-4 w-4" />
               导入 JSON
             </button>

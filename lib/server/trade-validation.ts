@@ -46,6 +46,12 @@ export type CreateReviewInput = {
   emotionTags: string[];
 };
 
+export type CreateEntityIdentity = {
+  id?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 const currencyCodes: CurrencyCode[] = ["HKD", "USD", "CNY", "EUR", "JPY", "GBP"];
 const planStatuses: PlanStatus[] = ["active", "closed", "archived"];
 const tradeActions: TradeAction[] = ["buy", "sell", "observe"];
@@ -144,6 +150,16 @@ export function parseCreateReviewInput(raw: unknown): ValidationResult<CreateRev
     : { ok: true, value: { reviewTime, operationIds, realizedResult, profitLoss, violatedRules, reviewNote, emotionTags } };
 }
 
+export function parseCreateEntityIdentity(raw: unknown): ValidationResult<CreateEntityIdentity> {
+  const data = asRecord(raw);
+  const errors: string[] = [];
+  const id = readOptionalString(data, "id");
+  const createdAt = readOptionalIsoDateString(data, "createdAt", errors);
+  const updatedAt = readOptionalIsoDateString(data, "updatedAt", errors);
+
+  return errors.length > 0 ? { ok: false, errors } : { ok: true, value: { id, createdAt, updatedAt } };
+}
+
 function asRecord(value: unknown) {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
@@ -207,6 +223,21 @@ function readIsoDateString(data: Record<string, unknown>, field: string, errors:
   if (typeof value !== "string" || Number.isNaN(new Date(value).getTime())) {
     errors.push(`${field} must be a valid date string.`);
     return new Date().toISOString();
+  }
+
+  return new Date(value).toISOString();
+}
+
+function readOptionalIsoDateString(data: Record<string, unknown>, field: string, errors: string[]) {
+  const value = data[field];
+
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+
+  if (typeof value !== "string" || Number.isNaN(new Date(value).getTime())) {
+    errors.push(`${field} must be a valid date string.`);
+    return undefined;
   }
 
   return new Date(value).toISOString();

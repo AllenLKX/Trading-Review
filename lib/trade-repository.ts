@@ -120,12 +120,13 @@ export const cloudTradeRepository = {
 };
 
 function toPlanPayload(plan: TradePlan) {
-  const { title, assetName, ticker, market, currency, status, thesis } = plan;
-  return { title, assetName, ticker, market, currency, status, thesis };
+  const { id, title, assetName, ticker, market, currency, status, thesis, createdAt, updatedAt } = plan;
+  return { id, title, assetName, ticker, market, currency, status, thesis, createdAt, updatedAt };
 }
 
 function toOperationPayload(operation: TradeOperation) {
   const {
+    id,
     action,
     tradeTime,
     currency,
@@ -139,9 +140,12 @@ function toOperationPayload(operation: TradeOperation) {
     psychologyNote,
     emotionTags,
     strategyTags,
-    source
+    source,
+    createdAt,
+    updatedAt
   } = operation;
   return {
+    id,
     action,
     tradeTime,
     currency,
@@ -155,13 +159,15 @@ function toOperationPayload(operation: TradeOperation) {
     psychologyNote,
     emotionTags,
     strategyTags,
-    source
+    source,
+    createdAt,
+    updatedAt
   };
 }
 
 function toReviewPayload(review: PlanReview) {
-  const { reviewTime, operationIds, realizedResult, profitLoss, violatedRules, reviewNote, emotionTags } = review;
-  return { reviewTime, operationIds, realizedResult, profitLoss, violatedRules, reviewNote, emotionTags };
+  const { id, reviewTime, operationIds, realizedResult, profitLoss, violatedRules, reviewNote, emotionTags, createdAt, updatedAt } = review;
+  return { id, reviewTime, operationIds, realizedResult, profitLoss, violatedRules, reviewNote, emotionTags, createdAt, updatedAt };
 }
 
 function sendJson(url: string, method: "POST" | "PATCH", body: unknown) {
@@ -174,6 +180,10 @@ function sendJson(url: string, method: "POST" | "PATCH", body: unknown) {
 
 async function deleteCloudResource(url: string, fallbackMessage: string) {
   const response = await fetch(url, { method: "DELETE", headers: { "X-Confirm-Delete": "true" } });
+  if (response.status === 404) {
+    return;
+  }
+
   if (!response.ok) {
     const result = (await response.json()) as { meta?: ApiMeta; errors?: string[] };
     throw new Error(result.meta?.message ?? result.errors?.[0] ?? fallbackMessage);

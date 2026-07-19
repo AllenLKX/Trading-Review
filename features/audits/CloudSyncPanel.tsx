@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Cloud, CloudDownload, RefreshCw, RotateCcw, UploadCloud } from "lucide-react";
+import { SegmentedControl } from "@/components/SegmentedControl";
 import { cloudAuditRepository } from "@/lib/audit-repository";
 import {
   assessSyncState,
@@ -11,17 +12,23 @@ import {
   persistSyncState,
   type SyncAssessment,
   type SyncDirection,
-  type SyncState
+  type SyncState,
+  type WorkspaceMode
 } from "@/lib/sync-state";
 import { buildTradeDataFile } from "@/lib/trade-data-file";
 import { cloudTradeRepository } from "@/lib/trade-repository";
 import type { AuditReport, TradePlan } from "@/lib/types";
+import type { CloudWriteStatus } from "@/lib/use-trade-plans";
 
 type NotifyTone = "success" | "error" | "info";
 
 type CloudSyncPanelProps = {
   plans: TradePlan[];
   auditReports: AuditReport[];
+  workspaceMode: WorkspaceMode;
+  cloudWriteStatus: CloudWriteStatus;
+  onWorkspaceModeChange: (mode: WorkspaceMode) => void;
+  onRetryCloudWrite: () => void;
   onNotify: (message: string, tone?: NotifyTone) => void;
   onLoadCloudData: (plans: TradePlan[], auditReports: AuditReport[]) => void;
 };
@@ -49,7 +56,16 @@ type CloudPreview = {
 
 type RetryAction = "status" | "upload" | "preview";
 
-export function CloudSyncPanel({ plans, auditReports, onNotify, onLoadCloudData }: CloudSyncPanelProps) {
+export function CloudSyncPanel({
+  plans,
+  auditReports,
+  workspaceMode,
+  cloudWriteStatus,
+  onWorkspaceModeChange,
+  onRetryCloudWrite,
+  onNotify,
+  onLoadCloudData
+}: CloudSyncPanelProps) {
   const [status, setStatus] = useState<SystemStatusResponse | null>(null);
   const [syncState, setSyncState] = useState<SyncState | null>(null);
   const [isSyncStateHydrated, setIsSyncStateHydrated] = useState(false);
@@ -91,6 +107,14 @@ export function CloudSyncPanel({ plans, auditReports, onNotify, onLoadCloudData 
     setIsSyncStateHydrated(true);
     void loadStatus();
   }, []);
+
+  useEffect(() => {
+    if (workspaceMode !== "cloud" || cloudWriteStatus.state !== "saved" || cloudWriteStatus.revision === 0) {
+      return;
+    }
+
+    saveSyncState(localFingerprint, "upload");
+  }, [cloudWriteStatus.revision, cloudWriteStatus.state, localFingerprint, workspaceMode]);
 
   const readCloudSnapshot = async () => {
     const [cloudPlans, cloudAuditReports] = await Promise.all([
@@ -142,6 +166,7 @@ export function CloudSyncPanel({ plans, auditReports, onNotify, onLoadCloudData 
       if (assessment.requiresResolution) {
         setCloudPreview({ ...cloud, assessment });
         setRetryAction(null);
+        onWorkspaceModeChange("local");
         onNotify("检测到云端数据与本地不同，已暂停上传，请先选择处理方式。", "error");
         return;
       }
@@ -170,6 +195,9 @@ export function CloudSyncPanel({ plans, auditReports, onNotify, onLoadCloudData 
       const cloud = await readCloudSnapshot();
       const assessment = assessSyncState(plans, auditReports, cloud.plans, cloud.auditReports, syncState);
       setCloudPreview({ ...cloud, assessment });
+      if (assessment.requiresResolution) {
+        onWorkspaceModeChange("local");
+      }
       setRetryAction(null);
       onNotify("云端数据预览已更新，尚未修改当前本地记录。", "info");
     } catch (error) {
@@ -233,7 +261,44 @@ export function CloudSyncPanel({ plans, auditReports, onNotify, onLoadCloudData 
     }
   };
 
+  const activateCloudMode = async () => {
+    if (!canSync) {
+      onNotify("数据库当前不可用，暂时不能开启云端自动保存。", "error");
+      return;
+    }
+
+    if (hasUnsyncedChanges) {
+      onNotify("请先完成一次同步或下载，建立一致基线后再开启云端自动保存。", "error");
+      return;
+    }
+
+    setIsLoadingPreview(true);
+    try {
+      const cloud = await readCloudSnapshot();
+      const assessment = assessSyncState(plans, auditReports, cloud.plans, cloud.auditReports, syncState);
+      if (assessment.requiresResolution) {
+        setCloudPreview({ ...cloud, assessment });
+        onWorkspaceModeChange("local");
+        onNotify("云端在上次同步后发生变化，请先解决差异。", "error");
+        return;
+      }
+
+      onWorkspaceModeChange("cloud");
+      onNotify("已开启云端自动保存。", "success");
+    } catch (error) {
+      setRetryAction("preview");
+      onNotify(error instanceof Error ? error.message : "开启云端自动保存前的检查失败。", "error");
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
   const retry = () => {
+    if (cloudWriteStatus.state === "error") {
+      onRetryCloudWrite();
+      return;
+    }
+
     if (retryAction === "status") {
       void loadStatus();
     } else if (retryAction === "preview") {
@@ -265,6 +330,27 @@ export function CloudSyncPanel({ plans, auditReports, onNotify, onLoadCloudData 
           : "尚未建立同步基线"
         : "本地与上次同步一致";
 
+  useEffect(() => {
+    if (
+      isSyncStateHydrated &&
+      workspaceMode === "cloud" &&
+      cloudWriteStatus.state === "idle" &&
+      cloudWriteStatus.revision === 0 &&
+      hasUnsyncedChanges
+    ) {
+      onWorkspaceModeChange("local");
+      onNotify("本地与同步基线不一致，已安全回到本地编辑模式。", "error");
+    }
+  }, [
+    cloudWriteStatus.revision,
+    cloudWriteStatus.state,
+    hasUnsyncedChanges,
+    isSyncStateHydrated,
+    onNotify,
+    onWorkspaceModeChange,
+    workspaceMode
+  ]);
+
   return (
     <section className="rt-card space-y-4 p-4">
       <div className="flex items-start justify-between gap-3">
@@ -273,12 +359,55 @@ export function CloudSyncPanel({ plans, auditReports, onNotify, onLoadCloudData 
             <Cloud className="h-5 w-5 text-primary-soft" />
             <h3 className="text-lg font-bold text-white">云端备份</h3>
           </div>
-          <p className="mt-1 text-xs leading-5 text-muted">工作方式：本地编辑，确认后同步到 PostgreSQL。</p>
+          <p className="mt-1 text-xs leading-5 text-muted">
+            {workspaceMode === "cloud" ? "工作方式：本地立即响应，修改顺序保存到 PostgreSQL。" : "工作方式：本地编辑，确认后同步到 PostgreSQL。"}
+          </p>
         </div>
         <span className={`shrink-0 rounded-lg px-2 py-1 text-xs font-bold ${canSync ? "bg-buy/20 text-buy" : "bg-surface-raised text-muted-strong"}`}>
           {statusLabel}
         </span>
       </div>
+
+      <SegmentedControl
+        value={workspaceMode}
+        onChange={(mode) => {
+          if (mode === "local") {
+            onWorkspaceModeChange("local");
+            onNotify("已切换到本地编辑，修改不会自动写入云端。", "info");
+            return;
+          }
+
+          void activateCloudMode();
+        }}
+        options={[
+          { value: "local", label: "本地编辑" },
+          { value: "cloud", label: "云端自动保存" }
+        ]}
+      />
+
+      {workspaceMode === "cloud" ? (
+        <div className={`flex items-start gap-3 rounded-xl border px-3 py-3 ${cloudWriteStatus.state === "error" ? "border-sell/50 bg-sell/10" : "border-buy/30 bg-buy/10"}`}>
+          {cloudWriteStatus.state === "saving" ? (
+            <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary-soft" />
+          ) : cloudWriteStatus.state === "error" ? (
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-risk" />
+          ) : (
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-buy" />
+          )}
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-white">
+              {cloudWriteStatus.state === "saving"
+                ? "正在保存到云端"
+                : cloudWriteStatus.state === "error"
+                  ? "云端保存失败"
+                  : "云端自动保存已开启"}
+            </p>
+            <p className="mt-1 text-[11px] leading-4 text-muted">
+              {cloudWriteStatus.message ?? "计划、操作、复盘和审计归档会在修改后写入 PostgreSQL。"}
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <div className={`flex items-start gap-3 rounded-xl border px-3 py-3 ${hasUnsyncedChanges ? "border-primary/40 bg-primary/10" : "border-buy/30 bg-buy/10"}`}>
         {hasUnsyncedChanges ? <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-primary-soft" /> : <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-buy" />}
@@ -300,7 +429,7 @@ export function CloudSyncPanel({ plans, auditReports, onNotify, onLoadCloudData 
 
       {databaseStatus?.message ? <p className="rounded-xl border border-line bg-background px-3 py-2 text-xs leading-5 text-muted">{databaseStatus.message}</p> : null}
 
-      {retryAction ? (
+      {retryAction || cloudWriteStatus.state === "error" ? (
         <button
           type="button"
           onClick={retry}
@@ -316,7 +445,7 @@ export function CloudSyncPanel({ plans, auditReports, onNotify, onLoadCloudData 
           <RefreshCw className={`h-4 w-4 ${isLoadingStatus ? "animate-spin" : ""}`} />
           刷新状态
         </button>
-        <button type="button" onClick={() => uploadLocalData()} disabled={isUploading || !canSync} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-white shadow-lg shadow-primary/20 transition active:scale-[0.98] disabled:bg-surface-raised disabled:text-muted disabled:shadow-none">
+        <button type="button" onClick={() => uploadLocalData()} disabled={isUploading || !canSync || workspaceMode === "cloud"} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-white shadow-lg shadow-primary/20 transition active:scale-[0.98] disabled:bg-surface-raised disabled:text-muted disabled:shadow-none">
           <UploadCloud className="h-4 w-4" />
           {isUploading ? "检查并上传" : "同步本地修改"}
         </button>
