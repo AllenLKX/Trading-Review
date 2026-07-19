@@ -3,6 +3,7 @@ export type ServerRuntimeConfig = {
   nodeEnv: string;
   database: {
     configured: boolean;
+    singleUserConfigured: boolean;
   };
   ai: {
     configured: boolean;
@@ -22,7 +23,8 @@ export function readServerRuntimeConfig(): ServerRuntimeConfig {
     appVersion: process.env.NEXT_PUBLIC_APP_VERSION ?? "local-dev",
     nodeEnv: process.env.NODE_ENV ?? "development",
     database: {
-      configured: Boolean(process.env.DATABASE_URL)
+      configured: Boolean(process.env.DATABASE_URL),
+      singleUserConfigured: Boolean(process.env.RATIONALTRADE_SINGLE_USER_ID)
     },
     ai: {
       configured: Boolean(process.env.AI_API_KEY)

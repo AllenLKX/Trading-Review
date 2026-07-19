@@ -67,6 +67,14 @@ cp .env.example .env.production
 
 默认只返回数据库、AI、COS 是否已配置，不暴露任何真实 token 或连接字符串。加上 `?db=1` 时会尝试连接 PostgreSQL；未配置 `DATABASE_URL` 时只会返回未配置状态，不影响当前本地 H5 使用。
 
+云端计划列表接口：
+
+```text
+/api/plans
+```
+
+当前只读。未配置数据库时返回空数组和 `storage: "not-configured"`；配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后，从云端读取该用户的计划、操作和复盘。
+
 ## 数据说明
 
 当前数据保存在浏览器本地存储中。

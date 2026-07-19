@@ -2,6 +2,20 @@
 
 ## 2026-07-19
 
+### Backend M1 云端计划列表接口骨架
+
+新增：
+
+- `lib/server/plan-repository.ts`
+- `/api/plans`
+
+当前行为：
+
+- `/api/plans` 只读，不写入数据。
+- 未配置 `DATABASE_URL` 时返回空数组和 `storage: "not-configured"`。
+- 配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后，会读取该用户的计划、操作和复盘。
+- 前端 H5 仍继续使用本地存储，暂不替换保存逻辑。
+
 ### Backend M1 服务端配置与数据库连接边界
 
 新增：
