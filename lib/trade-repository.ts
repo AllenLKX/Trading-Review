@@ -1,5 +1,5 @@
 import { samplePlans, sampleTrades } from "@/lib/sample-data";
-import { migrateTradesToPlans } from "@/lib/plan-migration";
+import { migrateTradesToPlans, normalizeTradePlans } from "@/lib/plan-migration";
 import type { PlanReview, TradeDecision, TradeOperation, TradePlan } from "@/lib/types";
 
 const TRADE_STORAGE_KEY = "rationaltrade.tradeDecisions.v1";
@@ -18,7 +18,7 @@ export const localTradeRepository: TradeRepository = {
       if (storedPlans) {
         const parsedPlans = JSON.parse(storedPlans) as unknown;
         if (Array.isArray(parsedPlans)) {
-          return parsedPlans as TradePlan[];
+          return normalizeTradePlans(parsedPlans as TradePlan[]);
         }
       }
 

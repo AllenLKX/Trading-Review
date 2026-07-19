@@ -5,6 +5,7 @@ const auditId = `audit-contract-${runId}`;
 let planId;
 let operationId;
 let reviewId;
+let bulkPlanId;
 
 try {
   const status = await request("/api/system/status?db=1");
@@ -139,17 +140,123 @@ try {
   assert(storedPlan?.reviews.length === 1, "Stored review was not returned.");
   assert(audits.reports.some((report) => report.id === auditId), "Stored audit was not returned.");
 
-  console.log("Database API create, read, and update verification passed.");
+  bulkPlanId = `plan-bulk-${runId}`;
+  const bulkOperationId = `operation-bulk-${runId}`;
+  const now = new Date().toISOString();
+  const bulkImport = await request("/api/sync/import-local", {
+    method: "POST",
+    body: {
+      schemaVersion: 2,
+      exportedAt: now,
+      source: "rationaltrade-local",
+      plans: [
+        {
+          id: bulkPlanId,
+          title: "Legacy observe import",
+          assetName: "Synthetic Asset",
+          ticker: "TEST",
+          market: "LOCAL",
+          currency: "USD",
+          status: "active",
+          thesis: "Verify legacy observe normalization.",
+          operations: [
+            {
+              id: bulkOperationId,
+              planId: bulkPlanId,
+              action: "observe",
+              tradeTime: now,
+              currency: "USD",
+              price: 10,
+              quantity: 5,
+              quantityUnit: "shares",
+              totalAmount: 50,
+              decisionReason: "Legacy observe with obsolete quantity fields.",
+              emotionTags: [],
+              strategyTags: [],
+              source: "manual",
+              createdAt: now,
+              updatedAt: now
+            }
+          ],
+          reviews: [],
+          createdAt: now,
+          updatedAt: now
+        }
+      ],
+      auditReports: []
+    }
+  });
+  assert(bulkImport.imported.operations === 1, "Bulk import did not report the normalized operation.");
+
+  const plansAfterBulkImport = await request("/api/plans");
+  const importedObserve = plansAfterBulkImport.plans
+    .find((plan) => plan.id === bulkPlanId)
+    ?.operations.find((operation) => operation.id === bulkOperationId);
+  assert(importedObserve, "Bulk-imported observe operation was not returned.");
+  assert(
+    importedObserve.quantity === undefined &&
+      importedObserve.quantityUnit === undefined &&
+      importedObserve.totalAmount === undefined,
+    "Legacy observe quantity fields were not removed."
+  );
+
+  const rollbackPlanId = `plan-rollback-${runId}`;
+  await expectRejectedImport(
+    {
+      schemaVersion: 2,
+      exportedAt: now,
+      source: "rationaltrade-local",
+      plans: [
+        {
+          id: rollbackPlanId,
+          title: "Invalid bulk plan",
+          assetName: "Synthetic Asset",
+          ticker: "TEST",
+          market: "LOCAL",
+          currency: "USD",
+          status: "active",
+          thesis: "Verify validation before transaction.",
+          operations: [
+            {
+              id: `operation-invalid-${runId}`,
+              planId: rollbackPlanId,
+              action: "buy",
+              tradeTime: now,
+              currency: "USD",
+              price: 10,
+              decisionReason: "Missing required quantity fields.",
+              emotionTags: [],
+              strategyTags: [],
+              source: "manual",
+              createdAt: now,
+              updatedAt: now
+            }
+          ],
+          reviews: [],
+          createdAt: now,
+          updatedAt: now
+        }
+      ],
+      auditReports: []
+    },
+    "买入或卖出必须填写数量和数量单位"
+  );
+  const plansAfterRejectedImport = await request("/api/plans");
+  assert(!plansAfterRejectedImport.plans.some((plan) => plan.id === rollbackPlanId), "Rejected import wrote partial data.");
+
+  console.log("Database API create, read, update, and bulk import verification passed.");
 } finally {
   await safeDelete(reviewId && planId ? `/api/plans/${planId}/reviews/${reviewId}` : null);
   await safeDelete(operationId && planId ? `/api/plans/${planId}/operations/${operationId}` : null);
   await safeDelete(`/api/audit/reports/${auditId}`);
+  await safeDelete(bulkPlanId ? `/api/plans/${bulkPlanId}` : null);
   await safeDelete(planId ? `/api/plans/${planId}` : null);
 }
 
 const remainingPlans = await request("/api/plans");
 const remainingAudits = await request("/api/audit/reports");
 assert(!remainingPlans.plans.some((plan) => plan.id === planId), "Synthetic plan cleanup failed.");
+assert(!remainingPlans.plans.some((plan) => plan.id === bulkPlanId), "Synthetic bulk plan cleanup failed.");
 assert(!remainingAudits.reports.some((report) => report.id === auditId), "Synthetic audit cleanup failed.");
 console.log("Database API delete verification passed; synthetic data cleaned up.");
 
@@ -180,6 +287,17 @@ async function safeDelete(path) {
     const result = await response.json();
     throw new Error(result.meta?.message ?? result.errors?.[0] ?? `DELETE ${path} failed.`);
   }
+}
+
+async function expectRejectedImport(body, expectedMessage) {
+  const response = await fetch(`${baseUrl}/api/sync/import-local`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  const result = await response.json();
+  assert(response.status === 400, `Invalid bulk import returned ${response.status} instead of 400.`);
+  assert(result.meta?.message?.includes(expectedMessage), "Invalid bulk import did not return a specific Chinese message.");
 }
 
 function assert(condition, message) {

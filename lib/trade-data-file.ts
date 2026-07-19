@@ -1,4 +1,4 @@
-import { migrateTradesToPlans } from "@/lib/plan-migration";
+import { migrateTradesToPlans, normalizeTradePlans } from "@/lib/plan-migration";
 import type { AuditReport, TradeDataFile, TradeDecision, TradePlan } from "@/lib/types";
 
 const TRADE_DATA_SOURCE = "rationaltrade-local";
@@ -36,7 +36,7 @@ export function parseTradeDataFile(rawText: string): ParsedTradeDataFile {
     const validPlans = plans.filter(isTradePlanLike);
     if (plans.length === 0 || validPlans.length > 0) {
       return {
-        plans: validPlans,
+        plans: normalizeTradePlans(validPlans),
         auditReports
       };
     }

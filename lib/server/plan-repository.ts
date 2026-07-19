@@ -2,7 +2,15 @@ import type { PoolClient, QueryResultRow } from "pg";
 
 import { getDatabasePool } from "@/lib/server/db";
 import { getConfiguredUserId } from "@/lib/server/single-user";
-import type { CreateOperationInput, CreatePlanInput, CreateReviewInput } from "@/lib/server/trade-validation";
+import {
+  parseCreateOperationInput,
+  parseCreatePlanInput,
+  parseCreateReviewInput,
+  type CreateOperationInput,
+  type CreatePlanInput,
+  type CreateReviewInput
+} from "@/lib/server/trade-validation";
+import { parseAuditReportInput } from "@/lib/server/audit-validation";
 import type {
   AuditReport,
   CurrencyCode,
@@ -47,7 +55,7 @@ type ImportLocalDataResult =
     }
   | {
       ok: false;
-      storage: "not-configured" | "missing-user" | "error";
+      storage: "not-configured" | "missing-user" | "validation" | "error";
       message: string;
     };
 
@@ -526,6 +534,11 @@ export async function importLocalTradeData(
     return userResult;
   }
 
+  const validationMessage = validateImportData(plans, auditReports);
+  if (validationMessage) {
+    return { ok: false, storage: "validation", message: validationMessage };
+  }
+
   let client: PoolClient | null = null;
 
   try {
@@ -565,19 +578,70 @@ export async function importLocalTradeData(
         auditReports: auditReports.length
       }
     };
-  } catch {
+  } catch (error) {
     if (client) {
       await client.query("rollback");
     }
 
+    console.error("Failed to import local trade data.", error);
+
     return {
       ok: false,
       storage: "error",
-      message: "Failed to import local data into PostgreSQL."
+      message: "本地数据上传失败，数据库事务已全部回滚，请查看服务日志定位原因。"
     };
   } finally {
     client?.release();
   }
+}
+
+function validateImportData(plans: TradePlan[], auditReports: AuditReport[]) {
+  for (const plan of plans) {
+    const parsedPlan = parseCreatePlanInput(plan);
+    if (!parsedPlan.ok) {
+      return `计划“${plan.title || plan.id}”不符合当前规则：${formatImportErrors(parsedPlan.errors)}`;
+    }
+
+    for (const operation of plan.operations) {
+      const parsedOperation = parseCreateOperationInput(operation);
+      if (!parsedOperation.ok) {
+        return `计划“${plan.title}”中的操作“${operation.id}”不符合当前规则：${formatImportErrors(parsedOperation.errors)}`;
+      }
+    }
+
+    for (const review of plan.reviews) {
+      const parsedReview = parseCreateReviewInput(review);
+      if (!parsedReview.ok) {
+        return `计划“${plan.title}”中的复盘“${review.id}”不符合当前规则：${formatImportErrors(parsedReview.errors)}`;
+      }
+    }
+  }
+
+  for (const report of auditReports) {
+    const parsedReport = parseAuditReportInput(report);
+    if (!parsedReport.ok) {
+      return `审计归档“${report.title || report.id}”不符合当前规则：${formatImportErrors(parsedReport.errors)}`;
+    }
+  }
+
+  return null;
+}
+
+function formatImportErrors(errors: string[]) {
+  const messages: Record<string, string> = {
+    "title is required.": "计划名称不能为空",
+    "assetName is required.": "标的名称不能为空",
+    "thesis is required.": "计划假设不能为空",
+    "price is required.": "价格不能为空",
+    "decisionReason is required.": "操作理由不能为空",
+    "reviewNote is required.": "复盘内容不能为空",
+    "buy/sell operation requires quantity and quantityUnit.": "买入或卖出必须填写数量和数量单位",
+    "shares operation requires totalAmount.": "股数模式必须填写总金额",
+    "units operation totalAmount must equal quantity.": "份额模式的总金额必须等于份额",
+    "observe operation cannot include quantity, quantityUnit, or totalAmount.": "观察操作不能包含数量、数量单位或总金额"
+  };
+
+  return errors.map((error) => messages[error] ?? `字段校验失败（${error}）`).join("；");
 }
 
 async function ensurePlanBelongsToUser(planId: string, userId: string) {

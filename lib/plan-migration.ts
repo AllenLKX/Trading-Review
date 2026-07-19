@@ -25,8 +25,28 @@ export function migrateTradesToPlans(trades: TradeDecision[]): TradePlan[] {
   return trades.map(buildPlanFromTrade);
 }
 
-function buildOperationFromTrade(trade: TradeDecision, planId: string): TradeOperation {
+export function normalizeTradePlans(plans: TradePlan[]): TradePlan[] {
+  return plans.map((plan) => ({
+    ...plan,
+    operations: plan.operations.map((operation) => normalizeTradeOperation(operation))
+  }));
+}
+
+export function normalizeTradeOperation(operation: TradeOperation): TradeOperation {
+  if (operation.action !== "observe") {
+    return operation;
+  }
+
   return {
+    ...operation,
+    quantity: undefined,
+    quantityUnit: undefined,
+    totalAmount: undefined
+  };
+}
+
+function buildOperationFromTrade(trade: TradeDecision, planId: string): TradeOperation {
+  return normalizeTradeOperation({
     id: `operation-${trade.id}`,
     planId,
     action: trade.action,
@@ -45,7 +65,7 @@ function buildOperationFromTrade(trade: TradeDecision, planId: string): TradeOpe
     source: trade.source,
     createdAt: trade.createdAt,
     updatedAt: trade.updatedAt
-  };
+  });
 }
 
 function buildReviewFromTrade(trade: TradeDecision, planId: string): PlanReview | null {

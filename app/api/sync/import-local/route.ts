@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     if (!result.ok) {
       return NextResponse.json(
         { ok: false, meta: { storage: result.storage, message: result.message } },
-        { status: result.storage === "error" ? 500 : 503 }
+        { status: result.storage === "validation" ? 400 : result.storage === "error" ? 500 : 503 }
       );
     }
 
@@ -27,6 +27,6 @@ export async function POST(request: Request) {
       }
     });
   } catch {
-    return NextResponse.json({ ok: false, errors: ["Invalid RationalTrade data file."] }, { status: 400 });
+    return NextResponse.json({ ok: false, errors: ["上传文件不是有效的 RationalTrade 数据。"] }, { status: 400 });
   }
 }
