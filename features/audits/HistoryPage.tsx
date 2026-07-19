@@ -1,16 +1,17 @@
 "use client";
 
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Cloud, Download, FileSearch, Pencil, RefreshCw, Search, Trash2, Upload, UploadCloud } from "lucide-react";
+import { ArrowLeft, Cloud, CloudDownload, Download, FileSearch, Pencil, RefreshCw, Search, Trash2, Upload, UploadCloud } from "lucide-react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
 import { PlanOperationForm } from "@/features/trades/PlanOperationForm";
 import { PlanReviewForm } from "@/features/trades/PlanReviewForm";
 import { buildAuditReport, requestAuditReport } from "@/lib/audit-ai-adapter";
-import { localAuditRepository } from "@/lib/audit-repository";
+import { cloudAuditRepository, localAuditRepository } from "@/lib/audit-repository";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
 import { currencyOptions, sampleAuditReports } from "@/lib/sample-data";
 import { buildTradeDataFile, parseTradeDataFile } from "@/lib/trade-data-file";
+import { cloudTradeRepository } from "@/lib/trade-repository";
 import type { AuditReport, CurrencyCode, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
 import { AuditSnapshotCard } from "./AuditSnapshotCard";
 
@@ -249,6 +250,11 @@ export function HistoryPage({
         plans={plans}
         auditReports={userArchivedAudits}
         onMessage={setDataMessage}
+        onLoadCloudData={(cloudPlans, cloudAuditReports) => {
+          onReplacePlans(cloudPlans);
+          setUserArchivedAudits(cloudAuditReports);
+          setDataMessage(`已把 ${cloudPlans.length} 个云端计划下载为当前本地工作副本。`);
+        }}
       />
 
       <section className="space-y-3">
@@ -333,12 +339,20 @@ type CloudSyncPanelProps = {
   plans: TradePlan[];
   auditReports: AuditReport[];
   onMessage: (message: string) => void;
+  onLoadCloudData: (plans: TradePlan[], auditReports: AuditReport[]) => void;
 };
 
-function CloudSyncPanel({ plans, auditReports, onMessage }: CloudSyncPanelProps) {
+type CloudPreview = {
+  plans: TradePlan[];
+  auditReports: AuditReport[];
+};
+
+function CloudSyncPanel({ plans, auditReports, onMessage, onLoadCloudData }: CloudSyncPanelProps) {
   const [status, setStatus] = useState<SystemStatusResponse | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [cloudPreview, setCloudPreview] = useState<CloudPreview | null>(null);
 
   const loadStatus = async () => {
     setIsLoadingStatus(true);
@@ -402,11 +416,48 @@ function CloudSyncPanel({ plans, auditReports, onMessage }: CloudSyncPanelProps)
       onMessage(
         `已上传 ${result.imported?.plans ?? 0} 个计划、${result.imported?.operations ?? 0} 条操作、${result.imported?.reviews ?? 0} 条复盘。`
       );
+      setCloudPreview(null);
       await loadStatus();
     } catch {
       onMessage("上传本地数据失败，请稍后再试。");
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const previewCloudData = async () => {
+    setIsLoadingPreview(true);
+
+    try {
+      const [cloudPlans, cloudAuditReports] = await Promise.all([
+        cloudTradeRepository.load(),
+        cloudAuditRepository.load()
+      ]);
+      setCloudPreview({ plans: cloudPlans, auditReports: cloudAuditReports });
+      onMessage("云端数据预览已更新，尚未修改当前本地记录。");
+    } catch (error) {
+      setCloudPreview(null);
+      onMessage(error instanceof Error ? error.message : "读取云端数据失败。");
+      await loadStatus();
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  const applyCloudPreview = () => {
+    if (!cloudPreview) {
+      return;
+    }
+
+    const operationCount = cloudPreview.plans.reduce((total, plan) => total + plan.operations.length, 0);
+    const reviewCount = cloudPreview.plans.reduce((total, plan) => total + plan.reviews.length, 0);
+    const confirmed = window.confirm(
+      `确认用云端的 ${cloudPreview.plans.length} 个计划、${operationCount} 条操作、${reviewCount} 条复盘替换当前本地工作副本吗？建议先导出本地 JSON 备份。`
+    );
+
+    if (confirmed) {
+      onLoadCloudData(cloudPreview.plans, cloudPreview.auditReports);
+      setCloudPreview(null);
     }
   };
 
@@ -430,7 +481,7 @@ function CloudSyncPanel({ plans, auditReports, onMessage }: CloudSyncPanelProps)
             <Cloud className="h-5 w-5 text-primary-soft" />
             <h3 className="text-lg font-bold text-white">云端同步</h3>
           </div>
-          <p className="mt-1 text-xs leading-5 text-muted">当前仍以本地数据为准，云端入口用于后续部署和迁移。</p>
+          <p className="mt-1 text-xs leading-5 text-muted">当前工作区：本地。上传和下载都需要明确确认。</p>
         </div>
         <span className={`rounded-full px-3 py-1 text-xs font-bold ${canUpload ? "bg-buy/20 text-buy" : "bg-surface-raised text-muted-strong"}`}>
           {statusLabel}
@@ -449,7 +500,7 @@ function CloudSyncPanel({ plans, auditReports, onMessage }: CloudSyncPanelProps)
         </p>
       ) : null}
 
-      <div className="grid grid-cols-[1fr_1.3fr] gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={loadStatus}
@@ -468,8 +519,60 @@ function CloudSyncPanel({ plans, auditReports, onMessage }: CloudSyncPanelProps)
           <UploadCloud className="h-4 w-4" />
           {isUploading ? "上传中" : "上传本地数据"}
         </button>
+        <button
+          type="button"
+          onClick={previewCloudData}
+          disabled={isLoadingPreview || !canUpload}
+          className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 text-xs font-bold text-primary-soft transition active:scale-[0.98] disabled:border-line disabled:bg-surface-raised disabled:text-muted"
+        >
+          <CloudDownload className="h-4 w-4" />
+          {isLoadingPreview ? "读取中" : "预览云端数据"}
+        </button>
       </div>
+
+      {cloudPreview ? (
+        <div className="space-y-3 border-t border-line pt-4">
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <PreviewMetric label="计划" value={cloudPreview.plans.length} />
+            <PreviewMetric
+              label="操作"
+              value={cloudPreview.plans.reduce((total, plan) => total + plan.operations.length, 0)}
+            />
+            <PreviewMetric
+              label="复盘"
+              value={cloudPreview.plans.reduce((total, plan) => total + plan.reviews.length, 0)}
+            />
+            <PreviewMetric label="审计" value={cloudPreview.auditReports.length} />
+          </div>
+          <p className="text-xs leading-5 text-muted">预览不会修改本地记录。确认下载后，当前本地工作副本会被替换。</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setCloudPreview(null)}
+              className="h-10 rounded-xl border border-line bg-surface text-xs font-bold text-muted-strong"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={applyCloudPreview}
+              className="h-10 rounded-xl bg-primary text-xs font-bold text-white"
+            >
+              下载并替换本地
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function PreviewMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <p className="text-base font-bold text-white">{value}</p>
+      <p className="mt-1 text-[11px] font-semibold text-muted">{label}</p>
+    </div>
   );
 }
 

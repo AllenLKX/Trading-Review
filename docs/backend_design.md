@@ -144,6 +144,8 @@ Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管�
 - 已新增 `POST /api/sync/import-local`，用于把本地导出的 JSON 批量导入云端。
 - 已新增 `POST /api/audit/archive`、`GET /api/audit/reports` 和 `DELETE /api/audit/reports/:id`。
 - 云端审计归档最多按创建时间读取近期 20 条，删除同样要求显式确认请求头。
+- 前端已封装计划、操作和复盘的完整云端 CRUD adapter。
+- 首次云端下载采用“读取预览 → 显示数量 → 用户确认 → 替换本地工作副本”，不自动覆盖本地记录。
 - 已新增服务端输入校验模块，先不用第三方校验库，减少 Backend M1 早期依赖面。
 - `.env.production`、`.env.local` 等真实配置文件不提交到 GitHub。
 - 初始 schema 只定义结构和约束，不包含任何真实用户数据、token、AI Key 或 COS Key。

@@ -87,7 +87,7 @@
 
 - `types.ts`：核心 TypeScript 类型
 - `use-trade-plans.ts`：本地计划状态管理
-- `trade-repository.ts`：localStorage repository
+- `trade-repository.ts`：本地计划 repository 与完整云端 CRUD adapter
 - `trade-data-file.ts`：导入导出 JSON
 - `audit-summary.ts`：本地审计规则
 - `audit-ai-adapter.ts`：AI 审计服务边界
@@ -210,13 +210,17 @@ Mock `sampleBatchItems`
 - 可刷新 `/api/system/status?db=1`。
 - 数据库、单用户 ID 和连接状态通过后，允许上传当前本地数据。
 - 上传使用 `POST /api/sync/import-local`。
-- 当前前端仍以本地存储为主，不自动拉取或覆盖云端数据。
+- 明确显示“当前工作区：本地”。
+- 可读取云端计划和审计归档并先展示数量预览。
+- 只有用户再次确认后，才会把云端数据下载为当前本地工作副本。
+- 当前不做实时双向同步，也不会自动拉取或覆盖本地数据。
 
 设计原则：
 
 - 云端未配置时给明确状态，不让用户误以为上传成功。
 - 上传前必须二次确认。
-- 第一轮只做“本地上传云端”，不做复杂双向同步。
+- 云端下载替换前必须展示计划、操作、复盘、审计数量，并再次确认。
+- 第一轮只做明确的上传和下载，不做复杂双向同步。
 
 ## 8. H5 设计原则
 
@@ -234,8 +238,8 @@ Mock `sampleBatchItems`
 接后台后建议调整：
 
 1. 增加 auth 状态
-2. 增加 local/cloud repository 抽象
-3. `useTradePlans` 支持云端模式
+2. 把 `useTradePlans` 改为异步 mutation 状态，消费现有 cloud repository
+3. 增加写入失败重试和冲突提示后，再开放实时云端模式
 4. 增加明确的本地/云端模式选择，再把审计归档状态完全下沉到 hook
 5. 截图补账从 Mock 切换到 recognition job
 6. 导入导出支持云端数据
