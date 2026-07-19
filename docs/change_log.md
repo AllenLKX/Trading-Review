@@ -2,6 +2,18 @@
 
 ## 2026-07-19
 
+### 腾讯云首次部署与环境校正
+
+- SSH Key 已授权到服务器 root 用户，后续发布无需重复进入腾讯云控制台。
+- 服务器实际系统确认为 OpenCloudOS 9.4，而非原计划中的 Ubuntu，部署手册和后台环境说明已校正。
+- 安装并启动 PostgreSQL 15，数据库只监听服务器本机；回环 TCP 认证使用 `scram-sha-256`。
+- RationalTrade 已部署到 `/var/www/rationaltrade`，生产构建 commit 为 `a81d2a4`。
+- PM2 进程已在线并保存开机恢复配置。
+- 补齐 `pm2-root` systemd 开机自启，并将 Next.js 生产监听地址从 `0.0.0.0` 收紧到 `127.0.0.1`。
+- 临时访问凭证只保存在服务器 `/root/rationaltrade-access.txt`，权限为 `600`。
+- 服务器内部生产冒烟、Basic Auth 和事务数据库回归通过，合成数据已清理。
+- 发现服务器原有 OpenClaw Nginx 根路径配置；在确认是否保留前不覆盖，避免影响既有服务。
+
 ### 计划事务快照与公网访问保护
 
 - 新增 `PUT /api/plans/:planId/snapshot`，在一个 PostgreSQL 事务中更新计划基础信息、操作和复盘，并明确删除快照中不再存在的子记录。

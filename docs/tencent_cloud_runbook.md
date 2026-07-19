@@ -1,8 +1,8 @@
-# RationalTrade 腾讯云 Ubuntu 部署手册
+# RationalTrade 腾讯云 OpenCloudOS 部署手册
 
 ## 1. 目标
 
-本手册用于第一次把 RationalTrade 部署到腾讯云 Ubuntu 服务器。
+本手册用于把 RationalTrade 部署到当前腾讯云 OpenCloudOS 9.4 服务器。Ubuntu 保留为未来迁移选项，但包管理命令不同。
 
 当前优先目标：
 
@@ -19,6 +19,8 @@
 - 多用户注册。
 
 当前公网联调入口暂定为 `http://43.156.228.145`。IP + HTTP 只用于首次连通性验证；Basic Auth 在 HTTP 上不能防止链路窃听，写入真实交易数据前必须改为域名 + HTTPS，或仅允许可信来源 IP/VPN 访问。
+
+服务器已有 OpenClaw 的 Nginx 根路径配置。RationalTrade 已在 `127.0.0.1:3000` 运行，但在确认 OpenClaw 是否保留前，不覆盖 `/etc/nginx/conf.d/openclaw.conf`。
 
 ## 2. 本地发布前检查
 
@@ -39,27 +41,22 @@ git push origin codex/phase-1-local-loop
 
 ## 3. 服务器基础环境
 
-腾讯云 Ubuntu 建议先安装：
+当前 OpenCloudOS 9.4 安装：
 
 ```bash
-sudo apt update
-sudo apt install -y git curl nginx postgresql postgresql-contrib
+dnf install -y git curl nginx postgresql-server postgresql-contrib
+postgresql-setup --initdb
+systemctl enable --now postgresql nginx
 ```
 
-安装 Node.js LTS 和 pnpm：
+当前服务器通过 root 的 NVM 使用 Node.js 22。执行 pnpm/PM2 前加载：
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-sudo apt install -y nodejs
-corepack enable
-corepack prepare pnpm@latest --activate
+source /root/.nvm/nvm.sh
+npm install -g pnpm@10 pm2
 ```
 
-安装 PM2：
-
-```bash
-sudo npm install -g pm2
-```
+当前实测资源为 2 核 CPU、2GB 内存、2GB Swap、40GB 系统盘，足够私有单用户第一版。
 
 ## 4. 拉取代码
 
@@ -150,6 +147,8 @@ pnpm install --frozen-lockfile
 pnpm build
 pm2 start "pnpm start" --name rationaltrade
 pm2 save
+pm2 startup systemd -u root --hp /root
+systemctl enable --now pm2-root
 ```
 
 检查：
@@ -157,7 +156,10 @@ pm2 save
 ```bash
 pm2 status
 ./scripts/check-production.sh http://localhost:3000
+ss -lntp | grep ':3000'
 ```
+
+生产进程必须只监听 `127.0.0.1:3000`，由 Nginx 对外提供入口。不要在腾讯云安全组开放 3000 或 5432 端口。
 
 ## 8. Nginx 反向代理
 
@@ -216,6 +218,29 @@ http://43.156.228.145/api/system/status?db=1
 - 首次打开会出现 RationalTrade 的用户名和密码提示；取消或输入错误时不能读取页面和业务 API。
 - `/api/health` 保持公开，供 Nginx、PM2 和腾讯云健康检查使用，不读取业务数据。
 
+临时访问用户名和密码只存放在服务器：
+
+```bash
+cat /root/rationaltrade-access.txt
+```
+
+该文件权限必须为 `600`，不得复制进仓库。
+
+## 9.1 2026-07-19 首次部署状态
+
+- 代码目录：`/var/www/rationaltrade`
+- 部署分支：`codex/phase-1-local-loop`
+- 已部署 commit：`a81d2a4`
+- PostgreSQL 15：已启动并设置开机启动
+- PM2 `rationaltrade`：已在线并保存进程列表
+- PM2 systemd 服务：已启用并启动，服务器重启后自动恢复
+- Next.js：仅监听 `127.0.0.1:3000`
+- 内部健康检查：200
+- 无认证业务 API：401
+- 正确认证业务 API：200
+- 数据库事务 CRUD：通过，合成测试数据已清理
+- 公网 Nginx：等待确认 OpenClaw 路由归属
+
 ## 10. 后续发布
 
 本地：
@@ -229,6 +254,7 @@ git push origin codex/phase-1-local-loop
 
 ```bash
 cd /var/www/rationaltrade
+source /root/.nvm/nvm.sh
 git pull origin codex/phase-1-local-loop
 pnpm install --frozen-lockfile
 pnpm build
@@ -260,7 +286,7 @@ pm2 restart rationaltrade
 如果当前服务器性能不够：
 
 1. 新建更高配置腾讯云 CVM。
-2. 安装同样的 Node.js、pnpm、Nginx、PM2、PostgreSQL。
+2. 安装同样的 Node.js、pnpm、Nginx、PM2、PostgreSQL；新服务器可以继续使用 OpenCloudOS，也可以迁移到 Ubuntu。
 3. 从旧服务器备份 PostgreSQL。
 4. 在新服务器恢复数据库。
 5. 复制 `.env.production`，确认密钥文件不进入 Git。
