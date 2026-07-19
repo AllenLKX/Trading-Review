@@ -125,10 +125,7 @@ export function useTradePlans(): TradePlanStore {
         }
 
         await runMutation(
-          async () => {
-            await syncPlanChanges(previousPlan, plan);
-            return plan;
-          },
+          () => cloudTradeRepository.replacePlanSnapshot(plan),
           (savedPlan) => {
             persistCache((current) => current.map((item) => (item.id === savedPlan.id ? savedPlan : item)));
             setHighlightedPlanId(savedPlan.id);
@@ -197,36 +194,6 @@ export function useTradePlans(): TradePlanStore {
     }),
     [dataMessage, dataStatus, highlightedPlanId, isMutating, persistCache, plans, reload, runMutation, selectedPlanId]
   );
-}
-
-async function syncPlanChanges(previousPlan: TradePlan, nextPlan: TradePlan) {
-  await cloudTradeRepository.updatePlan(nextPlan);
-
-  const previousOperations = new Map(previousPlan.operations.map((operation) => [operation.id, operation]));
-  const nextOperations = new Map(nextPlan.operations.map((operation) => [operation.id, operation]));
-  const previousReviews = new Map(previousPlan.reviews.map((review) => [review.id, review]));
-  const nextReviews = new Map(nextPlan.reviews.map((review) => [review.id, review]));
-
-  for (const operation of nextPlan.operations) {
-    const previous = previousOperations.get(operation.id);
-    if (!previous) await cloudTradeRepository.createOperation(operation);
-    else if (!sameEntity(previous, operation)) await cloudTradeRepository.updateOperation(operation);
-  }
-  for (const review of nextPlan.reviews) {
-    const previous = previousReviews.get(review.id);
-    if (!previous) await cloudTradeRepository.createReview(review);
-    else if (!sameEntity(previous, review)) await cloudTradeRepository.updateReview(review);
-  }
-  for (const operation of previousPlan.operations) {
-    if (!nextOperations.has(operation.id)) await cloudTradeRepository.deleteOperation(previousPlan.id, operation.id);
-  }
-  for (const review of previousPlan.reviews) {
-    if (!nextReviews.has(review.id)) await cloudTradeRepository.deleteReview(previousPlan.id, review.id);
-  }
-}
-
-function sameEntity(left: TradeOperation | PlanReview, right: TradeOperation | PlanReview) {
-  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function persistSelectedPlanId(planId: string | null) {

@@ -5,6 +5,10 @@ export type ServerRuntimeConfig = {
     configured: boolean;
     singleUserConfigured: boolean;
   };
+  access: {
+    configured: boolean;
+    publicOrigin?: string;
+  };
   ai: {
     configured: boolean;
   };
@@ -25,6 +29,10 @@ export function readServerRuntimeConfig(): ServerRuntimeConfig {
     database: {
       configured: Boolean(process.env.DATABASE_URL),
       singleUserConfigured: Boolean(process.env.RATIONALTRADE_SINGLE_USER_ID)
+    },
+    access: {
+      configured: Boolean(process.env.APP_ACCESS_USERNAME && process.env.APP_ACCESS_PASSWORD),
+      publicOrigin: process.env.APP_PUBLIC_ORIGIN
     },
     ai: {
       configured: Boolean(process.env.AI_API_KEY)

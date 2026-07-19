@@ -39,7 +39,7 @@ type MutationResult<T> =
     }
   | {
       ok: false;
-      storage: "not-configured" | "missing-user" | "not-found" | "error";
+      storage: "not-configured" | "missing-user" | "not-found" | "validation" | "error";
       message: string;
     };
 
@@ -588,6 +588,100 @@ export async function deleteServerPlanReview(
   }
 }
 
+export async function replaceServerTradePlanSnapshot(
+  planId: string,
+  plan: TradePlan
+): Promise<MutationResult<TradePlan>> {
+  const userResult = getConfiguredUserId();
+
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  const validationMessage = validatePlanSnapshot(planId, plan);
+  if (validationMessage) {
+    return { ok: false, storage: "validation", message: validationMessage };
+  }
+
+  let client: PoolClient | null = null;
+
+  try {
+    client = await getDatabasePool().connect();
+    await client.query("begin");
+
+    const existing = await client.query<{ id: string }>(
+      `select id from trade_plans where id = $1 and user_id = $2 for update`,
+      [planId, userResult.userId]
+    );
+    if (existing.rowCount !== 1) {
+      await client.query("rollback");
+      return notFound("Plan was not found.");
+    }
+
+    const operationIds = plan.operations.map((operation) => operation.id);
+    const reviewIds = plan.reviews.map((review) => review.id);
+    await assertSnapshotChildOwnership(client, userResult.userId, planId, operationIds, reviewIds);
+
+    const updatedAt = new Date().toISOString();
+    const snapshot = { ...plan, id: planId, updatedAt };
+    await upsertPlan(client, userResult.userId, snapshot);
+
+    for (const operation of snapshot.operations) {
+      await upsertOperation(client, userResult.userId, { ...operation, planId });
+    }
+    for (const review of snapshot.reviews) {
+      await upsertReview(client, userResult.userId, { ...review, planId });
+    }
+
+    await client.query(
+      `delete from plan_reviews
+       where plan_id = $1 and user_id = $2 and not (id = any($3::text[]))`,
+      [planId, userResult.userId, reviewIds]
+    );
+    await client.query(
+      `delete from trade_operations
+       where plan_id = $1 and user_id = $2 and not (id = any($3::text[]))`,
+      [planId, userResult.userId, operationIds]
+    );
+
+    const planResult = await client.query<PlanRow>(
+      `select id, title, asset_name, ticker, market, currency, status, thesis, created_at, updated_at
+       from trade_plans where id = $1 and user_id = $2`,
+      [planId, userResult.userId]
+    );
+    const operationResult = await client.query<OperationRow>(
+      `select id, plan_id, action, trade_time, currency, price, quantity, quantity_unit,
+              total_amount, take_profit_price, stop_loss_price, decision_reason,
+              psychology_note, emotion_tags, strategy_tags, source, created_at, updated_at
+       from trade_operations where plan_id = $1 and user_id = $2 order by trade_time desc`,
+      [planId, userResult.userId]
+    );
+    const reviewResult = await client.query<ReviewRow>(
+      `select id, plan_id, review_time, operation_ids, realized_result, profit_loss,
+              violated_rules, review_note, emotion_tags, created_at, updated_at
+       from plan_reviews where plan_id = $1 and user_id = $2 order by review_time desc`,
+      [planId, userResult.userId]
+    );
+
+    await client.query("commit");
+    return {
+      ok: true,
+      storage: "postgres",
+      data: mapPlanRow(
+        planResult.rows[0],
+        operationResult.rows.map(mapOperationRow),
+        reviewResult.rows.map(mapReviewRow)
+      )
+    };
+  } catch (error) {
+    if (client) await client.query("rollback");
+    console.error("Failed to replace plan snapshot.", error);
+    return databaseError("计划修改失败，数据库事务已全部回滚，请重试。");
+  } finally {
+    client?.release();
+  }
+}
+
 export async function importLocalTradeData(
   plans: TradePlan[],
   auditReports: AuditReport[]
@@ -689,6 +783,53 @@ function validateImportData(plans: TradePlan[], auditReports: AuditReport[]) {
   }
 
   return null;
+}
+
+function validatePlanSnapshot(planId: string, plan: TradePlan) {
+  if (!plan || typeof plan !== "object" || !Array.isArray(plan.operations) || !Array.isArray(plan.reviews)) {
+    return "计划快照必须包含操作和复盘数组。";
+  }
+  if (plan.id !== planId) return "计划 ID 与请求地址不一致。";
+
+  const validationMessage = validateImportData([plan], []);
+  if (validationMessage) return validationMessage;
+
+  const operationIds = plan.operations.map((operation) => operation.id);
+  const reviewIds = plan.reviews.map((review) => review.id);
+  if (new Set(operationIds).size !== operationIds.length) return "计划中存在重复的操作 ID。";
+  if (new Set(reviewIds).size !== reviewIds.length) return "计划中存在重复的复盘 ID。";
+  if (plan.operations.some((operation) => operation.planId !== planId)) return "操作记录挂靠了错误的计划。";
+  if (plan.reviews.some((review) => review.planId !== planId)) return "复盘记录挂靠了错误的计划。";
+
+  const operationIdSet = new Set(operationIds);
+  if (plan.reviews.some((review) => review.operationIds?.some((id) => !operationIdSet.has(id)))) {
+    return "复盘关联了当前计划中不存在的操作。";
+  }
+
+  return null;
+}
+
+async function assertSnapshotChildOwnership(
+  client: PoolClient,
+  userId: string,
+  planId: string,
+  operationIds: string[],
+  reviewIds: string[]
+) {
+  const operationConflict = await client.query<{ id: string }>(
+    `select id from trade_operations
+     where id = any($1::text[]) and (user_id <> $2 or plan_id <> $3) limit 1`,
+    [operationIds, userId, planId]
+  );
+  const reviewConflict = await client.query<{ id: string }>(
+    `select id from plan_reviews
+     where id = any($1::text[]) and (user_id <> $2 or plan_id <> $3) limit 1`,
+    [reviewIds, userId, planId]
+  );
+
+  if (operationConflict.rowCount || reviewConflict.rowCount) {
+    throw new Error("Snapshot child id belongs to another plan.");
+  }
 }
 
 function formatImportErrors(errors: string[]) {

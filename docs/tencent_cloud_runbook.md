@@ -18,6 +18,8 @@
 - 复杂 CI/CD。
 - 多用户注册。
 
+当前公网联调入口暂定为 `http://43.156.228.145`。IP + HTTP 只用于首次连通性验证；Basic Auth 在 HTTP 上不能防止链路窃听，写入真实交易数据前必须改为域名 + HTTPS，或仅允许可信来源 IP/VPN 访问。
+
 ## 2. 本地发布前检查
 
 在本地执行：
@@ -91,6 +93,9 @@ nano .env.production
 必填或后续必填：
 
 - `NEXT_PUBLIC_APP_VERSION`
+- `APP_PUBLIC_ORIGIN=http://43.156.228.145`
+- `APP_ACCESS_USERNAME`
+- `APP_ACCESS_PASSWORD`
 - `DATABASE_URL`
 - `RATIONALTRADE_SINGLE_USER_ID`
 - `AI_API_KEY`
@@ -103,6 +108,8 @@ nano .env.production
 
 - `.env.production` 不提交到 GitHub。
 - 数据库密码、AI Key、COS Key 只放服务器环境变量或服务器本地文件。
+- `APP_ACCESS_PASSWORD` 在服务器上执行 `openssl rand -base64 24` 生成，不在聊天、文档或 GitHub 中保存明文。
+- 生产环境缺少访问用户名或密码时，除 `/api/health` 外统一返回 503，避免公网裸露业务数据。
 
 ## 6. PostgreSQL 初始化
 
@@ -163,18 +170,21 @@ pm2 status
 - 不对公网开放 Next.js 3000。
 - 不对公网开放 PostgreSQL 5432。
 
-新建配置：
+仓库已提供当前 IP 对应的配置 `deploy/nginx-rationaltrade.conf`。复制并启用：
 
 ```bash
-sudo nano /etc/nginx/sites-available/rationaltrade
+sudo cp deploy/nginx-rationaltrade.conf /etc/nginx/sites-available/rationaltrade
+sudo ln -s /etc/nginx/sites-available/rationaltrade /etc/nginx/sites-enabled/rationaltrade
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
-示例：
+配置内容使用：
 
 ```nginx
 server {
     listen 80;
-    server_name YOUR_DOMAIN_OR_SERVER_IP;
+    server_name 43.156.228.145;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -187,22 +197,14 @@ server {
 }
 ```
 
-启用：
-
-```bash
-sudo ln -s /etc/nginx/sites-available/rationaltrade /etc/nginx/sites-enabled/rationaltrade
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
 ## 9. 发布后验证
 
 访问：
 
 ```text
-http://YOUR_DOMAIN_OR_SERVER_IP/api/health
-http://YOUR_DOMAIN_OR_SERVER_IP/api/system/status
-http://YOUR_DOMAIN_OR_SERVER_IP/api/system/status?db=1
+http://43.156.228.145/api/health
+http://43.156.228.145/api/system/status
+http://43.156.228.145/api/system/status?db=1
 ```
 
 手机页面检查：
@@ -211,6 +213,8 @@ http://YOUR_DOMAIN_OR_SERVER_IP/api/system/status?db=1
 - 记录页与历史页可读取 PostgreSQL 数据。
 - 新增或修改后刷新页面，记录仍然存在。
 - 数据库不可用时显示缓存状态，写操作不会提示成功。
+- 首次打开会出现 RationalTrade 的用户名和密码提示；取消或输入错误时不能读取页面和业务 API。
+- `/api/health` 保持公开，供 Nginx、PM2 和腾讯云健康检查使用，不读取业务数据。
 
 ## 10. 后续发布
 

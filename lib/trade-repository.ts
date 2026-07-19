@@ -66,6 +66,15 @@ export const cloudTradeRepository = {
     const result = (await response.json()) as { plan?: TradePlan; meta?: ApiMeta; errors?: string[] };
     return readMutationData(response, result.plan, result.meta, result.errors, "更新云端计划失败。");
   },
+  async replacePlanSnapshot(plan: TradePlan): Promise<TradePlan> {
+    const response = await fetch(`/api/plans/${encodeURIComponent(plan.id)}/snapshot`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(plan)
+    });
+    const result = (await response.json()) as { plan?: TradePlan; meta?: ApiMeta; errors?: string[] };
+    return readMutationData(response, result.plan, result.meta, result.errors, "保存计划完整修改失败。");
+  },
   async deletePlan(planId: string): Promise<void> {
     await deleteCloudResource(`/api/plans/${encodeURIComponent(planId)}`, "删除云端计划失败。");
   },

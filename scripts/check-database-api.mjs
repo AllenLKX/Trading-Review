@@ -1,4 +1,10 @@
 const baseUrl = process.argv[2] ?? "http://localhost:3000";
+const accessUsername = process.env.APP_ACCESS_USERNAME;
+const accessPassword = process.env.APP_ACCESS_PASSWORD;
+const authorization =
+  accessUsername && accessPassword
+    ? `Basic ${Buffer.from(`${accessUsername}:${accessPassword}`).toString("base64")}`
+    : undefined;
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const auditId = `audit-contract-${runId}`;
 const clientPlanId = `plan-client-${runId}`;
@@ -142,6 +148,40 @@ try {
     }
   });
   assert(updatedReview.review.reviewNote.includes("updated"), "Review update was not returned.");
+
+  const snapshot = await request(`/api/plans/${planId}/snapshot`, {
+    method: "PUT",
+    body: {
+      ...updatedPlan.plan,
+      title: `Transactional snapshot ${runId}`,
+      operations: [{ ...updatedOperation.operation, decisionReason: "Transactional operation update." }],
+      reviews: [{ ...updatedReview.review, reviewNote: "Transactional review update." }],
+      updatedAt: new Date().toISOString()
+    }
+  });
+  assert(snapshot.plan.title.includes("Transactional snapshot"), "Plan snapshot title was not committed.");
+  assert(snapshot.plan.operations[0]?.decisionReason.includes("Transactional"), "Snapshot operation was not committed.");
+  assert(snapshot.plan.reviews[0]?.reviewNote.includes("Transactional"), "Snapshot review was not committed.");
+
+  await expectRejectedSnapshot(planId, {
+    ...snapshot.plan,
+    title: `Must roll back ${runId}`,
+    operations: [
+      {
+        ...snapshot.plan.operations[0],
+        action: "buy",
+        quantity: undefined,
+        quantityUnit: undefined,
+        totalAmount: undefined
+      }
+    ]
+  });
+  await expectRejectedSnapshot(planId, { id: planId });
+  const plansAfterRejectedSnapshot = await request("/api/plans");
+  assert(
+    plansAfterRejectedSnapshot.plans.find((plan) => plan.id === planId)?.title === snapshot.plan.title,
+    "Rejected snapshot changed persisted plan data."
+  );
 
   await request("/api/audit/archive", {
     method: "POST",
@@ -297,7 +337,10 @@ console.log("Database API delete verification passed; synthetic data cleaned up.
 async function request(path, options = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
     method: options.method ?? "GET",
-    headers: options.body ? { "content-type": "application/json" } : undefined,
+    headers: {
+      ...(options.body ? { "content-type": "application/json" } : {}),
+      ...(authorization ? { authorization } : {})
+    },
     body: options.body ? JSON.stringify(options.body) : undefined
   });
   const result = await response.json();
@@ -315,7 +358,7 @@ async function safeDelete(path) {
 
   const response = await fetch(`${baseUrl}${path}`, {
     method: "DELETE",
-    headers: { "X-Confirm-Delete": "true" }
+    headers: { "X-Confirm-Delete": "true", ...(authorization ? { authorization } : {}) }
   });
   if (!response.ok && response.status !== 404) {
     const result = await response.json();
@@ -326,12 +369,23 @@ async function safeDelete(path) {
 async function expectRejectedImport(body, expectedMessage) {
   const response = await fetch(`${baseUrl}/api/sync/import-local`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", ...(authorization ? { authorization } : {}) },
     body: JSON.stringify(body)
   });
   const result = await response.json();
   assert(response.status === 400, `Invalid bulk import returned ${response.status} instead of 400.`);
   assert(result.meta?.message?.includes(expectedMessage), "Invalid bulk import did not return a specific Chinese message.");
+}
+
+async function expectRejectedSnapshot(planId, body) {
+  const response = await fetch(`${baseUrl}/api/plans/${planId}/snapshot`, {
+    method: "PUT",
+    headers: { "content-type": "application/json", ...(authorization ? { authorization } : {}) },
+    body: JSON.stringify(body)
+  });
+  const result = await response.json();
+  assert(response.status === 400, `Invalid snapshot returned ${response.status} instead of 400.`);
+  assert(result.meta?.message, "Invalid snapshot did not return a validation message.");
 }
 
 function assert(condition, message) {

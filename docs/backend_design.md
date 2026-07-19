@@ -150,6 +150,9 @@ Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管�
 - 创建接口按同一用户和客户端 ID 幂等 upsert，删除 adapter 把已不存在视为删除目标已达成。
 - H5 不提供本地/云端模式。所有核心写操作等待 PostgreSQL API 成功后再更新界面，失败时保留原数据和表单内容。
 - `POST /api/sync/import-local` 保留为首次迁移和运维工具，不在正式用户界面展示。
+- 计划详情编辑使用 `PUT /api/plans/:planId/snapshot`，计划基础信息、操作和复盘在同一 PostgreSQL 事务中替换，任一校验或写入失败会整体回滚。
+- 私有单用户阶段使用 middleware Basic Auth；生产环境未配置 `APP_ACCESS_USERNAME` 和 `APP_ACCESS_PASSWORD` 时默认拒绝业务访问。
+- 当前公网联调 IP 为 `43.156.228.145`，仅 `/api/health` 无需认证。
 - 已新增服务端输入校验模块，先不用第三方校验库，减少 Backend M1 早期依赖面。
 - `.env.production`、`.env.local` 等真实配置文件不提交到 GitHub。
 - 初始 schema 只定义结构和约束，不包含任何真实用户数据、token、AI Key 或 COS Key。

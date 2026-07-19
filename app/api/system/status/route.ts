@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     version: config.appVersion,
     environment: config.nodeEnv,
     integrations: {
+      access: config.access,
       database: {
         ...database,
         singleUserConfigured: config.database.singleUserConfigured
