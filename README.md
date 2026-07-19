@@ -78,12 +78,18 @@ cp .env.example .env.production
 ```text
 GET /api/plans
 POST /api/plans
+PATCH /api/plans/:planId
+DELETE /api/plans/:planId
 POST /api/plans/:planId/operations
+PATCH /api/plans/:planId/operations/:operationId
+DELETE /api/plans/:planId/operations/:operationId
 POST /api/plans/:planId/reviews
+PATCH /api/plans/:planId/reviews/:reviewId
+DELETE /api/plans/:planId/reviews/:reviewId
 POST /api/sync/import-local
 ```
 
-当前前端仍使用本地存储，以上接口先作为云端数据 API 骨架。未配置数据库时返回 `storage: "not-configured"`；配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后，可以创建计划、追加操作和追加复盘。
+当前前端仍使用本地存储，以上接口先作为云端数据 API 骨架。未配置数据库时返回 `storage: "not-configured"`；配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后，可以管理计划、操作和复盘。`PATCH` 接收记录的完整可编辑字段；`DELETE` 必须携带 `X-Confirm-Delete: true`，并由前端先完成二次确认。
 
 `POST /api/sync/import-local` 接收当前导出的 RationalTrade JSON，批量导入计划、操作、复盘和审计归档。导入会保留本地字符串 ID，用于维持复盘和操作之间的关联。
 

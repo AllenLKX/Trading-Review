@@ -138,6 +138,9 @@ Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管�
 - 已新增服务端数据库连接边界，数据库未配置时不影响本地 H5 使用。
 - 已新增 `/api/plans` 只读列表接口，作为云端计划数据 API 的第一步。
 - 已新增 `POST /api/plans`、`POST /api/plans/:planId/operations`、`POST /api/plans/:planId/reviews`，用于云端写入骨架。
+- 已新增计划、操作、复盘的 `PATCH` 和 `DELETE` 接口，核心数据具备完整 CRUD。
+- `PATCH` 当前接收完整的可编辑字段，统一复用创建校验，避免局部更新产生非法数据组合。
+- 所有 `DELETE` 请求必须携带 `X-Confirm-Delete: true`，前端仍需先展示二次确认。
 - 已新增 `POST /api/sync/import-local`，用于把本地导出的 JSON 批量导入云端。
 - 已新增服务端输入校验模块，先不用第三方校验库，减少 Backend M1 早期依赖面。
 - `.env.production`、`.env.local` 等真实配置文件不提交到 GitHub。
@@ -148,6 +151,12 @@ Backend M1 初期采用私有单用户模式：
 - 服务器环境变量 `RATIONALTRADE_SINGLE_USER_ID` 指向 `profiles.id`。
 - API 只读取该用户的数据。
 - 完整账号体系接入前，不开放多用户注册和跨用户查询。
+
+公网入口约束：
+
+- 手机或外部网络访问时，需要腾讯云 CVM 具备公网 IP，或由域名解析到公网负载入口。
+- 公网只开放 Nginx 的 80/443 端口；Next.js 3000 和 PostgreSQL 5432 只允许本机或内网访问。
+- 正式使用优先配置域名和 HTTPS，公网 IP + HTTP 只用于首次短期联调。
 
 ID 设计：
 

@@ -183,6 +183,62 @@ export async function createServerTradePlan(input: CreatePlanInput): Promise<Mut
   }
 }
 
+export async function updateServerTradePlan(planId: string, input: CreatePlanInput): Promise<MutationResult<TradePlan>> {
+  const userResult = getConfiguredUserId();
+
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  try {
+    const result = await getDatabasePool().query<PlanRow>(
+      `update trade_plans
+       set title = $3, asset_name = $4, ticker = $5, market = $6, currency = $7,
+           status = $8, thesis = $9, updated_at = now()
+       where id = $1 and user_id = $2
+       returning id, title, asset_name, ticker, market, currency, status, thesis, created_at, updated_at`,
+      [planId, userResult.userId, input.title, input.assetName, input.ticker, input.market, input.currency, input.status, input.thesis]
+    );
+
+    if (result.rowCount !== 1) {
+      return notFound("Plan was not found.");
+    }
+
+    const children = await loadPlanChildren(planId, userResult.userId);
+
+    return {
+      ok: true,
+      storage: "postgres",
+      data: mapPlanRow(result.rows[0], children.operations, children.reviews)
+    };
+  } catch {
+    return databaseError("Failed to update plan in PostgreSQL.");
+  }
+}
+
+export async function deleteServerTradePlan(planId: string): Promise<MutationResult<{ id: string }>> {
+  const userResult = getConfiguredUserId();
+
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  try {
+    const result = await getDatabasePool().query<{ id: string }>(
+      `delete from trade_plans where id = $1 and user_id = $2 returning id`,
+      [planId, userResult.userId]
+    );
+
+    if (result.rowCount !== 1) {
+      return notFound("Plan was not found.");
+    }
+
+    return { ok: true, storage: "postgres", data: result.rows[0] };
+  } catch {
+    return databaseError("Failed to delete plan from PostgreSQL.");
+  }
+}
+
 export async function createServerTradeOperation(
   planId: string,
   input: CreateOperationInput
@@ -251,6 +307,87 @@ export async function createServerTradeOperation(
   }
 }
 
+export async function updateServerTradeOperation(
+  planId: string,
+  operationId: string,
+  input: CreateOperationInput
+): Promise<MutationResult<TradeOperation>> {
+  const userResult = getConfiguredUserId();
+
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  try {
+    const result = await getDatabasePool().query<OperationRow>(
+      `update trade_operations
+       set action = $4, trade_time = $5, currency = $6, price = $7, quantity = $8,
+           quantity_unit = $9, total_amount = $10, take_profit_price = $11,
+           stop_loss_price = $12, decision_reason = $13, psychology_note = $14,
+           emotion_tags = $15, strategy_tags = $16, source = $17, updated_at = now()
+       where id = $1 and plan_id = $2 and user_id = $3
+       returning id, plan_id, action, trade_time, currency, price, quantity, quantity_unit,
+                 total_amount, take_profit_price, stop_loss_price, decision_reason,
+                 psychology_note, emotion_tags, strategy_tags, source, created_at, updated_at`,
+      [
+        operationId,
+        planId,
+        userResult.userId,
+        input.action,
+        input.tradeTime,
+        input.currency,
+        input.price,
+        input.quantity,
+        input.quantityUnit,
+        input.totalAmount,
+        input.takeProfitPrice,
+        input.stopLossPrice,
+        input.decisionReason,
+        input.psychologyNote,
+        input.emotionTags,
+        input.strategyTags,
+        input.source
+      ]
+    );
+
+    if (result.rowCount !== 1) {
+      return notFound("Operation was not found in this plan.");
+    }
+
+    await touchPlan(planId, userResult.userId);
+    return { ok: true, storage: "postgres", data: mapOperationRow(result.rows[0]) };
+  } catch {
+    return databaseError("Failed to update operation in PostgreSQL.");
+  }
+}
+
+export async function deleteServerTradeOperation(
+  planId: string,
+  operationId: string
+): Promise<MutationResult<{ id: string }>> {
+  const userResult = getConfiguredUserId();
+
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  try {
+    const result = await getDatabasePool().query<{ id: string }>(
+      `delete from trade_operations where id = $1 and plan_id = $2 and user_id = $3 returning id`,
+      [operationId, planId, userResult.userId]
+    );
+
+    if (result.rowCount !== 1) {
+      return notFound("Operation was not found in this plan.");
+    }
+
+    await touchPlan(planId, userResult.userId);
+    return { ok: true, storage: "postgres", data: result.rows[0] };
+  } catch {
+    return databaseError("Failed to delete operation from PostgreSQL.");
+  }
+}
+
 export async function createServerPlanReview(planId: string, input: CreateReviewInput): Promise<MutationResult<PlanReview>> {
   const userResult = getConfiguredUserId();
 
@@ -304,6 +441,77 @@ export async function createServerPlanReview(planId: string, input: CreateReview
       storage: "error",
       message: "Failed to create review in PostgreSQL."
     };
+  }
+}
+
+export async function updateServerPlanReview(
+  planId: string,
+  reviewId: string,
+  input: CreateReviewInput
+): Promise<MutationResult<PlanReview>> {
+  const userResult = getConfiguredUserId();
+
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  try {
+    const result = await getDatabasePool().query<ReviewRow>(
+      `update plan_reviews
+       set review_time = $4, operation_ids = $5, realized_result = $6, profit_loss = $7,
+           violated_rules = $8, review_note = $9, emotion_tags = $10, updated_at = now()
+       where id = $1 and plan_id = $2 and user_id = $3
+       returning id, plan_id, review_time, operation_ids, realized_result, profit_loss,
+                 violated_rules, review_note, emotion_tags, created_at, updated_at`,
+      [
+        reviewId,
+        planId,
+        userResult.userId,
+        input.reviewTime,
+        input.operationIds,
+        input.realizedResult,
+        input.profitLoss,
+        input.violatedRules,
+        input.reviewNote,
+        input.emotionTags
+      ]
+    );
+
+    if (result.rowCount !== 1) {
+      return notFound("Review was not found in this plan.");
+    }
+
+    await touchPlan(planId, userResult.userId);
+    return { ok: true, storage: "postgres", data: mapReviewRow(result.rows[0]) };
+  } catch {
+    return databaseError("Failed to update review in PostgreSQL.");
+  }
+}
+
+export async function deleteServerPlanReview(
+  planId: string,
+  reviewId: string
+): Promise<MutationResult<{ id: string }>> {
+  const userResult = getConfiguredUserId();
+
+  if (!userResult.ok) {
+    return userResult;
+  }
+
+  try {
+    const result = await getDatabasePool().query<{ id: string }>(
+      `delete from plan_reviews where id = $1 and plan_id = $2 and user_id = $3 returning id`,
+      [reviewId, planId, userResult.userId]
+    );
+
+    if (result.rowCount !== 1) {
+      return notFound("Review was not found in this plan.");
+    }
+
+    await touchPlan(planId, userResult.userId);
+    return { ok: true, storage: "postgres", data: result.rows[0] };
+  } catch {
+    return databaseError("Failed to delete review from PostgreSQL.");
   }
 }
 
@@ -419,6 +627,38 @@ async function touchPlan(planId: string, userId: string) {
     planId,
     userId
   ]);
+}
+
+async function loadPlanChildren(planId: string, userId: string) {
+  const pool = getDatabasePool();
+  const [operationResult, reviewResult] = await Promise.all([
+    pool.query<OperationRow>(
+      `select id, plan_id, action, trade_time, currency, price, quantity, quantity_unit,
+              total_amount, take_profit_price, stop_loss_price, decision_reason,
+              psychology_note, emotion_tags, strategy_tags, source, created_at, updated_at
+       from trade_operations where plan_id = $1 and user_id = $2 order by trade_time desc`,
+      [planId, userId]
+    ),
+    pool.query<ReviewRow>(
+      `select id, plan_id, review_time, operation_ids, realized_result, profit_loss,
+              violated_rules, review_note, emotion_tags, created_at, updated_at
+       from plan_reviews where plan_id = $1 and user_id = $2 order by review_time desc`,
+      [planId, userId]
+    )
+  ]);
+
+  return {
+    operations: operationResult.rows.map(mapOperationRow),
+    reviews: reviewResult.rows.map(mapReviewRow)
+  };
+}
+
+function notFound(message: string): MutationResult<never> {
+  return { ok: false, storage: "not-found", message };
+}
+
+function databaseError(message: string): MutationResult<never> {
+  return { ok: false, storage: "error", message };
 }
 
 async function upsertPlan(client: PoolClient, userId: string, plan: TradePlan) {

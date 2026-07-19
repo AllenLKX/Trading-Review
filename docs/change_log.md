@@ -2,6 +2,26 @@
 
 ## 2026-07-19
 
+### Backend M1 核心数据更新与删除 API
+
+新增：
+
+- `PATCH /api/plans/:planId`
+- `DELETE /api/plans/:planId`
+- `PATCH /api/plans/:planId/operations/:operationId`
+- `DELETE /api/plans/:planId/operations/:operationId`
+- `PATCH /api/plans/:planId/reviews/:reviewId`
+- `DELETE /api/plans/:planId/reviews/:reviewId`
+
+当前行为：
+
+- 计划、操作和复盘的云端接口具备完整 CRUD。
+- 更新请求复用完整服务端校验，保持观察、股数和份额的数据约束。
+- 子记录更新或删除后会刷新所属计划的更新时间。
+- 删除计划由 PostgreSQL 外键级联删除所属操作和复盘。
+- 所有删除请求必须携带 `X-Confirm-Delete: true`，为前端二次确认提供服务端保护。
+- 补充公网入口说明：外部访问只开放 Nginx 80/443，不暴露 Next.js 3000 或 PostgreSQL 5432。
+
 ### 腾讯云 Ubuntu 部署手册与脚本
 
 新增：
