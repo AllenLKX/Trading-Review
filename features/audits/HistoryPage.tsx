@@ -1,7 +1,7 @@
 "use client";
 
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Download, FileSearch, Pencil, Search, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Cloud, Download, FileSearch, Pencil, RefreshCw, Search, Trash2, Upload, UploadCloud } from "lucide-react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { EmptyState } from "@/components/EmptyState";
 import { PlanOperationForm } from "@/features/trades/PlanOperationForm";
@@ -248,6 +248,12 @@ export function HistoryPage({
 
       {dataMessage ? <p className="rounded-xl border border-line bg-surface px-3 py-2 text-xs font-semibold text-muted-strong">{dataMessage}</p> : null}
 
+      <CloudSyncPanel
+        plans={plans}
+        auditReports={userArchivedAudits}
+        onMessage={setDataMessage}
+      />
+
       <section className="space-y-3">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -302,6 +308,180 @@ export function HistoryPage({
         )}
       </section>
     </main>
+  );
+}
+
+type SystemStatusResponse = {
+  ok: boolean;
+  integrations: {
+    database: {
+      configured: boolean;
+      singleUserConfigured?: boolean;
+      checked?: boolean;
+      ok?: boolean;
+      message?: string;
+    };
+    ai: {
+      configured: boolean;
+    };
+    cos: {
+      configured: boolean;
+      bucketConfigured: boolean;
+      regionConfigured: boolean;
+    };
+  };
+};
+
+type CloudSyncPanelProps = {
+  plans: TradePlan[];
+  auditReports: AuditReport[];
+  onMessage: (message: string) => void;
+};
+
+function CloudSyncPanel({ plans, auditReports, onMessage }: CloudSyncPanelProps) {
+  const [status, setStatus] = useState<SystemStatusResponse | null>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const loadStatus = async () => {
+    setIsLoadingStatus(true);
+
+    try {
+      const response = await fetch("/api/system/status?db=1");
+      const data = (await response.json()) as SystemStatusResponse;
+      setStatus(data);
+    } catch {
+      onMessage("读取云端状态失败，请确认本地服务仍在运行。");
+    } finally {
+      setIsLoadingStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStatus();
+  }, []);
+
+  const uploadLocalData = async () => {
+    if (plans.length === 0 && auditReports.length === 0) {
+      onMessage("当前没有可上传的本地数据。");
+      return;
+    }
+
+    if (!window.confirm(`确认上传 ${plans.length} 个计划和 ${auditReports.length} 条审计归档到云端吗？`)) {
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const response = await fetch("/api/sync/import-local", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify(buildTradeDataFile(plans, auditReports))
+      });
+      const result = (await response.json()) as {
+        ok: boolean;
+        imported?: {
+          plans: number;
+          operations: number;
+          reviews: number;
+          auditReports: number;
+        };
+        meta?: {
+          storage?: string;
+          message?: string;
+        };
+        errors?: string[];
+      };
+
+      if (!response.ok || !result.ok) {
+        onMessage(result.meta?.message ?? result.errors?.[0] ?? "上传本地数据失败。");
+        await loadStatus();
+        return;
+      }
+
+      onMessage(
+        `已上传 ${result.imported?.plans ?? 0} 个计划、${result.imported?.operations ?? 0} 条操作、${result.imported?.reviews ?? 0} 条复盘。`
+      );
+      await loadStatus();
+    } catch {
+      onMessage("上传本地数据失败，请稍后再试。");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const databaseStatus = status?.integrations.database;
+  const canUpload = Boolean(databaseStatus?.configured && databaseStatus.singleUserConfigured && databaseStatus.ok);
+  const statusLabel = !databaseStatus
+    ? "未检查"
+    : !databaseStatus.configured
+      ? "未连接"
+      : !databaseStatus.singleUserConfigured
+        ? "待配置"
+        : databaseStatus.ok
+          ? "可用"
+          : "异常";
+
+  return (
+    <section className="rt-card space-y-4 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <Cloud className="h-5 w-5 text-primary-soft" />
+            <h3 className="text-lg font-bold text-white">云端同步</h3>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-muted">当前仍以本地数据为准，云端入口用于后续部署和迁移。</p>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-xs font-bold ${canUpload ? "bg-buy/20 text-buy" : "bg-surface-raised text-muted-strong"}`}>
+          {statusLabel}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <StatusPill label="数据库" active={Boolean(databaseStatus?.configured)} />
+        <StatusPill label="AI" active={Boolean(status?.integrations.ai.configured)} />
+        <StatusPill label="COS" active={Boolean(status?.integrations.cos.configured)} />
+      </div>
+
+      {databaseStatus?.message ? (
+        <p className="rounded-xl border border-line bg-background px-3 py-2 text-xs leading-5 text-muted">
+          {databaseStatus.message}
+        </p>
+      ) : null}
+
+      <div className="grid grid-cols-[1fr_1.3fr] gap-2">
+        <button
+          type="button"
+          onClick={loadStatus}
+          disabled={isLoadingStatus}
+          className="flex h-11 items-center justify-center gap-2 rounded-xl border border-line bg-surface text-xs font-bold text-muted-strong transition active:scale-[0.98] disabled:opacity-60"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoadingStatus ? "animate-spin" : ""}`} />
+          刷新状态
+        </button>
+        <button
+          type="button"
+          onClick={uploadLocalData}
+          disabled={isUploading || !canUpload}
+          className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-white shadow-lg shadow-primary/20 transition active:scale-[0.98] disabled:bg-surface-raised disabled:text-muted disabled:shadow-none"
+        >
+          <UploadCloud className="h-4 w-4" />
+          {isUploading ? "上传中" : "上传本地数据"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function StatusPill({ label, active }: { label: string; active: boolean }) {
+  return (
+    <div className="rounded-xl border border-line bg-background px-2 py-2">
+      <p className={`text-xs font-bold ${active ? "text-buy" : "text-muted"}`}>{active ? "已配置" : "未配置"}</p>
+      <p className="mt-1 text-[11px] font-semibold text-muted">{label}</p>
+    </div>
   );
 }
 
