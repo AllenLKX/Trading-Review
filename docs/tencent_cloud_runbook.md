@@ -265,6 +265,8 @@ cat /root/rationaltrade-access.txt
 - 无认证业务 API：401
 - 正确认证业务 API：200
 - 数据库事务 CRUD：通过，合成测试数据已清理
+- DeepSeek：服务器密钥已配置，`deepseek-v4-flash` 内部真实调用通过
+- 云端业务数据：当前 0 个计划、0 条操作、0 条复盘，本地正式数据尚未迁移
 - 公网 Nginx：等待确认 OpenClaw 路由归属
 
 ## 10. 后续发布
