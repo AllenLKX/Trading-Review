@@ -44,6 +44,12 @@ http://localhost:3000
 
 当前版本仍是本地存储闭环，不建议立刻上传生产服务器。等 Backend M1 骨架完成、`pnpm build` 通过、生产环境变量清单明确后，再做第一次腾讯云部署。
 
+详细部署步骤见：
+
+```text
+docs/tencent_cloud_runbook.md
+```
+
 部署前复制环境变量模板：
 
 ```bash
@@ -105,8 +111,16 @@ POST /api/sync/import-local
 
 ## 常用验证
 
+运行生产构建验证前，先停止正在运行的 `pnpm dev`。`next dev` 和 `next build` 都会写 `.next`，同时运行可能导致本地开发缓存错位。
+
 ```bash
-pnpm typecheck
+./scripts/verify-local.sh
+```
+
+只检查线上或服务器本机冒烟：
+
+```bash
+./scripts/check-production.sh http://localhost:3000
 ```
 
 页面验证建议：

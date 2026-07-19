@@ -2,6 +2,23 @@
 
 ## 2026-07-19
 
+### 腾讯云 Ubuntu 部署手册与脚本
+
+新增：
+
+- `docs/tencent_cloud_runbook.md`
+- `scripts/verify-local.sh`
+- `scripts/check-production.sh`
+- `scripts/apply-schema.sh`
+
+当前用途：
+
+- 本地发布前统一执行类型检查和生产构建。
+- 服务器上应用 PostgreSQL schema。
+- 发布后检查 `/api/health` 和 `/api/system/status`。
+- 记录腾讯云 Ubuntu、Nginx、PM2、PostgreSQL 的首次部署和回滚流程。
+- `verify-local.sh` 会阻止在 `pnpm dev` 占用 3000 端口时运行，避免 `next dev` 和 `next build` 同时写 `.next` 导致开发缓存错位。
+
 ### Next.js 开发态 Devtools 报错修复
 
 修复本地开发时偶发的 Next.js runtime overlay 报错：
