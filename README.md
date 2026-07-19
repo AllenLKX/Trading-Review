@@ -12,6 +12,7 @@ RationalTrade 是一个移动端优先的交易决策记录与行为复盘工具
 - 编辑和删除计划时间线里的操作与复盘
 - Mock AI 截图补账流程，逐条确认后批量归档
 - 近 30 天审计摘要、复盘追问和 AI 输入摘要
+- 用户主动触发的 DeepSeek 周期行为审计，失败时回退本地规则
 - 审计快照归档、删除、清空
 - 本地 JSON 导入导出，包含计划和审计归档
 
@@ -124,6 +125,15 @@ DELETE /api/audit/reports/:reportId
 ## AI 边界
 
 审计接口 `/api/audit` 已接入 DeepSeek。模型只接收 `aiInputDigest` 并生成行为总结、发现和复盘追问；确定性指标仍由本地规则生成。所有模型输出都经过结构和投资建议边界校验，失败时自动回退本地规则报告。
+
+运行时 Prompt 统一维护在：
+
+```text
+docs/prompts/audit_system.md
+docs/prompts/audit_user.md
+```
+
+TypeScript 不保存 Prompt 副本。开发环境修改文档后下一次请求生效；生产环境需要重启 PM2。
 
 安全配置本地密钥：
 

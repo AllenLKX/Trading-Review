@@ -122,6 +122,17 @@ pm2 restart rationaltrade --update-env
 
 随后访问 `/api/system/status`，确认 `integrations.ai.configured` 为 `true`；再在历史页点击“AI 分析”，成功时会显示 DeepSeek 更新 Toast。
 
+生产 Prompt 位于服务器仓库的 `docs/prompts/`。修改并发布 Prompt 文档后必须执行：
+
+```bash
+cd /var/www/rationaltrade
+source /root/.nvm/nvm.sh
+git pull origin codex/phase-1-local-loop
+pm2 restart rationaltrade --update-env
+```
+
+Prompt 在每个生产进程首次调用时读取并缓存；不需要把 Prompt 放入 `.env.production`，也不允许放到前端。
+
 ## 6. PostgreSQL 初始化
 
 创建数据库和初始单用户 profile：

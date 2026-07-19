@@ -343,6 +343,9 @@ Backend M1 只预留单笔 AI 复盘结果表，不在第一轮接真实 AI。
 - 对枚举、数组数量、文本长度和禁止投资建议进行服务端校验；空内容、截断、超时、非 2xx 或非法输出都回退本地报告。
 - 计划变化时只自动更新免费本地指标，只有用户明确点击“AI 分析”才请求 DeepSeek，避免隐性 Token 消耗。
 - 密钥使用 `DEEPSEEK_API_KEY`，兼容早期环境中的 `AI_API_KEY`，只允许保存在本地或服务器环境变量中。
+- `docs/prompts/audit_system.md` 和 `audit_user.md` 是 Prompt 唯一来源，服务端通过 `lib/server/audit-prompts.ts` 读取并注入审计 JSON。
+- 开发环境每次请求读取 Prompt，方便修改验证；生产环境首次读取后缓存，避免重复磁盘 IO。
+- Next.js 文件追踪显式包含 `docs/prompts/*.md`，未来使用精简部署产物时也不会遗漏 Prompt。
 
 ## 6. Backend M3：截图识别服务化
 

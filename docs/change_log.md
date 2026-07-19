@@ -2,6 +2,15 @@
 
 ## 2026-07-19
 
+### Prompt 文档化与运行时加载
+
+- 新增 `docs/prompts/audit_system.md`、`audit_user.md` 和维护说明，作为 DeepSeek 周期审计 Prompt 的唯一内容来源。
+- TypeScript 中删除 Prompt 正文，新增服务端加载器负责文档读取、占位符校验和审计 JSON 注入。
+- 开发环境每次请求读取 Prompt，文档修改可直接验证；生产环境首次读取后缓存，修改发布后重启 PM2 生效。
+- `audit_user.md` 必须且只能包含一个 `{{AUDIT_INPUT_JSON}}`，异常时停止模型请求并回退本地规则审计。
+- Next.js 文件追踪显式包含 Prompt Markdown，避免未来精简部署时遗漏运行时文件。
+- 更新 AI 边界、后端设计、前端架构、项目说明、路线图、部署手册、README 和协作守则，统一记录真实 DeepSeek 接入及 Prompt 维护方式。
+
 ### DeepSeek 周期审计接入
 
 - `/api/audit` 接入 DeepSeek OpenAI 格式接口，默认使用 `deepseek-v4-flash`，避免继续绑定即将弃用的 `deepseek-chat`。

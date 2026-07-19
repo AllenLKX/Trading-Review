@@ -31,7 +31,7 @@
 
 - Supabase
 - shadcn/ui 组件生成
-- 真实 AI SDK
+- 第三方 AI SDK（当前使用服务端原生 `fetch` 调用 DeepSeek）
 - 真实 OCR
 - PWA
 
@@ -44,7 +44,7 @@
 - `app/page.tsx`：H5 主入口，控制底部 tab
 - `app/layout.tsx`：应用布局和 metadata
 - `app/globals.css`：全局样式和 Tailwind 层
-- `app/api/audit/route.ts`：审计 API 占位
+- `app/api/audit/route.ts`：真实 DeepSeek 审计与本地规则回退入口
 
 ### components
 
@@ -97,6 +97,12 @@
 - `audit-repository.ts`：本地与云端审计归档访问边界
 - `plan-migration.ts`：旧交易记录迁移到计划模型
 - `sample-data.ts`：示例数据
+
+服务端 AI 文件：
+
+- `lib/server/deepseek-audit.ts`：DeepSeek 请求、超时、输出校验与回退原因。
+- `lib/server/audit-prompts.ts`：读取并缓存 Markdown Prompt，注入 `AuditAiRequest`。
+- `docs/prompts/*.md`：运行时 Prompt 唯一正文来源，不下发前端。
 
 ## 4. 状态管理
 
