@@ -7,13 +7,12 @@ import { EmptyState } from "@/components/EmptyState";
 import { PlanOperationForm } from "@/features/trades/PlanOperationForm";
 import { PlanReviewForm } from "@/features/trades/PlanReviewForm";
 import { buildAuditReport, requestAuditReport } from "@/lib/audit-ai-adapter";
+import { localAuditRepository } from "@/lib/audit-repository";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
 import { currencyOptions, sampleAuditReports } from "@/lib/sample-data";
 import { buildTradeDataFile, parseTradeDataFile } from "@/lib/trade-data-file";
 import type { AuditReport, CurrencyCode, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
 import { AuditSnapshotCard } from "./AuditSnapshotCard";
-
-const AUDIT_ARCHIVE_STORAGE_KEY = "rationaltrade.auditReports.v1";
 
 type HistoryPageProps = {
   plans: TradePlan[];
@@ -111,9 +110,7 @@ export function HistoryPage({
 
   useEffect(() => {
     try {
-      const rawReports = window.localStorage.getItem(AUDIT_ARCHIVE_STORAGE_KEY);
-      const parsedReports = rawReports ? (JSON.parse(rawReports) as AuditReport[]) : [];
-      setUserArchivedAudits(Array.isArray(parsedReports) ? parsedReports : []);
+      setUserArchivedAudits(localAuditRepository.load());
     } finally {
       setIsAuditArchiveHydrated(true);
     }
@@ -124,7 +121,7 @@ export function HistoryPage({
       return;
     }
 
-    window.localStorage.setItem(AUDIT_ARCHIVE_STORAGE_KEY, JSON.stringify(userArchivedAudits));
+    localAuditRepository.persist(userArchivedAudits);
   }, [isAuditArchiveHydrated, userArchivedAudits]);
 
   const archiveCurrentAudit = () => {

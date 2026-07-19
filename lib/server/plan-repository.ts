@@ -1,6 +1,7 @@
 import type { PoolClient, QueryResultRow } from "pg";
 
-import { getDatabasePool, isDatabaseConfigured } from "@/lib/server/db";
+import { getDatabasePool } from "@/lib/server/db";
+import { getConfiguredUserId } from "@/lib/server/single-user";
 import type { CreateOperationInput, CreatePlanInput, CreateReviewInput } from "@/lib/server/trade-validation";
 import type {
   AuditReport,
@@ -577,40 +578,6 @@ export async function importLocalTradeData(
   } finally {
     client?.release();
   }
-}
-
-function getConfiguredUserId():
-  | {
-      ok: true;
-      userId: string;
-    }
-  | {
-      ok: false;
-      storage: "not-configured" | "missing-user";
-      message: string;
-    } {
-  if (!isDatabaseConfigured()) {
-    return {
-      ok: false,
-      storage: "not-configured",
-      message: "DATABASE_URL is not configured."
-    };
-  }
-
-  const userId = process.env.RATIONALTRADE_SINGLE_USER_ID;
-
-  if (!userId) {
-    return {
-      ok: false,
-      storage: "missing-user",
-      message: "RATIONALTRADE_SINGLE_USER_ID is not configured."
-    };
-  }
-
-  return {
-    ok: true,
-    userId
-  };
 }
 
 async function ensurePlanBelongsToUser(planId: string, userId: string) {

@@ -142,6 +142,8 @@ Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管�
 - `PATCH` 当前接收完整的可编辑字段，统一复用创建校验，避免局部更新产生非法数据组合。
 - 所有 `DELETE` 请求必须携带 `X-Confirm-Delete: true`，前端仍需先展示二次确认。
 - 已新增 `POST /api/sync/import-local`，用于把本地导出的 JSON 批量导入云端。
+- 已新增 `POST /api/audit/archive`、`GET /api/audit/reports` 和 `DELETE /api/audit/reports/:id`。
+- 云端审计归档最多按创建时间读取近期 20 条，删除同样要求显式确认请求头。
 - 已新增服务端输入校验模块，先不用第三方校验库，减少 Backend M1 早期依赖面。
 - `.env.production`、`.env.local` 等真实配置文件不提交到 GitHub。
 - 初始 schema 只定义结构和约束，不包含任何真实用户数据、token、AI Key 或 COS Key。
@@ -434,6 +436,8 @@ API：
 - `POST /api/audit/archive`
 - `GET /api/audit/reports`
 - `DELETE /api/audit/reports/:id`
+
+当前已完成审计归档 API。`POST /api/audit` 仍负责生成审计内容，归档 API 只保存用户明确归档的快照，两者职责分开。
 
 ### Recognition
 

@@ -91,6 +91,7 @@
 - `trade-data-file.ts`：导入导出 JSON
 - `audit-summary.ts`：本地审计规则
 - `audit-ai-adapter.ts`：AI 审计服务边界
+- `audit-repository.ts`：本地与云端审计归档访问边界
 - `plan-migration.ts`：旧交易记录迁移到计划模型
 - `sample-data.ts`：示例数据
 
@@ -114,10 +115,12 @@
 - 导入替换
 - 恢复示例
 
-审计归档目前在 `HistoryPage` 内管理：
+审计归档状态目前在 `HistoryPage` 内管理，持久化已经下沉到 repository：
 
 - localStorage key：`rationaltrade.auditReports.v1`
-- 后续接后台时可迁移到 `audit_reports` 表
+- `localAuditRepository` 保持现有本地行为
+- `cloudAuditRepository` 已支持读取、归档和确认删除
+- 页面尚未自动切换云端数据源
 
 ## 5. 数据流
 
@@ -233,7 +236,7 @@ Mock `sampleBatchItems`
 1. 增加 auth 状态
 2. 增加 local/cloud repository 抽象
 3. `useTradePlans` 支持云端模式
-4. 审计归档从 `HistoryPage` 下沉到 repository
+4. 增加明确的本地/云端模式选择，再把审计归档状态完全下沉到 hook
 5. 截图补账从 Mock 切换到 recognition job
 6. 导入导出支持云端数据
 7. 增加 PWA manifest 和离线提示

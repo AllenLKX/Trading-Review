@@ -57,7 +57,7 @@ export function parseTradeDataFile(rawText: string): ParsedTradeDataFile {
   throw new Error("没有找到有效的计划或旧版交易记录。");
 }
 
-function isAuditReportLike(value: unknown): value is AuditReport {
+export function isAuditReportLike(value: unknown): value is AuditReport {
   if (!value || typeof value !== "object") {
     return false;
   }

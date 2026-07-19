@@ -2,6 +2,26 @@
 
 ## 2026-07-19
 
+### Backend M1 云端审计归档与前端 repository
+
+新增：
+
+- `POST /api/audit/archive`
+- `GET /api/audit/reports`
+- `DELETE /api/audit/reports/:reportId`
+- `lib/server/audit-repository.ts`
+- `lib/server/audit-validation.ts`
+- `lib/audit-repository.ts`
+
+当前行为：
+
+- 云端可以保存、读取和删除用户明确归档的审计快照。
+- 审计输入在服务端校验周期、信号、指标、摘要、结论和追问字段。
+- 删除审计归档必须携带 `X-Confirm-Delete: true`。
+- 前端本地审计归档从 `HistoryPage` 的直接 localStorage 读写下沉到 `localAuditRepository`。
+- 新增 `cloudAuditRepository`，但默认仍使用本地模式，避免未配置数据库时覆盖本地数据。
+- 单用户环境检查提取为共享服务端模块，供计划和审计 repository 复用。
+
 ### Backend M1 核心数据更新与删除 API
 
 新增：

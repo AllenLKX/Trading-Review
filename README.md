@@ -87,11 +87,16 @@ POST /api/plans/:planId/reviews
 PATCH /api/plans/:planId/reviews/:reviewId
 DELETE /api/plans/:planId/reviews/:reviewId
 POST /api/sync/import-local
+POST /api/audit/archive
+GET /api/audit/reports
+DELETE /api/audit/reports/:reportId
 ```
 
 当前前端仍使用本地存储，以上接口先作为云端数据 API 骨架。未配置数据库时返回 `storage: "not-configured"`；配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后，可以管理计划、操作和复盘。`PATCH` 接收记录的完整可编辑字段；`DELETE` 必须携带 `X-Confirm-Delete: true`，并由前端先完成二次确认。
 
 `POST /api/sync/import-local` 接收当前导出的 RationalTrade JSON，批量导入计划、操作、复盘和审计归档。导入会保留本地字符串 ID，用于维持复盘和操作之间的关联。
+
+审计生成和审计归档相互独立：`POST /api/audit` 当前生成 mock-local 报告；`/api/audit/archive` 和 `/api/audit/reports` 负责用户明确保存的云端快照。前端默认仍使用本地归档 repository，不会在数据库未配置时用空云端结果覆盖本地数据。
 
 ## 数据说明
 
