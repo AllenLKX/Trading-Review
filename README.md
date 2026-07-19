@@ -58,6 +58,15 @@ cp .env.example .env.production
 
 它只验证 Next.js 服务是否正常运行，不访问用户数据、数据库、AI 或 COS。
 
+系统状态接口：
+
+```text
+/api/system/status
+/api/system/status?db=1
+```
+
+默认只返回数据库、AI、COS 是否已配置，不暴露任何真实 token 或连接字符串。加上 `?db=1` 时会尝试连接 PostgreSQL；未配置 `DATABASE_URL` 时只会返回未配置状态，不影响当前本地 H5 使用。
+
 ## 数据说明
 
 当前数据保存在浏览器本地存储中。

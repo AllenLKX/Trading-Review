@@ -1,5 +1,40 @@
 # RationalTrade 更新记录
 
+## 2026-07-19
+
+### Backend M1 服务端配置与数据库连接边界
+
+新增：
+
+- `lib/server/config.ts`
+- `lib/server/db.ts`
+- `/api/system/status`
+
+当前行为：
+
+- `/api/system/status` 只返回数据库、AI、COS 是否已配置。
+- `/api/system/status?db=1` 会在配置 `DATABASE_URL` 后尝试连接 PostgreSQL。
+- 未配置数据库时不会影响当前本地 H5 使用。
+- 接口不会暴露 token、数据库连接字符串、AI Key 或 COS Secret。
+
+### Backend M1 数据库结构初稿
+
+新增 PostgreSQL 初始结构文件：
+
+- `database/schema.sql`
+
+本轮包含：
+
+- `profiles`
+- `trade_plans`
+- `trade_operations`
+- `plan_reviews`
+- `audit_reports`
+- `trading_rules`
+- `ai_reviews`
+
+同时补强 `.gitignore`，明确忽略 `.env.production`、`.env.development`、`.env.test` 等真实环境变量文件。真实 token、AI Key、数据库密码和 COS Key 只允许保存在本地或服务器环境变量中，不提交到 GitHub。
+
 ## 2026-06-27
 
 ### Backend M1 健康检查骨架

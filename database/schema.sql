@@ -1,0 +1,164 @@
+-- RationalTrade Backend M1 initial PostgreSQL schema.
+-- This file is safe to commit: it contains structure only, no secrets or user data.
+
+create extension if not exists pgcrypto;
+
+do $$
+begin
+  create type plan_status as enum ('active', 'closed', 'archived');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type trade_action as enum ('buy', 'sell', 'observe');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type trade_source as enum ('manual', 'ai_screenshot', 'sample');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type quantity_unit as enum ('shares', 'units');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type realized_result as enum ('met', 'partial', 'missed', 'profit', 'loss', 'breakeven', 'unknown');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  create type audit_signal_level as enum ('stable', 'watch', 'risk');
+exception
+  when duplicate_object then null;
+end $$;
+
+create table if not exists profiles (
+  id uuid primary key default gen_random_uuid(),
+  email text unique,
+  display_name text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists trade_plans (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  title text not null,
+  asset_name text not null,
+  ticker text not null,
+  market text not null default '',
+  currency char(3) not null,
+  status plan_status not null default 'active',
+  thesis text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists trade_operations (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  plan_id uuid not null references trade_plans(id) on delete cascade,
+  action trade_action not null,
+  trade_time timestamptz not null,
+  currency char(3) not null,
+  price numeric(20, 6),
+  quantity numeric(20, 6),
+  quantity_unit quantity_unit,
+  total_amount numeric(20, 2),
+  take_profit_price numeric(20, 6),
+  stop_loss_price numeric(20, 6),
+  decision_reason text not null default '',
+  psychology_note text,
+  emotion_tags text[] not null default '{}',
+  strategy_tags text[] not null default '{}',
+  source trade_source not null default 'manual',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint trade_operations_observe_has_no_quantity check (
+    action <> 'observe'
+    or (quantity is null and quantity_unit is null and total_amount is null)
+  ),
+  constraint trade_operations_quantity_pair check (
+    (quantity is null and quantity_unit is null)
+    or (quantity is not null and quantity_unit is not null)
+  )
+);
+
+create table if not exists plan_reviews (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  plan_id uuid not null references trade_plans(id) on delete cascade,
+  review_time timestamptz not null,
+  operation_ids uuid[] not null default '{}',
+  realized_result realized_result not null default 'unknown',
+  profit_loss numeric(20, 2),
+  violated_rules text[] not null default '{}',
+  review_note text not null default '',
+  emotion_tags text[] not null default '{}',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists audit_reports (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  period_start date not null,
+  period_end date not null,
+  title text not null,
+  summary text not null,
+  signal_label text not null,
+  signal_level audit_signal_level not null,
+  metrics jsonb not null default '{}'::jsonb,
+  ai_input_digest text[] not null default '{}',
+  findings text[] not null default '{}',
+  review_questions text[] not null default '{}',
+  source text not null default 'mock-local',
+  created_at timestamptz not null default now(),
+  constraint audit_reports_period_order check (period_start <= period_end)
+);
+
+-- These tables are not implemented in the H5 flow yet, but reserving them avoids
+-- a future data migration when user-defined rules and AI review records are added.
+create table if not exists trading_rules (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  title text not null,
+  description text not null default '',
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists ai_reviews (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references profiles(id) on delete cascade,
+  plan_id uuid references trade_plans(id) on delete cascade,
+  operation_id uuid references trade_operations(id) on delete cascade,
+  review_id uuid references plan_reviews(id) on delete cascade,
+  audit_report_id uuid references audit_reports(id) on delete set null,
+  summary text not null,
+  findings text[] not null default '{}',
+  questions text[] not null default '{}',
+  source text not null default 'ai',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists trade_plans_user_status_idx on trade_plans(user_id, status, updated_at desc);
+create index if not exists trade_operations_user_plan_time_idx on trade_operations(user_id, plan_id, trade_time desc);
+create index if not exists plan_reviews_user_plan_time_idx on plan_reviews(user_id, plan_id, review_time desc);
+create index if not exists audit_reports_user_period_idx on audit_reports(user_id, period_end desc, period_start desc);
+create index if not exists trading_rules_user_active_idx on trading_rules(user_id, is_active);
+create index if not exists ai_reviews_user_created_idx on ai_reviews(user_id, created_at desc);

@@ -8,6 +8,9 @@ build/
 
 .env
 .env.local
+.env.development
+.env.production
+.env.test
 .env.*.local
 
 pnpm-debug.log*

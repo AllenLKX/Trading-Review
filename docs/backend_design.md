@@ -130,6 +130,15 @@ Docker 可以作为后续选项，但 Backend M1 第一轮可以先用普通 Nod
 
 Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管理口令，等产品形态稳定后再扩展正式账号体系。
 
+当前代码状态：
+
+- 已新增 `database/schema.sql` 作为 PostgreSQL 初始结构。
+- 已新增 `.env.example` 作为环境变量模板。
+- 已新增 `/api/system/status` 用于检查服务端配置状态。
+- 已新增服务端数据库连接边界，数据库未配置时不影响本地 H5 使用。
+- `.env.production`、`.env.local` 等真实配置文件不提交到 GitHub。
+- 初始 schema 只定义结构和约束，不包含任何真实用户数据、token、AI Key 或 COS Key。
+
 建议表：
 
 ### profiles
@@ -207,6 +216,38 @@ Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管�
 - `review_questions`
 - `source`
 - `created_at`
+
+### trading_rules
+
+- `id`
+- `user_id`
+- `title`
+- `description`
+- `is_active`
+- `created_at`
+- `updated_at`
+
+说明：
+
+Backend M1 只预留数据表，不在 H5 第一轮实现完整军规管理。
+
+### ai_reviews
+
+- `id`
+- `user_id`
+- `plan_id`
+- `operation_id`
+- `review_id`
+- `audit_report_id`
+- `summary`
+- `findings`
+- `questions`
+- `source`
+- `created_at`
+
+说明：
+
+Backend M1 只预留单笔 AI 复盘结果表，不在第一轮接真实 AI。
 
 权限：
 
@@ -532,6 +573,8 @@ API 回归：
 
 - `/api/audit` 返回 `AuditReport`
 - `/api/health` 返回 OK
+- `/api/system/status` 只返回配置状态，不暴露 token、数据库连接字符串或 COS Secret
+- `/api/system/status?db=1` 在配置数据库后可检查 PostgreSQL 连接
 - 后续云端 API 完成后，逐个确认增删改查
 
 发布步骤：
