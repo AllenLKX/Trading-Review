@@ -167,7 +167,7 @@ function buildArchiveBatch(items) {
 function assertRecognitionMatchesHumanReading(items) {
   assert(Array.isArray(items) && items.length === 3, `Expected exactly three trades, received ${items?.length ?? 0}.`);
   const expected = [
-    { assetName: "半导体材料", action: "sell", price: 2.566, quantity: 19100 },
+    { assetName: "半导材料", action: "sell", price: 2.566, quantity: 19100 },
     { assetName: "科创50", action: "buy", price: 1.832, quantity: 16300 },
     { assetName: "华丰股份", action: "buy", price: 38.1, quantity: 500 }
   ];
