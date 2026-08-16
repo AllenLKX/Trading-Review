@@ -5,8 +5,8 @@ const authorization =
   accessUsername && accessPassword
     ? `Basic ${Buffer.from(`${accessUsername}:${accessPassword}`).toString("base64")}`
     : undefined;
-let sessionCookie;
-if (process.env.TEST_AUTH_EMAIL && process.env.TEST_AUTH_PASSWORD) {
+let sessionCookie = process.env.TEST_AUTH_COOKIE;
+if (!sessionCookie && process.env.TEST_AUTH_EMAIL && process.env.TEST_AUTH_PASSWORD) {
   sessionCookie = await loginForVerification();
 }
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;

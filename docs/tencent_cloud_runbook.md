@@ -148,6 +148,8 @@ pm2 restart rationaltrade --update-env
 
 Prompt 在每个生产进程首次调用时读取并缓存；不需要把 Prompt 放入 `.env.production`，也不允许放到前端。
 
+生产 API 回归不使用 owner 真实密码。发布脚本可以在服务器内生成短期一次性会话，通过仅对当前命令有效的 `TEST_AUTH_COOKIE` 运行 `pnpm verify:database`；完成后必须撤销会话并删除临时文件，不写入 `.env.production`。
+
 ## 6. PostgreSQL 初始化
 
 创建数据库和初始单用户 profile：
