@@ -13,6 +13,7 @@
 - OpenCloudOS 的 cloud-init 会默认开启 SSH 密码认证，因此加固文件使用 `00-rationaltrade.conf` 先于系统配置生效，并要求用全新连接验证有效配置。
 - 新增 PWA manifest、512/180 图标、standalone 与安全区支持；Service Worker 只缓存离线提示，不缓存业务页面、API 或交易数据。
 - 云端发布步骤固定先应用数据库 schema、再构建重启；生产健康检查增加 30 秒启动等待，非交互 SSH 明确加载 Node/pnpm 环境。
+- `/api/health` 优先返回发布时注入的 Git commit，避免环境文件中的旧版本号造成发布状态误判。
 
 ### 正式域名与同源部署方案
 

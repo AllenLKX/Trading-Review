@@ -319,12 +319,12 @@ source .env.production
 set +a
 ./scripts/apply-schema.sh
 pnpm build
-pm2 restart rationaltrade --update-env
+APP_VERSION="$(git rev-parse --short HEAD)" pm2 restart rationaltrade --update-env
 ./scripts/check-production.sh http://localhost:3000
 pm2 save
 ```
 
-通过非交互 SSH 自动发布时，命令需要由 `bash -lc` 执行，或显式 `source /root/.nvm/nvm.sh`，否则 shell 可能找不到 `pnpm`。健康检查会等待最多 30 秒，覆盖 PM2 重启后的正常启动窗口。
+通过非交互 SSH 自动发布时，命令需要由 `bash -lc` 执行，或显式 `source /root/.nvm/nvm.sh`，否则 shell 可能找不到 `pnpm`。健康检查会等待最多 30 秒，覆盖 PM2 重启后的正常启动窗口；`APP_VERSION` 由当前 Git commit 自动注入，便于确认发布版本。
 
 ## 11. 回滚
 
