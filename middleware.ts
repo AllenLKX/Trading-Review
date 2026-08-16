@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
   const session = await verifySignedSession(request.cookies.get(SESSION_COOKIE_NAME)?.value, secret);
   if (SESSION_PUBLIC_PATHS.has(path)) {
     if (session && (path === "/login" || path === "/register")) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(buildAppUrl("/", request));
     }
     return session ? nextWithSession(request, session) : NextResponse.next();
   }
@@ -46,12 +46,17 @@ export async function middleware(request: NextRequest) {
     if (path.startsWith("/api/")) {
       return NextResponse.json({ ok: false, error: "Authentication required." }, { status: 401 });
     }
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = buildAppUrl("/login", request);
     loginUrl.searchParams.set("next", `${path}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
   }
 
   return nextWithSession(request, session);
+}
+
+function buildAppUrl(path: string, request: NextRequest) {
+  const configuredOrigin = process.env.APP_PUBLIC_ORIGIN?.trim();
+  return new URL(path, configuredOrigin || request.url);
 }
 
 export const config = {
