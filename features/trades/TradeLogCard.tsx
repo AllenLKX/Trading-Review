@@ -187,7 +187,7 @@ export function TradeLogCard({ trade, isHighlighted = false, onUpdate, onDelete 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-base font-bold text-white">{trade.assetName}</h3>
+            <h3 className="truncate text-base font-bold text-foreground">{trade.assetName}</h3>
             <span className={`rounded-lg border px-2 py-1 text-xs font-bold ${getActionTone(trade.action)}`}>
               {getActionLabel(trade.action)}
             </span>
@@ -199,7 +199,7 @@ export function TradeLogCard({ trade, isHighlighted = false, onUpdate, onDelete 
         </div>
 
         <div className="shrink-0 text-right">
-          <p className="font-semibold tabular-nums text-white">{formatCurrency(trade.price, trade.currency)}</p>
+          <p className="font-semibold tabular-nums text-foreground">{formatCurrency(trade.price, trade.currency)}</p>
           <p className="mt-1 text-xs text-muted">{formatDateTime(trade.tradeTime)}</p>
         </div>
       </div>
@@ -285,7 +285,7 @@ export function TradeLogCard({ trade, isHighlighted = false, onUpdate, onDelete 
             <div className="rounded-xl border border-line bg-surface-soft p-3">
               <div className="flex items-center justify-between gap-3">
                 <span className="rt-label">总金额</span>
-                <span className="font-bold tabular-nums text-white">{formatCurrency(editedTotalAmount, trade.currency)}</span>
+                <span className="font-bold tabular-nums text-foreground">{formatCurrency(editedTotalAmount, trade.currency)}</span>
               </div>
               <p className="mt-2 text-xs leading-5 text-muted">
                 {editState.quantityUnit === "shares" ? "股数按价格乘以数量计算。" : "份额金额直接作为总金额保存。"}
@@ -395,11 +395,11 @@ export function TradeLogCard({ trade, isHighlighted = false, onUpdate, onDelete 
                 <p className="text-[11px] font-semibold text-muted">
                   {trade.quantityUnit ? getQuantityUnitLabel(trade.quantityUnit) : "数量"}
                 </p>
-                <p className="mt-1 text-sm font-bold tabular-nums text-white">{trade.quantity ?? "--"}</p>
+                <p className="mt-1 text-sm font-bold tabular-nums text-foreground">{trade.quantity ?? "--"}</p>
               </div>
               <div className="rounded-xl border border-line bg-background p-3">
                 <p className="text-[11px] font-semibold text-muted">总金额</p>
-                <p className="mt-1 text-sm font-bold tabular-nums text-white">
+                <p className="mt-1 text-sm font-bold tabular-nums text-foreground">
                   {formatCurrency(trade.totalAmount, trade.currency)}
                 </p>
               </div>
@@ -596,7 +596,7 @@ function DetailMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-line bg-background p-3">
       <p className="text-[11px] font-semibold text-muted">{label}</p>
-      <p className="mt-1 truncate text-sm font-bold tabular-nums text-white">{value}</p>
+      <p className="mt-1 truncate text-sm font-bold tabular-nums text-foreground">{value}</p>
     </div>
   );
 }

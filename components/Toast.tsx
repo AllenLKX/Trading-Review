@@ -31,10 +31,10 @@ export function Toast({ message, onDismiss }: ToastProps) {
   const Icon = message.tone === "success" ? CheckCircle2 : message.tone === "error" ? AlertCircle : Info;
   const toneClass =
     message.tone === "success"
-      ? "border-buy/50 bg-emerald-950 text-emerald-100"
+      ? "border-buy/50 bg-success-surface text-success-foreground"
       : message.tone === "error"
-        ? "border-sell/60 bg-red-950 text-red-100"
-        : "border-primary/50 bg-surface-raised text-white";
+        ? "border-sell/60 bg-danger-surface text-danger-foreground"
+        : "border-primary/50 bg-surface-raised text-foreground";
 
   return (
     <div className="pointer-events-none fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-sm justify-center" aria-live="polite">

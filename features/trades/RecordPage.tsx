@@ -116,7 +116,7 @@ export function RecordPage({
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pb-28 pt-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">Phase 1</p>
-        <h2 className="mt-1 text-2xl font-bold text-white">计划内记录</h2>
+        <h2 className="mt-1 text-2xl font-bold text-foreground">计划内记录</h2>
         <p className="mt-2 text-sm leading-6 text-muted">
           先建立一个标的计划，再把观察、买卖操作和独立复盘挂到这个计划里。
         </p>
@@ -132,7 +132,7 @@ export function RecordPage({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="rt-label">当前计划</p>
-            <p className="mt-1 text-sm font-bold text-white">{selectedPlan?.title ?? "暂无计划"}</p>
+            <p className="mt-1 text-sm font-bold text-foreground">{selectedPlan?.title ?? "暂无计划"}</p>
           </div>
           <button
             type="button"

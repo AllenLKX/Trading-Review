@@ -235,7 +235,7 @@ export function HistoryPage({
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pb-28 pt-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">近 30 天</p>
-        <h2 className="mt-1 text-2xl font-bold text-white">计划与审计</h2>
+        <h2 className="mt-1 text-2xl font-bold text-foreground">计划与审计</h2>
         <p className="mt-2 text-sm leading-6 text-muted">
           计划承载操作和独立复盘，审计会聚合近期所有计划下的行为记录。
         </p>
@@ -268,7 +268,7 @@ export function HistoryPage({
       <section className="space-y-3">
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-white">计划列表</h3>
+            <h3 className="text-xl font-bold text-foreground">计划列表</h3>
             <span className="text-xs font-semibold text-muted">
               {filteredPlans.length}/{plans.length} 个
             </span>
@@ -359,7 +359,7 @@ function PlanCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
-            <h3 className="truncate text-base font-bold text-white">{plan.title}</h3>
+            <h3 className="truncate text-base font-bold text-foreground">{plan.title}</h3>
             <span className="rounded-lg border border-line bg-background px-2 py-1 text-xs font-bold text-muted-strong">
               {plan.status === "active" ? "进行中" : "已关闭"}
             </span>
@@ -369,7 +369,7 @@ function PlanCard({
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="font-semibold tabular-nums text-white">{plan.operations.length} 操作</p>
+          <p className="font-semibold tabular-nums text-foreground">{plan.operations.length} 操作</p>
           <p className="mt-1 text-xs text-muted">{plan.reviews.length} 复盘</p>
         </div>
       </div>
@@ -562,7 +562,7 @@ function PlanDetailView({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">计划详情</p>
-            <h2 className="mt-1 text-2xl font-bold text-white">{plan.title}</h2>
+            <h2 className="mt-1 text-2xl font-bold text-foreground">{plan.title}</h2>
             <p className="mt-2 text-sm text-muted">
               {plan.assetName} · {plan.ticker} · {plan.market} · {plan.currency}
             </p>
@@ -598,7 +598,7 @@ function PlanDetailView({
       {isEditingPlan ? (
         <section className="space-y-3 rounded-2xl border border-line bg-surface p-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-white">编辑计划</h3>
+            <h3 className="text-xl font-bold text-foreground">编辑计划</h3>
             <span className="text-xs font-semibold text-muted">基础信息</span>
           </div>
           <label className="space-y-2">
@@ -649,7 +649,7 @@ function PlanDetailView({
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white">添加记录</h3>
+          <h3 className="text-xl font-bold text-foreground">添加记录</h3>
           <span className="text-xs font-semibold text-muted">写入当前计划</span>
         </div>
         <SegmentedControl
@@ -669,7 +669,7 @@ function PlanDetailView({
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-bold text-white">计划时间线</h3>
+          <h3 className="text-xl font-bold text-foreground">计划时间线</h3>
           <span className="text-xs font-semibold text-muted">{timeline.length} 条</span>
         </div>
 
@@ -693,7 +693,7 @@ function PlanDetailView({
                       </span>
                       <span className="text-xs text-muted">{formatDateTime(event.item.tradeTime)}</span>
                     </div>
-                    <p className="text-sm font-bold tabular-nums text-white">{formatCurrency(event.item.price, event.item.currency)}</p>
+                    <p className="text-sm font-bold tabular-nums text-foreground">{formatCurrency(event.item.price, event.item.currency)}</p>
                     <p className="mt-2 text-sm leading-6 text-muted-strong">{event.item.decisionReason}</p>
                     {event.item.psychologyNote ? <p className="mt-2 text-xs leading-5 text-muted">{event.item.psychologyNote}</p> : null}
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -733,7 +733,7 @@ function PlanDetailView({
                     </div>
                     <p className="text-sm leading-6 text-muted-strong">{event.item.reviewNote}</p>
                     {typeof event.item.profitLoss === "number" ? (
-                      <p className="mt-2 text-sm font-bold tabular-nums text-white">{formatCurrency(event.item.profitLoss, plan.currency)}</p>
+                      <p className="mt-2 text-sm font-bold tabular-nums text-foreground">{formatCurrency(event.item.profitLoss, plan.currency)}</p>
                     ) : null}
                     <div className="mt-3 flex flex-wrap gap-2">
                       {[...event.item.violatedRules, ...event.item.emotionTags].map((tag) => (
@@ -768,7 +768,7 @@ function DetailMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-line bg-background p-3">
       <p className="text-[11px] font-semibold text-muted">{label}</p>
-      <p className="mt-1 truncate text-sm font-bold text-white">{value}</p>
+      <p className="mt-1 truncate text-sm font-bold text-foreground">{value}</p>
     </div>
   );
 }

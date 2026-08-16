@@ -30,7 +30,7 @@ export function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             className={clsx(
               "min-h-11 flex-1 rounded-xl px-3 text-sm font-semibold transition active:scale-[0.98]",
-              isSelected ? "bg-surface-raised text-white shadow-sm" : "text-muted hover:text-muted-strong"
+              isSelected ? "bg-surface-raised text-foreground shadow-sm" : "text-muted hover:text-muted-strong"
             )}
           >
             {option.label}

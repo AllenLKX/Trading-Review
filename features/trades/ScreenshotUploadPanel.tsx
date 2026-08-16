@@ -223,7 +223,7 @@ export function ScreenshotUploadPanel({
                 type="button"
                 onClick={() => void recognizeScreenshot(selectedImage)}
                 disabled={isRecognizing}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-sell/50 bg-background px-4 text-sm font-bold text-red-100 disabled:opacity-50"
+                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-sell/50 bg-background px-4 text-sm font-bold text-danger-foreground disabled:opacity-50"
               >
                 <RotateCcw className="h-4 w-4" />
                 重新识别

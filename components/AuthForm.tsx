@@ -47,7 +47,7 @@ export function AuthForm({ mode }: AuthFormProps) {
           <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary/15 text-primary-soft">
             <LockKeyhole className="h-6 w-6" />
           </div>
-          <h1 className="text-3xl font-bold tracking-normal text-white">{isLogin ? "登录 RationalTrade" : "创建账号"}</h1>
+          <h1 className="text-3xl font-bold tracking-normal text-foreground">{isLogin ? "登录 RationalTrade" : "创建账号"}</h1>
           <p className="mt-2 text-sm leading-6 text-muted">
             {isLogin ? "继续记录计划、操作与独立复盘。" : "使用邮箱和密码建立你的独立交易记录空间。"}
           </p>
@@ -97,7 +97,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             </span>
           </label>
 
-          {error ? <p className="rounded-lg border border-sell/60 bg-red-950/60 px-3 py-2 text-sm text-red-100">{error}</p> : null}
+          {error ? <p className="rounded-lg border border-sell/60 bg-danger-surface px-3 py-2 text-sm text-danger-foreground">{error}</p> : null}
 
           <button
             type="submit"

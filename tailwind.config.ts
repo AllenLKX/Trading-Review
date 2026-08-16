@@ -10,24 +10,29 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#051425",
-        surface: "#0d1c2e",
-        "surface-soft": "#122032",
-        "surface-raised": "#1d2b3d",
-        line: "#283648",
-        muted: "#93a4b8",
-        "muted-strong": "#c7d2e3",
-        primary: "#4f46e5",
-        "primary-soft": "#c3c0ff",
-        buy: "#25a475",
-        sell: "#c20038",
-        risk: "#ff7b8a"
+        background: "rgb(var(--color-background) / <alpha-value>)",
+        surface: "rgb(var(--color-surface) / <alpha-value>)",
+        "surface-soft": "rgb(var(--color-surface-soft) / <alpha-value>)",
+        "surface-raised": "rgb(var(--color-surface-raised) / <alpha-value>)",
+        line: "rgb(var(--color-line) / <alpha-value>)",
+        muted: "rgb(var(--color-muted) / <alpha-value>)",
+        "muted-strong": "rgb(var(--color-muted-strong) / <alpha-value>)",
+        foreground: "rgb(var(--color-foreground) / <alpha-value>)",
+        primary: "rgb(var(--color-primary) / <alpha-value>)",
+        "primary-soft": "rgb(var(--color-primary-soft) / <alpha-value>)",
+        buy: "rgb(var(--color-buy) / <alpha-value>)",
+        sell: "rgb(var(--color-sell) / <alpha-value>)",
+        risk: "rgb(var(--color-risk) / <alpha-value>)",
+        "danger-surface": "rgb(var(--color-danger-surface) / <alpha-value>)",
+        "danger-foreground": "rgb(var(--color-danger-foreground) / <alpha-value>)",
+        "success-surface": "rgb(var(--color-success-surface) / <alpha-value>)",
+        "success-foreground": "rgb(var(--color-success-foreground) / <alpha-value>)"
       },
       fontFamily: {
         sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"]
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(195, 192, 255, 0.22), 0 18px 42px rgba(0, 0, 0, 0.28)"
+        glow: "0 0 0 1px rgb(var(--color-primary-soft) / 0.22), 0 18px 42px rgb(15 23 42 / 0.16)"
       }
     }
   },

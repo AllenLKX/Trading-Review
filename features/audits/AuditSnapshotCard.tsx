@@ -51,7 +51,7 @@ export function AuditSnapshotCard({
       <div className="border-b border-line p-4">
         <div className="flex items-center gap-2">
           <Brain className="h-5 w-5 text-primary-soft" />
-          <h2 className="text-lg font-bold text-white">{latest.title}</h2>
+          <h2 className="text-lg font-bold text-foreground">{latest.title}</h2>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button
@@ -86,7 +86,7 @@ export function AuditSnapshotCard({
         </div>
 
         <p className="text-sm leading-7 text-muted-strong">
-          <span className="font-bold text-white">{latest.signalLabel}：</span>
+          <span className="font-bold text-foreground">{latest.signalLabel}：</span>
           {latest.summary}
         </p>
 
@@ -149,7 +149,7 @@ export function AuditSnapshotCard({
             <div key={report.id} className="rounded-xl border border-line bg-surface-soft p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-bold text-white">{report.title}</p>
+                  <p className="text-sm font-bold text-foreground">{report.title}</p>
                   <p className="mt-1 text-xs text-muted">
                     {report.periodStart} 至 {report.periodEnd} · {report.signalLabel}
                   </p>
@@ -217,7 +217,7 @@ function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-line bg-background p-3">
       <p className="text-[11px] font-semibold text-muted">{label}</p>
-      <p className="mt-1 truncate text-sm font-bold text-white">{value}</p>
+      <p className="mt-1 truncate text-sm font-bold text-foreground">{value}</p>
     </div>
   );
 }

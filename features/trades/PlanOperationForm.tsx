@@ -250,7 +250,7 @@ export function PlanOperationForm({
           <div className="rounded-2xl border border-line bg-background p-4">
             <div className="flex items-center justify-between gap-4">
               <span className="rt-label">总金额</span>
-              <span className="text-lg font-bold tabular-nums text-white">{formatCurrency(totalAmount, plan.currency)}</span>
+              <span className="text-lg font-bold tabular-nums text-foreground">{formatCurrency(totalAmount, plan.currency)}</span>
             </div>
           </div>
         ) : null}

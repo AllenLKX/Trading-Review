@@ -12,7 +12,7 @@ export function EmptyState({ icon: Icon, title, description }: EmptyStateProps) 
       <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface-raised text-primary-soft">
         <Icon className="h-8 w-8" />
       </div>
-      <h2 className="text-lg font-bold text-white">{title}</h2>
+      <h2 className="text-lg font-bold text-foreground">{title}</h2>
       <p className="mt-2 max-w-64 text-sm leading-6 text-muted">{description}</p>
     </div>
   );

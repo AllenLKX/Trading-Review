@@ -265,7 +265,7 @@ export function TradeDecisionForm({ onSave }: TradeDecisionFormProps) {
           <div className="rounded-2xl border border-line bg-background p-4">
             <div className="flex items-center justify-between gap-4">
               <span className="rt-label">总金额</span>
-              <span className="text-lg font-bold tabular-nums text-white">{formatCurrency(totalAmount, currency)}</span>
+              <span className="text-lg font-bold tabular-nums text-foreground">{formatCurrency(totalAmount, currency)}</span>
             </div>
             <p className="mt-2 text-xs leading-5 text-muted">
               {quantityUnit === "shares"

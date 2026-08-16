@@ -65,13 +65,13 @@ export function BatchVerificationCard({ item, defaultOpen = false, onChange, onR
             </span>
             <span className="text-xs text-muted">{Math.round(item.confidence * 100)}% 识别可信度</span>
           </div>
-          <h3 className="truncate text-base font-bold text-white">{item.assetName}</h3>
+          <h3 className="truncate text-base font-bold text-foreground">{item.assetName}</h3>
           <p className="text-xs text-muted">
             {item.market}: {item.ticker} · {item.sourceImageName}
           </p>
         </div>
         <div className="shrink-0 text-right">
-          <p className="font-semibold tabular-nums text-white">{formatCurrency(item.price, item.currency)}</p>
+          <p className="font-semibold tabular-nums text-foreground">{formatCurrency(item.price, item.currency)}</p>
           <p className="mt-1 text-xs text-muted">{formatDateTime(item.tradeTime)}</p>
           <ChevronDown className={`ml-auto mt-2 h-4 w-4 text-muted transition ${open ? "rotate-180" : ""}`} />
         </div>
@@ -162,7 +162,7 @@ export function BatchVerificationCard({ item, defaultOpen = false, onChange, onR
             <div className="rounded-xl border border-line bg-background p-3">
               <div className="flex items-center justify-between gap-3">
                 <span className="rt-label">归档金额</span>
-                <span className="font-bold tabular-nums text-white">{formatCurrency(item.totalAmount, item.currency)}</span>
+                <span className="font-bold tabular-nums text-foreground">{formatCurrency(item.totalAmount, item.currency)}</span>
               </div>
             </div>
           ) : null}

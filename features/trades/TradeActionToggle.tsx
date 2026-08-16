@@ -14,7 +14,7 @@ const actions: Array<{ value: TradeAction; label: string; className: string }> =
   {
     value: "observe",
     label: "观察",
-    className: "data-[selected=true]:bg-surface-raised data-[selected=true]:text-white"
+    className: "data-[selected=true]:bg-surface-raised data-[selected=true]:text-foreground"
   }
 ];
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LoaderCircle, LogOut, Mail, Settings, UserRound, X } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function TopAppBar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -87,11 +88,11 @@ export function TopAppBar() {
             <section
               id="account-settings-panel"
               role="dialog"
-              aria-label="账号设置"
+              aria-label="设置"
               className="absolute right-0 top-14 z-50 w-[min(20rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface p-4 shadow-2xl"
             >
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-base font-bold text-white">账号设置</h2>
+                <h2 className="text-base font-bold text-foreground">设置</h2>
                 <button
                   type="button"
                   aria-label="关闭账号设置"
@@ -111,7 +112,11 @@ export function TopAppBar() {
                 </div>
               </div>
 
-              {error ? <p className="mt-3 rounded-lg border border-sell/60 bg-red-950/60 px-3 py-2 text-sm text-red-100">{error}</p> : null}
+              <div className="border-b border-line py-4">
+                <ThemeToggle />
+              </div>
+
+              {error ? <p className="mt-3 rounded-lg border border-sell/60 bg-danger-surface px-3 py-2 text-sm text-danger-foreground">{error}</p> : null}
 
               <button
                 type="button"
