@@ -202,10 +202,14 @@ ss -lntp | grep ':3000'
 部署 SSH 加固：
 
 ```bash
-cp deploy/sshd-rationaltrade.conf /etc/ssh/sshd_config.d/99-rationaltrade.conf
+install -o root -g root -m 600 deploy/sshd-rationaltrade.conf /etc/ssh/sshd_config.d/00-rationaltrade.conf
+rm -f /etc/ssh/sshd_config.d/99-rationaltrade.conf
 sshd -t
 systemctl reload sshd
+sshd -T | grep -E '^(pubkeyauthentication|passwordauthentication|kbdinteractiveauthentication|permitrootlogin|maxauthtries) '
 ```
+
+OpenCloudOS 的 `50-cloud-init.conf` 默认包含 `PasswordAuthentication yes`。OpenSSH 对多数全局指令采用首个值，因此本项目配置必须使用 `00-` 前缀，不能放在 `99-`。
 
 reload 后必须从另一条终端实际完成一次密钥登录，再保留配置；不要在未验证 SSH Key 时关闭当前会话。
 
@@ -310,10 +314,17 @@ cd /var/www/rationaltrade
 source /root/.nvm/nvm.sh
 git pull origin codex/phase-1-local-loop
 pnpm install --frozen-lockfile
+set -a
+source .env.production
+set +a
+./scripts/apply-schema.sh
 pnpm build
-pm2 restart rationaltrade
+pm2 restart rationaltrade --update-env
 ./scripts/check-production.sh http://localhost:3000
+pm2 save
 ```
+
+通过非交互 SSH 自动发布时，命令需要由 `bash -lc` 执行，或显式 `source /root/.nvm/nvm.sh`，否则 shell 可能找不到 `pnpm`。健康检查会等待最多 30 秒，覆盖 PM2 重启后的正常启动窗口。
 
 ## 11. 回滚
 
