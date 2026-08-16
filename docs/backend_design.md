@@ -100,7 +100,7 @@ Docker 可以作为后续选项，但 Backend M1 第一轮可以先用普通 Nod
 
 腾讯云自部署下，账户体系有两种选择：
 
-### 方案 A：自建 NextAuth/Auth.js
+### 方案 A：自建邮箱密码会话（当前采用）
 
 适合当前腾讯云自部署。
 
@@ -108,7 +108,7 @@ Docker 可以作为后续选项，但 Backend M1 第一轮可以先用普通 Nod
 
 - 服务端完全在腾讯云
 - 不依赖 Supabase Auth
-- 未来可接邮箱、微信、GitHub 等登录
+- 当前邮箱密码与数据完全在腾讯云，未来可在同一用户表上增加微信、GitHub 等身份
 
 代价：
 
@@ -130,7 +130,7 @@ Docker 可以作为后续选项，但 Backend M1 第一轮可以先用普通 Nod
 
 建议：
 
-Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管理口令，等产品形态稳定后再扩展正式账号体系。
+当前已落地方案 A 的邮箱密码、数据库会话和用户隔离；暂不增加第三方身份、邮箱验证或密码找回。
 
 当前代码状态：
 
@@ -153,17 +153,13 @@ Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管�
 - H5 不提供本地/云端模式。所有核心写操作等待 PostgreSQL API 成功后再更新界面，失败时保留原数据和表单内容。
 - `POST /api/sync/import-local` 保留为首次迁移和运维工具，不在正式用户界面展示。
 - 计划详情编辑使用 `PUT /api/plans/:planId/snapshot`，计划基础信息、操作和复盘在同一 PostgreSQL 事务中替换，任一校验或写入失败会整体回滚。
-- 私有单用户阶段使用 middleware Basic Auth；生产环境未配置 `APP_ACCESS_USERNAME` 和 `APP_ACCESS_PASSWORD` 时默认拒绝业务访问。
-- 正式公网入口为 `https://rationaltrade.cn`，仅 `/api/health` 无需认证。
+- middleware 在迁移完成后使用签名会话 Cookie；Basic Auth 只作为 owner 初始化前的临时回退模式。
+- 正式公网入口为 `https://rationaltrade.cn`；健康检查与 PWA 静态资源公开，业务页面和 API 要求有效会话。
 - 已新增服务端输入校验模块，先不用第三方校验库，减少 Backend M1 早期依赖面。
 - `.env.production`、`.env.local` 等真实配置文件不提交到 GitHub。
 - 初始 schema 只定义结构和约束，不包含任何真实用户数据、token、AI Key 或 COS Key。
 
-Backend M1 初期采用私有单用户模式：
-
-- 服务器环境变量 `RATIONALTRADE_SINGLE_USER_ID` 指向 `profiles.id`。
-- API 只读取该用户的数据。
-- 完整账号体系接入前，不开放多用户注册和跨用户查询。
+生产迁移时 `RATIONALTRADE_SINGLE_USER_ID` 只用于把原有数据绑定到 owner 账号。切换 session 模式后，API 从已验证、未撤销的会话读取用户 ID，不允许客户端指定或跨用户查询。
 
 公网入口约束：
 
@@ -172,6 +168,8 @@ Backend M1 初期采用私有单用户模式：
 - 公网只开放 Nginx 的 80/443 端口；Next.js 3000 和 PostgreSQL 5432 只允许本机或内网访问。
 - HTTP 只用于证书签发与跳转，正式业务统一使用 HTTPS。
 - SSH 22 面向动态公网 IP 保持可达，但只允许密钥认证；公网禁止 root 密码登录，腾讯云控制台保留密码救援通道。
+- 正式账号使用邮箱、scrypt 密码哈希、签名 HttpOnly Cookie 和 PostgreSQL 可撤销会话；middleware 只接受签名会话，业务仓储再次校验会话仍有效。
+- `app_events` 记录最小化运营事件，用于服务器按日查询 PV、UV、业务流水和 AI token，不保存交易正文或认证秘密。
 
 ID 设计：
 

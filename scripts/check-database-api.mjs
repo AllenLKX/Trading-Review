@@ -5,6 +5,10 @@ const authorization =
   accessUsername && accessPassword
     ? `Basic ${Buffer.from(`${accessUsername}:${accessPassword}`).toString("base64")}`
     : undefined;
+let sessionCookie;
+if (process.env.TEST_AUTH_EMAIL && process.env.TEST_AUTH_PASSWORD) {
+  sessionCookie = await loginForVerification();
+}
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const auditId = `audit-contract-${runId}`;
 const clientPlanId = `plan-client-${runId}`;
@@ -339,7 +343,8 @@ async function request(path, options = {}) {
     method: options.method ?? "GET",
     headers: {
       ...(options.body ? { "content-type": "application/json" } : {}),
-      ...(authorization ? { authorization } : {})
+      ...(authorization ? { authorization } : {}),
+      ...(sessionCookie ? { cookie: sessionCookie } : {})
     },
     body: options.body ? JSON.stringify(options.body) : undefined
   });
@@ -358,7 +363,11 @@ async function safeDelete(path) {
 
   const response = await fetch(`${baseUrl}${path}`, {
     method: "DELETE",
-    headers: { "X-Confirm-Delete": "true", ...(authorization ? { authorization } : {}) }
+    headers: {
+      "X-Confirm-Delete": "true",
+      ...(authorization ? { authorization } : {}),
+      ...(sessionCookie ? { cookie: sessionCookie } : {})
+    }
   });
   if (!response.ok && response.status !== 404) {
     const result = await response.json();
@@ -369,7 +378,11 @@ async function safeDelete(path) {
 async function expectRejectedImport(body, expectedMessage) {
   const response = await fetch(`${baseUrl}/api/sync/import-local`, {
     method: "POST",
-    headers: { "content-type": "application/json", ...(authorization ? { authorization } : {}) },
+    headers: {
+      "content-type": "application/json",
+      ...(authorization ? { authorization } : {}),
+      ...(sessionCookie ? { cookie: sessionCookie } : {})
+    },
     body: JSON.stringify(body)
   });
   const result = await response.json();
@@ -380,7 +393,11 @@ async function expectRejectedImport(body, expectedMessage) {
 async function expectRejectedSnapshot(planId, body) {
   const response = await fetch(`${baseUrl}/api/plans/${planId}/snapshot`, {
     method: "PUT",
-    headers: { "content-type": "application/json", ...(authorization ? { authorization } : {}) },
+    headers: {
+      "content-type": "application/json",
+      ...(authorization ? { authorization } : {}),
+      ...(sessionCookie ? { cookie: sessionCookie } : {})
+    },
     body: JSON.stringify(body)
   });
   const result = await response.json();
@@ -392,4 +409,17 @@ function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
   }
+}
+
+async function loginForVerification() {
+  const response = await fetch(`${baseUrl}/api/auth/login`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: process.env.TEST_AUTH_EMAIL, password: process.env.TEST_AUTH_PASSWORD })
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error ?? "Verification login failed.");
+  const cookie = response.headers.get("set-cookie")?.split(";", 1)[0];
+  if (!cookie) throw new Error("Verification login did not return a session cookie.");
+  return cookie;
 }

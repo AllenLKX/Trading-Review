@@ -21,10 +21,21 @@ type DeepSeekResponse = {
     finish_reason?: string;
     message?: { content?: string | null };
   }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
+};
+
+export type AuditTokenUsage = {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
 };
 
 export type DeepSeekAuditResult =
-  | { ok: true; narrative: DeepSeekAuditNarrative; model: string; promptVersion: string }
+  | { ok: true; narrative: DeepSeekAuditNarrative; model: string; promptVersion: string; usage?: AuditTokenUsage }
   | { ok: false; reason: AuditFallbackReason; model?: string; promptVersion?: string };
 
 export async function generateDeepSeekAudit(aiRequest: AuditAiRequest): Promise<DeepSeekAuditResult> {
@@ -69,7 +80,17 @@ export async function generateDeepSeekAudit(aiRequest: AuditAiRequest): Promise<
 
     const narrative = parseNarrative(choice?.message?.content);
     return narrative
-      ? { ok: true, narrative, model, promptVersion }
+      ? {
+          ok: true,
+          narrative,
+          model,
+          promptVersion,
+          usage: {
+            promptTokens: payload.usage?.prompt_tokens,
+            completionTokens: payload.usage?.completion_tokens,
+            totalTokens: payload.usage?.total_tokens
+          }
+        }
       : { ok: false, reason: "invalid-output", model, promptVersion };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {

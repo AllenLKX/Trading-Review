@@ -8,6 +8,8 @@ export type ServerRuntimeConfig = {
   access: {
     configured: boolean;
     publicOrigin?: string;
+    mode: "basic" | "session";
+    registrationOpen: boolean;
   };
   ai: {
     configured: boolean;
@@ -33,7 +35,12 @@ export function readServerRuntimeConfig(): ServerRuntimeConfig {
       singleUserConfigured: Boolean(process.env.RATIONALTRADE_SINGLE_USER_ID)
     },
     access: {
-      configured: Boolean(process.env.APP_ACCESS_USERNAME && process.env.APP_ACCESS_PASSWORD),
+      configured:
+        process.env.AUTH_MODE === "session"
+          ? Boolean(process.env.AUTH_SESSION_SECRET && process.env.AUTH_SESSION_SECRET.length >= 32)
+          : Boolean(process.env.APP_ACCESS_USERNAME && process.env.APP_ACCESS_PASSWORD),
+      mode: process.env.AUTH_MODE === "session" ? "session" : "basic",
+      registrationOpen: process.env.AUTH_ALLOW_REGISTRATION === "true",
       publicOrigin: process.env.APP_PUBLIC_ORIGIN
     },
     ai: {

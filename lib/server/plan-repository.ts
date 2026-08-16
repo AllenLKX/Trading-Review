@@ -2,6 +2,7 @@ import type { PoolClient, QueryResultRow } from "pg";
 
 import { getDatabasePool } from "@/lib/server/db";
 import { getConfiguredUserId } from "@/lib/server/single-user";
+import { recordAppEvent } from "@/lib/server/events";
 import {
   parseCreateOperationInput,
   parseCreatePlanInput,
@@ -109,7 +110,7 @@ type ReviewRow = QueryResultRow & {
 };
 
 export async function listServerTradePlans(): Promise<PlanListResult> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return {
@@ -168,7 +169,7 @@ export async function createServerTradePlan(
   input: CreatePlanInput,
   identity: CreateEntityIdentity = {}
 ): Promise<MutationResult<TradePlan>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -204,10 +205,12 @@ export async function createServerTradePlan(
       ]
     );
 
+    const data = mapPlanRow(result.rows[0], [], []);
+    await recordAppEvent({ eventName: "plan_saved", userId: userResult.userId, metadata: { planId: data.id } });
     return {
       ok: true,
       storage: "postgres",
-      data: mapPlanRow(result.rows[0], [], [])
+      data
     };
   } catch {
     return {
@@ -219,7 +222,7 @@ export async function createServerTradePlan(
 }
 
 export async function updateServerTradePlan(planId: string, input: CreatePlanInput): Promise<MutationResult<TradePlan>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -240,6 +243,7 @@ export async function updateServerTradePlan(planId: string, input: CreatePlanInp
     }
 
     const children = await loadPlanChildren(planId, userResult.userId);
+    await recordAppEvent({ eventName: "plan_updated", userId: userResult.userId, metadata: { planId } });
 
     return {
       ok: true,
@@ -252,7 +256,7 @@ export async function updateServerTradePlan(planId: string, input: CreatePlanInp
 }
 
 export async function deleteServerTradePlan(planId: string): Promise<MutationResult<{ id: string }>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -268,6 +272,7 @@ export async function deleteServerTradePlan(planId: string): Promise<MutationRes
       return notFound("Plan was not found.");
     }
 
+    await recordAppEvent({ eventName: "plan_deleted", userId: userResult.userId, metadata: { planId } });
     return { ok: true, storage: "postgres", data: result.rows[0] };
   } catch {
     return databaseError("Failed to delete plan from PostgreSQL.");
@@ -279,7 +284,7 @@ export async function createServerTradeOperation(
   input: CreateOperationInput,
   identity: CreateEntityIdentity = {}
 ): Promise<MutationResult<TradeOperation>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -348,6 +353,11 @@ export async function createServerTradeOperation(
     );
 
     await touchPlan(planId, userResult.userId);
+    await recordAppEvent({
+      eventName: "operation_saved",
+      userId: userResult.userId,
+      metadata: { planId, operationId: result.rows[0].id, action: input.action }
+    });
 
     return {
       ok: true,
@@ -368,7 +378,7 @@ export async function updateServerTradeOperation(
   operationId: string,
   input: CreateOperationInput
 ): Promise<MutationResult<TradeOperation>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -411,6 +421,11 @@ export async function updateServerTradeOperation(
     }
 
     await touchPlan(planId, userResult.userId);
+    await recordAppEvent({
+      eventName: "operation_updated",
+      userId: userResult.userId,
+      metadata: { planId, operationId, action: input.action }
+    });
     return { ok: true, storage: "postgres", data: mapOperationRow(result.rows[0]) };
   } catch {
     return databaseError("Failed to update operation in PostgreSQL.");
@@ -421,7 +436,7 @@ export async function deleteServerTradeOperation(
   planId: string,
   operationId: string
 ): Promise<MutationResult<{ id: string }>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -438,6 +453,7 @@ export async function deleteServerTradeOperation(
     }
 
     await touchPlan(planId, userResult.userId);
+    await recordAppEvent({ eventName: "operation_deleted", userId: userResult.userId, metadata: { planId, operationId } });
     return { ok: true, storage: "postgres", data: result.rows[0] };
   } catch {
     return databaseError("Failed to delete operation from PostgreSQL.");
@@ -449,7 +465,7 @@ export async function createServerPlanReview(
   input: CreateReviewInput,
   identity: CreateEntityIdentity = {}
 ): Promise<MutationResult<PlanReview>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -502,6 +518,11 @@ export async function createServerPlanReview(
     );
 
     await touchPlan(planId, userResult.userId);
+    await recordAppEvent({
+      eventName: "review_saved",
+      userId: userResult.userId,
+      metadata: { planId, reviewId: result.rows[0].id }
+    });
 
     return {
       ok: true,
@@ -522,7 +543,7 @@ export async function updateServerPlanReview(
   reviewId: string,
   input: CreateReviewInput
 ): Promise<MutationResult<PlanReview>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -555,6 +576,7 @@ export async function updateServerPlanReview(
     }
 
     await touchPlan(planId, userResult.userId);
+    await recordAppEvent({ eventName: "review_updated", userId: userResult.userId, metadata: { planId, reviewId } });
     return { ok: true, storage: "postgres", data: mapReviewRow(result.rows[0]) };
   } catch {
     return databaseError("Failed to update review in PostgreSQL.");
@@ -565,7 +587,7 @@ export async function deleteServerPlanReview(
   planId: string,
   reviewId: string
 ): Promise<MutationResult<{ id: string }>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -582,6 +604,7 @@ export async function deleteServerPlanReview(
     }
 
     await touchPlan(planId, userResult.userId);
+    await recordAppEvent({ eventName: "review_deleted", userId: userResult.userId, metadata: { planId, reviewId } });
     return { ok: true, storage: "postgres", data: result.rows[0] };
   } catch {
     return databaseError("Failed to delete review from PostgreSQL.");
@@ -592,7 +615,7 @@ export async function replaceServerTradePlanSnapshot(
   planId: string,
   plan: TradePlan
 ): Promise<MutationResult<TradePlan>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -664,6 +687,11 @@ export async function replaceServerTradePlanSnapshot(
     );
 
     await client.query("commit");
+    await recordAppEvent({
+      eventName: "plan_snapshot_saved",
+      userId: userResult.userId,
+      metadata: { planId, operationCount: operationResult.rowCount, reviewCount: reviewResult.rowCount }
+    });
     return {
       ok: true,
       storage: "postgres",
@@ -686,7 +714,7 @@ export async function importLocalTradeData(
   plans: TradePlan[],
   auditReports: AuditReport[]
 ): Promise<ImportLocalDataResult> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
 
   if (!userResult.ok) {
     return userResult;
@@ -725,6 +753,17 @@ export async function importLocalTradeData(
     }
 
     await client.query("commit");
+
+    await recordAppEvent({
+      eventName: "local_data_imported",
+      userId: userResult.userId,
+      metadata: {
+        planCount: plans.length,
+        operationCount,
+        reviewCount,
+        auditReportCount: auditReports.length
+      }
+    });
 
     return {
       ok: true,

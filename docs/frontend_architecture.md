@@ -110,7 +110,8 @@
 - `app/icon.tsx` 与 `app/apple-icon.tsx` 生成应用图标。
 - `public/sw.js` 只处理导航离线兜底，不缓存 API、页面正文或交易数据。
 - 浏览器与未来 WebView 共用 `https://rationaltrade.cn` 和相对 `/api/*`，不增加跨域配置。
-- Basic Auth 只用于当前私有单用户阶段；应用商店版本前改为正式登录会话。
+- `/login` 与 `/register` 复用现有移动端深色视觉；正式环境使用 HttpOnly 会话，前端不保存密码或 token。
+- `AnalyticsTracker` 每次页面装载上报一次 `page_view`，匿名 ID 只用于 UV 去重，不包含业务内容。
 
 ## 4. 状态管理
 

@@ -2,6 +2,7 @@ import type { QueryResultRow } from "pg";
 
 import { getDatabasePool } from "@/lib/server/db";
 import { getConfiguredUserId } from "@/lib/server/single-user";
+import { recordAppEvent } from "@/lib/server/events";
 import type { AuditGeneration, AuditReport } from "@/lib/types";
 
 type AuditRow = QueryResultRow & {
@@ -38,7 +39,7 @@ const auditColumns = `id, period_start, period_end, title, summary, signal_label
   metrics, ai_input_digest, findings, review_questions, generation, created_at`;
 
 export async function listServerAuditReports(): Promise<AuditListResult> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
   if (!userResult.ok) {
     return { reports: [], storage: userResult.storage, message: userResult.message };
   }
@@ -55,7 +56,7 @@ export async function listServerAuditReports(): Promise<AuditListResult> {
 }
 
 export async function createServerAuditReport(report: AuditReport): Promise<AuditMutationResult<AuditReport>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
   if (!userResult.ok) {
     return userResult;
   }
@@ -99,14 +100,20 @@ export async function createServerAuditReport(report: AuditReport): Promise<Audi
         report.createdAt
       ]
     );
-    return { ok: true, storage: "postgres", data: mapAuditRow(result.rows[0]) };
+    const data = mapAuditRow(result.rows[0]);
+    await recordAppEvent({
+      eventName: "audit_archived",
+      userId: userResult.userId,
+      metadata: { reportId: data.id, source: data.generation?.source, model: data.generation?.model }
+    });
+    return { ok: true, storage: "postgres", data };
   } catch {
     return { ok: false, storage: "error", message: "Failed to archive audit report in PostgreSQL." };
   }
 }
 
 export async function deleteServerAuditReport(reportId: string): Promise<AuditMutationResult<{ id: string }>> {
-  const userResult = getConfiguredUserId();
+  const userResult = await getConfiguredUserId();
   if (!userResult.ok) {
     return userResult;
   }
@@ -120,6 +127,7 @@ export async function deleteServerAuditReport(reportId: string): Promise<AuditMu
       return { ok: false, storage: "not-found", message: "Audit report was not found." };
     }
 
+    await recordAppEvent({ eventName: "audit_deleted", userId: userResult.userId, metadata: { reportId } });
     return { ok: true, storage: "postgres", data: result.rows[0] };
   } catch {
     return { ok: false, storage: "error", message: "Failed to delete audit report from PostgreSQL." };

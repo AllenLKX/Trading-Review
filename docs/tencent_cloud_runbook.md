@@ -300,6 +300,8 @@ cat /root/rationaltrade-access.txt
 
 ## 10. 后续发布
 
+首次从 Basic Auth 切换到邮箱密码登录前，严格执行 `docs/auth_and_analytics.md` 的 owner 初始化顺序。owner 密码只在服务器终端输入。
+
 本地：
 
 ```bash

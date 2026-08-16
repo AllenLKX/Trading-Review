@@ -8,7 +8,9 @@
     "start": "next start --hostname 127.0.0.1",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "verify:database": "node scripts/check-database-api.mjs"
+    "verify:database": "node scripts/check-database-api.mjs",
+    "verify:auth": "node scripts/check-auth-api.mjs",
+    "report:daily": "node scripts/report-daily.mjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

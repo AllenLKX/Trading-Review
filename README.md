@@ -17,6 +17,8 @@ RationalTrade 是一个移动端优先的交易决策记录与行为复盘工具
 - 本地 JSON 导入导出，包含计划和审计归档
 - AI 归档记录模型、Prompt 版本与生成/回退状态
 - PWA manifest、主屏幕图标和不缓存交易数据的离线兜底
+- 邮箱密码注册登录、可撤销服务端会话与按用户数据隔离
+- 按日期查询 PV、UV、业务流水和 DeepSeek token 用量
 
 ## 本地运行
 
@@ -145,7 +147,9 @@ TypeScript 不保存 Prompt 副本。开发环境修改文档后下一次请求�
 
 正式域名可添加到手机主屏幕，并以 standalone 模式运行。Service Worker 只缓存静态离线提示页，不缓存页面正文、API 响应或交易数据。
 
-未来 Android/iOS WebView 直接加载 `https://rationaltrade.cn`，继续使用同源 `/api/*`。正式上架前仍需用登录会话替换当前临时 Basic Auth。
+未来 Android/iOS WebView 直接加载 `https://rationaltrade.cn`，继续使用同源 `/api/*` 和现有登录会话。Basic Auth 仅保留为生产 owner 迁移前的临时回退模式。
+
+账号、生产 owner 迁移和运营数据查询见 `docs/auth_and_analytics.md`。
 
 安全配置本地密钥：
 

@@ -51,6 +51,8 @@ RationalTrade 是一个 AI 驱动的投资决策记录与复盘工具。
 
 当前正式域名为 `https://rationaltrade.cn`。H5 已具备 PWA manifest、主屏幕图标和安全离线提示，未来 WebView 套壳继续使用同域 API；Service Worker 不缓存用户交易数据。
 
+账号体系支持邮箱密码注册、登录和退出，数据按账号隔离。当前不验证邮箱所有权，也不提供找回密码。服务器保存最小化页面曝光、业务事件和 AI token 用量，供管理员按日期查询，不提供用户看板。
+
 ## 三、产品定位
 
 RationalTrade 是一个交易决策复盘工具，而不是投资建议工具。

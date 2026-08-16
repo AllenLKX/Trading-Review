@@ -53,6 +53,33 @@ create table if not exists profiles (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists auth_credentials (
+  user_id text primary key references profiles(id) on delete cascade,
+  password_hash text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists auth_sessions (
+  id text primary key,
+  user_id text not null references profiles(id) on delete cascade,
+  expires_at timestamptz not null,
+  revoked_at timestamptz,
+  created_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now()
+);
+
+create table if not exists app_events (
+  id bigint generated always as identity primary key,
+  user_id text references profiles(id) on delete set null,
+  anonymous_id text,
+  session_id text,
+  event_name text not null,
+  path text,
+  metadata jsonb not null default '{}'::jsonb,
+  occurred_at timestamptz not null default now()
+);
+
 create table if not exists trade_plans (
   id text primary key default gen_random_uuid()::text,
   user_id text not null references profiles(id) on delete cascade,
@@ -167,3 +194,7 @@ create index if not exists plan_reviews_user_plan_time_idx on plan_reviews(user_
 create index if not exists audit_reports_user_period_idx on audit_reports(user_id, period_end desc, period_start desc);
 create index if not exists trading_rules_user_active_idx on trading_rules(user_id, is_active);
 create index if not exists ai_reviews_user_created_idx on ai_reviews(user_id, created_at desc);
+create index if not exists auth_sessions_user_expiry_idx on auth_sessions(user_id, expires_at desc);
+create index if not exists auth_sessions_expiry_idx on auth_sessions(expires_at) where revoked_at is null;
+create index if not exists app_events_time_name_idx on app_events(occurred_at desc, event_name);
+create index if not exists app_events_user_time_idx on app_events(user_id, occurred_at desc);
