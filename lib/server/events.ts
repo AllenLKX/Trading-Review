@@ -30,6 +30,12 @@ export async function recordAppEvent(event: AppEventInput) {
   }
 }
 
+export function readAnonymousId(raw: unknown) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const value = (raw as Record<string, unknown>).anonymousId;
+  return typeof value === "string" ? cleanIdentifier(value) ?? undefined : undefined;
+}
+
 function cleanIdentifier(value: string | undefined) {
   const cleaned = value?.trim();
   return cleaned ? cleaned.slice(0, 120) : null;

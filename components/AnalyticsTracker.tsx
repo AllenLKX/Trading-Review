@@ -2,15 +2,11 @@
 
 import { useEffect } from "react";
 
-const ANONYMOUS_ID_KEY = "rationaltrade.analytics.anonymousId";
+import { getAnalyticsAnonymousId } from "@/lib/client/analytics";
 
 export function AnalyticsTracker() {
   useEffect(() => {
-    let anonymousId = window.localStorage.getItem(ANONYMOUS_ID_KEY);
-    if (!anonymousId) {
-      anonymousId = crypto.randomUUID();
-      window.localStorage.setItem(ANONYMOUS_ID_KEY, anonymousId);
-    }
+    const anonymousId = getAnalyticsAnonymousId();
 
     const referrerHost = readReferrerHost(document.referrer);
     void fetch("/api/events", {

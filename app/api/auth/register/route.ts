@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { attachNewSession } from "@/lib/server/auth-http";
 import { registerAccount, validateCredentialsInput } from "@/lib/server/auth-repository";
-import { recordAppEvent } from "@/lib/server/events";
+import { readAnonymousId, recordAppEvent } from "@/lib/server/events";
 import { checkAuthRateLimit } from "@/lib/server/auth-rate-limit";
 
 export const runtime = "nodejs";
@@ -15,7 +15,9 @@ export async function POST(request: Request) {
       { status: 429, headers: { "retry-after": String(rateLimit.retryAfterSeconds) } }
     );
   }
-  const input = validateCredentialsInput(await request.json().catch(() => null));
+  const body = await request.json().catch(() => null);
+  const anonymousId = readAnonymousId(body);
+  const input = validateCredentialsInput(body);
   if (!input) {
     return NextResponse.json({ ok: false, error: "请输入有效邮箱，密码至少 8 位。" }, { status: 400 });
   }
@@ -31,6 +33,12 @@ export async function POST(request: Request) {
 
   const response = NextResponse.json({ ok: true, user: result.user }, { status: 201 });
   const session = await attachNewSession(response, result.user);
-  await recordAppEvent({ eventName: "auth_registered", userId: result.user.id, sessionId: session.id, path: "/register" });
+  await recordAppEvent({
+    eventName: "auth_registered",
+    userId: result.user.id,
+    anonymousId,
+    sessionId: session.id,
+    path: "/register"
+  });
   return response;
 }

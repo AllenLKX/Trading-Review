@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "verify:database": "node scripts/check-database-api.mjs",
     "verify:auth": "node scripts/check-auth-api.mjs",
+    "verify:analytics": "node scripts/check-login-funnel.mjs",
     "report:daily": "node scripts/report-daily.mjs"
   },
   "dependencies": {

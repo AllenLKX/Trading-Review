@@ -5,6 +5,7 @@ const baseUrl = process.argv[2] ?? "http://localhost:3000";
 const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 const email = `auth-contract-${runId}@rationaltrade.invalid`;
 const password = `Contract-${runId}!`;
+const anonymousId = `auth-contract-anon-${runId}`;
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
 let userId;
 
@@ -12,7 +13,7 @@ try {
   const registration = await fetch(`${baseUrl}/api/auth/register`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password, anonymousId })
   });
   const registrationBody = await registration.json();
   assert(registration.status === 201, registrationBody.error ?? "Registration failed.");
@@ -35,13 +36,20 @@ try {
   const login = await fetch(`${baseUrl}/api/auth/login`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ email, password, anonymousId })
   });
   const loginBody = await login.json();
   assert(login.ok, loginBody.error ?? "Login failed.");
   const secondCookie = readCookie(login);
   const reloggedSession = await fetch(`${baseUrl}/api/auth/session`, { headers: { cookie: secondCookie } });
   assert(reloggedSession.ok, "New login session was not active.");
+
+  const linkedEvents = await pool.query(
+    `select event_name from app_events
+     where user_id = $1 and anonymous_id = $2 and event_name in ('auth_registered', 'auth_login_succeeded')`,
+    [userId, anonymousId]
+  );
+  assert(linkedEvents.rowCount === 2, "Authentication events were not linked to the anonymous visitor.");
 
   console.log("Registration, login, logout, revocation, and account isolation verification passed.");
 } finally {

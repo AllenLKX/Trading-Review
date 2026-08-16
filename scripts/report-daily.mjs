@@ -10,7 +10,7 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Date must use YYYY-MM-DD
 
 const pool = new Pool({ connectionString: databaseUrl, max: 1 });
 try {
-  const [summary, eventCounts, activity] = await Promise.all([
+  const [summary, loginFunnel, eventCounts, activity] = await Promise.all([
     pool.query(
       `select
          count(*) filter (where event_name = 'page_view')::int as pv,
@@ -24,6 +24,31 @@ try {
          coalesce(sum((metadata->>'completionTokens')::int) filter (where event_name in ('ai_audit_generated', 'ai_screenshot_recognized')), 0)::int as completion_tokens,
          coalesce(sum((metadata->>'totalTokens')::int) filter (where event_name in ('ai_audit_generated', 'ai_screenshot_recognized')), 0)::int as total_tokens
        from app_events where (occurred_at at time zone $1)::date = $2::date`,
+      [timeZone, date]
+    ),
+    pool.query(
+      `with login_visitors as (
+         select anonymous_id, min(occurred_at) as first_seen_at
+         from app_events
+         where event_name = 'page_view' and path = '/login' and anonymous_id is not null
+           and (occurred_at at time zone $1)::date = $2::date
+         group by anonymous_id
+       ), converted_visitors as (
+         select distinct visitor.anonymous_id
+         from login_visitors visitor
+         join app_events event on event.anonymous_id = visitor.anonymous_id
+           and event.event_name in ('auth_registered', 'auth_login_succeeded')
+           and event.occurred_at >= visitor.first_seen_at
+       )
+       select
+         count(*)::int as login_page_uv,
+         count(converted.anonymous_id)::int as entered_product_uv,
+         (count(*) - count(converted.anonymous_id))::int as stalled_login_uv,
+         case when count(*) = 0 then 0
+           else round(100.0 * (count(*) - count(converted.anonymous_id)) / count(*), 1)::float8
+         end as stalled_rate_percent
+       from login_visitors visitor
+       left join converted_visitors converted on converted.anonymous_id = visitor.anonymous_id`,
       [timeZone, date]
     ),
     pool.query(
@@ -42,7 +67,13 @@ try {
     )
   ]);
 
-  console.log(JSON.stringify({ date, timeZone, summary: summary.rows[0], eventCounts: eventCounts.rows, activity: activity.rows }, null, 2));
+  console.log(
+    JSON.stringify(
+      { date, timeZone, summary: summary.rows[0], loginFunnel: loginFunnel.rows[0], eventCounts: eventCounts.rows, activity: activity.rows },
+      null,
+      2
+    )
+  );
 } finally {
   await pool.end();
 }
