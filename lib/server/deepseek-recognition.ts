@@ -14,6 +14,8 @@ type DeepSeekResponse = {
   usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
 };
 
+const MAX_STRUCTURE_ATTEMPTS = 2;
+
 export type RecognitionTokenUsage = {
   promptTokens?: number;
   completionTokens?: number;
@@ -27,12 +29,14 @@ export type DeepSeekRecognitionResult =
       model: string;
       promptVersion: string;
       usage?: RecognitionTokenUsage;
+      attempts: number;
     }
   | {
       ok: false;
       reason: "not-configured" | "timeout" | "provider-error" | "invalid-output";
       model?: string;
       promptVersion?: string;
+      attempts?: number;
     };
 
 export async function structureRecognizedTrades(input: {
@@ -44,22 +48,52 @@ export async function structureRecognizedTrades(input: {
 
   const baseUrl = (process.env.AI_BASE_URL?.trim() || DEFAULT_BASE_URL).replace(/\/+$/, "");
   const model = process.env.AI_MODEL?.trim() || DEFAULT_MODEL;
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), readTimeout(process.env.AI_TIMEOUT_MS));
   let promptVersion: string | undefined;
 
   try {
     const prompt = await buildRecognitionPromptMessages(input);
     promptVersion = prompt.promptVersion;
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    let usage: RecognitionTokenUsage | undefined;
+
+    for (let attempts = 1; attempts <= MAX_STRUCTURE_ATTEMPTS; attempts += 1) {
+      const result = await requestStructureCompletion({ apiKey, baseUrl, model, messages: prompt.messages });
+      if (!result.ok) return { ...result, model, promptVersion, attempts };
+
+      usage = combineUsage(usage, readUsage(result.payload));
+      const choice = result.payload.choices?.[0];
+      const items =
+        choice?.finish_reason === "length"
+          ? null
+          : parseRecognitionItems(choice?.message?.content, input.sourceImageName);
+      if (items) return { ok: true, items, model, promptVersion, usage, attempts };
+    }
+
+    return { ok: false, reason: "invalid-output", model, promptVersion, attempts: MAX_STRUCTURE_ATTEMPTS };
+  } catch (error) {
+    console.error("DeepSeek screenshot recognition request failed", error);
+    return { ok: false, reason: "provider-error", model, promptVersion };
+  }
+}
+
+async function requestStructureCompletion(input: {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+  messages: Array<{ role: string; content: string }>;
+}): Promise<{ ok: true; payload: DeepSeekResponse } | { ok: false; reason: "timeout" | "provider-error" }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), readTimeout(process.env.AI_TIMEOUT_MS));
+
+  try {
+    const response = await fetch(`${input.baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${input.apiKey}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model,
-        messages: prompt.messages,
+        model: input.model,
+        messages: input.messages,
         response_format: { type: "json_object" },
         thinking: { type: "disabled" },
         max_tokens: 2400
@@ -69,35 +103,31 @@ export async function structureRecognizedTrades(input: {
     });
     if (!response.ok) {
       console.error("DeepSeek screenshot recognition request failed", { status: response.status });
-      return { ok: false, reason: "provider-error", model, promptVersion };
+      return { ok: false, reason: "provider-error" };
     }
-
-    const payload = (await response.json()) as DeepSeekResponse;
-    const choice = payload.choices?.[0];
-    if (choice?.finish_reason === "length") return { ok: false, reason: "invalid-output", model, promptVersion };
-    const items = parseRecognitionItems(choice?.message?.content, input.sourceImageName);
-    if (!items) return { ok: false, reason: "invalid-output", model, promptVersion };
-
-    return {
-      ok: true,
-      items,
-      model,
-      promptVersion,
-      usage: {
-        promptTokens: payload.usage?.prompt_tokens,
-        completionTokens: payload.usage?.completion_tokens,
-        totalTokens: payload.usage?.total_tokens
-      }
-    };
+    return { ok: true, payload: (await response.json()) as DeepSeekResponse };
   } catch (error) {
-    if (error instanceof Error && error.name === "AbortError") {
-      return { ok: false, reason: "timeout", model, promptVersion };
-    }
-    console.error("DeepSeek screenshot recognition request failed", error);
-    return { ok: false, reason: "provider-error", model, promptVersion };
+    if (error instanceof Error && error.name === "AbortError") return { ok: false, reason: "timeout" };
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function readUsage(payload: DeepSeekResponse): RecognitionTokenUsage {
+  return {
+    promptTokens: payload.usage?.prompt_tokens,
+    completionTokens: payload.usage?.completion_tokens,
+    totalTokens: payload.usage?.total_tokens
+  };
+}
+
+function combineUsage(current: RecognitionTokenUsage | undefined, next: RecognitionTokenUsage) {
+  return {
+    promptTokens: (current?.promptTokens ?? 0) + (next.promptTokens ?? 0),
+    completionTokens: (current?.completionTokens ?? 0) + (next.completionTokens ?? 0),
+    totalTokens: (current?.totalTokens ?? 0) + (next.totalTokens ?? 0)
+  };
 }
 
 function parseRecognitionItems(content: string | null | undefined, sourceImageName: string) {

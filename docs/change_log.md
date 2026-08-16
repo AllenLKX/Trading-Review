@@ -13,6 +13,7 @@
 - 新增静默配置 Kimi 识图 Key 的脚本及 `integrations.vision` 状态检查，识图与 DeepSeek 使用独立 Key，仅保存在本地或服务器环境文件。
 - 真实长截图回归中，Kimi 转写与人工识别的 3 笔成交完全一致，DeepSeek 正确排除现金宝、红股入账和利息流水。
 - 批量归档成功后新增 Toast；识别等待态明确告知 Kimi 识图到 DeepSeek 结构化的处理顺序。
+- DeepSeek 截图结构化收到非法 JSON 时最多重试一次，复用 Kimi 转写而不重复识图，并上报 `structureAttempts` 便于监测模型波动。
 
 ### 正式账号与轻量运营数据
 

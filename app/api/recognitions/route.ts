@@ -64,6 +64,7 @@ export async function POST(request: Request) {
     structureProvider: "deepseek",
     structureModel: aiResult.model,
     structurePromptVersion: aiResult.promptVersion,
+    structureAttempts: aiResult.attempts,
     transcribedLineCount: visionResult.lines.length,
     itemCount: aiResult.ok ? aiResult.items.length : 0,
     visionUsage: visionResult.usage,
