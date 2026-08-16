@@ -278,6 +278,9 @@ cat /root/rationaltrade-access.txt
 - 公网 Nginx：域名 Host 独立路由到 RationalTrade，原有 IP 路由继续保留给 OpenClaw
 - Certbot 2.8 与 Nginx 插件：已安装
 - 域名 HTTP Host 内部验证：健康检查 200，未认证业务 API 401
+- HTTPS：`rationaltrade.cn` 与 `www.rationaltrade.cn` 已签发 ECDSA 证书，HTTP 自动 301 跳转 HTTPS
+- 当前证书有效期至 2026-11-14，`certbot-renew.timer` 已启用，续期演练通过
+- 正式环境 `APP_PUBLIC_ORIGIN` 已切换为 `https://rationaltrade.cn`
 
 ## 10. 后续发布
 

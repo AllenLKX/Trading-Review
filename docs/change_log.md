@@ -10,6 +10,9 @@
 - Nginx 配置改为只匹配 `rationaltrade.cn` 与 `www.rationaltrade.cn`，和原有 OpenClaw IP 路由共存。
 - 环境变量模板的 `APP_PUBLIC_ORIGIN` 更新为正式 HTTPS 域名，部署手册补充 DNS 记录和证书签发顺序。
 - 腾讯云已安装 Certbot 2.8 与 Nginx 插件，域名 Host 路由内部验证通过；等待 DNS 与 443 后签发证书。
+- DNS 根域名与 `www` 已生效，Let's Encrypt ECDSA 证书签发成功，HTTP 强制跳转 HTTPS。
+- `certbot-renew.timer` 已启用并完成续期演练，当前证书有效期至 2026-11-14。
+- 生产 `APP_PUBLIC_ORIGIN` 已切换为 `https://rationaltrade.cn`；公网健康、访问保护和 DeepSeek 调用通过。
 
 ## 2026-07-19
 

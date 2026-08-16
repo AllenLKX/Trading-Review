@@ -52,7 +52,7 @@ http://localhost:3000
 - PostgreSQL 保存业务数据
 - 腾讯云 COS 保存后续截图文件
 
-当前 Backend M1 已部署，PostgreSQL 是正式数据源，localStorage 只作为最近一次成功读取的缓存。域名 DNS 生效后配置免费 HTTPS。
+当前 Backend M1 已部署，PostgreSQL 是正式数据源，localStorage 只作为最近一次成功读取的缓存。正式入口 `https://rationaltrade.cn` 已启用免费 HTTPS 和自动续期。
 
 详细部署步骤见：
 
