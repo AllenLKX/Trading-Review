@@ -112,6 +112,7 @@
 - 浏览器与未来 WebView 共用 `https://rationaltrade.cn` 和相对 `/api/*`，不增加跨域配置。
 - `/login` 与 `/register` 复用现有移动端深色视觉；正式环境使用 HttpOnly 会话，前端不保存密码或 token。
 - `AnalyticsTracker` 每次页面装载上报一次 `page_view`，匿名 ID 只用于 UV 去重，不包含业务内容。
+- `TopAppBar` 的设置面板通过 `/api/auth/session` 实时读取当前邮箱，并通过 `/api/auth/logout` 撤销会话后返回登录页。
 
 ## 4. 状态管理
 
