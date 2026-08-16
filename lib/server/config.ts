@@ -16,6 +16,11 @@ export type ServerRuntimeConfig = {
     provider: "deepseek";
     model: string;
   };
+  ocr: {
+    configured: boolean;
+    provider: "tencent-cloud";
+    region: string;
+  };
   cos: {
     configured: boolean;
     bucketConfigured: boolean;
@@ -47,6 +52,14 @@ export function readServerRuntimeConfig(): ServerRuntimeConfig {
       configured: Boolean(process.env.DEEPSEEK_API_KEY ?? process.env.AI_API_KEY),
       provider: "deepseek",
       model: process.env.AI_MODEL ?? "deepseek-v4-flash"
+    },
+    ocr: {
+      configured: Boolean(
+        (process.env.TENCENT_OCR_SECRET_ID ?? process.env.TENCENT_COS_SECRET_ID) &&
+          (process.env.TENCENT_OCR_SECRET_KEY ?? process.env.TENCENT_COS_SECRET_KEY)
+      ),
+      provider: "tencent-cloud",
+      region: process.env.TENCENT_OCR_REGION ?? process.env.TENCENT_COS_REGION ?? "ap-guangzhou"
     },
     cos: {
       configured: Boolean(

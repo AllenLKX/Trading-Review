@@ -99,6 +99,9 @@ nano .env.production
 - `AI_BASE_URL=https://api.deepseek.com`
 - `AI_MODEL=deepseek-v4-flash`
 - `AI_TIMEOUT_MS=20000`
+- `TENCENT_OCR_SECRET_ID`
+- `TENCENT_OCR_SECRET_KEY`
+- `TENCENT_OCR_REGION=ap-guangzhou`
 - `TENCENT_COS_SECRET_ID`
 - `TENCENT_COS_SECRET_KEY`
 - `TENCENT_COS_BUCKET`
@@ -121,6 +124,17 @@ pm2 restart rationaltrade --update-env
 ```
 
 随后访问 `/api/system/status`，确认 `integrations.ai.configured` 为 `true`；再在历史页点击“AI 分析”，成功时会显示 DeepSeek 更新 Toast。
+
+截图补账还需要先在腾讯云控制台开通“文字识别”，并创建只具备 OCR 调用权限的 CAM 子用户密钥。服务器中静默配置：
+
+```bash
+cd /var/www/rationaltrade
+./scripts/configure-tencent-ocr.sh .env.production
+source /root/.nvm/nvm.sh
+pm2 restart rationaltrade --update-env
+```
+
+配置后访问 `/api/system/status`，确认 `integrations.ocr.configured` 为 `true`。SecretId、SecretKey 只进入权限为 `600` 的服务器环境文件，不提交 GitHub；优先使用独立 OCR 子用户，不使用主账号永久密钥。
 
 生产 Prompt 位于服务器仓库的 `docs/prompts/`。修改并发布 Prompt 文档后必须执行：
 
