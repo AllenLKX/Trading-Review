@@ -12,6 +12,7 @@
     "verify:auth": "node scripts/check-auth-api.mjs",
     "verify:analytics": "node scripts/check-login-funnel.mjs",
     "verify:ai-workflow": "node scripts/check-ai-workflow.mjs",
+    "seed:promo-history": "node scripts/seed-promo-history.mjs",
     "report:daily": "node scripts/report-daily.mjs"
   },
   "dependencies": {

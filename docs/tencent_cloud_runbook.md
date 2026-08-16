@@ -355,6 +355,25 @@ pm2 save
 
 通过非交互 SSH 自动发布时，命令需要由 `bash -lc` 执行，或显式 `source /root/.nvm/nvm.sh`，否则 shell 可能找不到 `pnpm`。健康检查会等待最多 30 秒，覆盖 PM2 重启后的正常启动窗口；`APP_VERSION` 由当前 Git commit 自动注入，便于确认发布版本。
 
+### 10.1 宣传演示时间线
+
+管理员可为明确指定的已有账号写入一组可重复、可清理的长期跟踪演示数据。脚本不会修改密码或其他计划；所有新增业务 ID 使用 `promo-longtrack-v1-*` 前缀。`--apply` 会通过十分钟临时会话调用并归档一次真实 DeepSeek 审计，完成后立即撤销会话。
+
+```bash
+cd /var/www/rationaltrade
+set -a && source .env.production && set +a
+pnpm seed:promo-history -- --email=user@example.com
+pnpm seed:promo-history -- --email=user@example.com --apply
+```
+
+确认不再需要演示数据后清理：
+
+```bash
+pnpm seed:promo-history -- --email=user@example.com --remove
+```
+
+演示内容必须明确视为合成样例，不得对外声称为真实交易业绩。
+
 ## 11. 回滚
 
 发布前记录当前 commit：
