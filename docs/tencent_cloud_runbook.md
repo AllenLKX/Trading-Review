@@ -302,7 +302,7 @@ cat /root/rationaltrade-access.txt
 
 首次从 Basic Auth 切换到邮箱密码登录前，严格执行 `docs/auth_and_analytics.md` 的 owner 初始化顺序。owner 密码只在服务器终端输入。
 
-2026-08-16 当前状态：账号代码、`auth_credentials`、`auth_sessions` 和 `app_events` 已部署，仍保持 `AUTH_MODE=basic`。owner 初始化前不得执行 `configure-auth.sh enable`。
+2026-08-16 当前状态：owner 已初始化，`AUTH_MODE=session` 与公开注册已启用。未登录根路径跳转 `https://rationaltrade.cn/login`，业务 API 无会话返回 401；owner 历史数据、新账号隔离、会话撤销、PV/UV 和 AI token 日报均已通过生产验证。
 
 本地：
 
