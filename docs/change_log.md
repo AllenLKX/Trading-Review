@@ -9,6 +9,7 @@
 - 暂不购买独立 API 域名、付费 DNS 套餐或付费 DV 证书；使用 DNSPod 免费解析和自动续期的免费 HTTPS 证书。
 - Nginx 配置改为只匹配 `rationaltrade.cn` 与 `www.rationaltrade.cn`，和原有 OpenClaw IP 路由共存。
 - 环境变量模板的 `APP_PUBLIC_ORIGIN` 更新为正式 HTTPS 域名，部署手册补充 DNS 记录和证书签发顺序。
+- 腾讯云已安装 Certbot 2.8 与 Nginx 插件，域名 Host 路由内部验证通过；等待 DNS 与 443 后签发证书。
 
 ## 2026-07-19
 

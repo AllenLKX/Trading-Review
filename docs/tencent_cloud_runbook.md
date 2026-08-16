@@ -276,6 +276,8 @@ cat /root/rationaltrade-access.txt
 - 云端业务数据：当前 0 个计划、0 条操作、0 条复盘，本地正式数据尚未迁移
 - 域名：`rationaltrade.cn` 已购买，等待 DNS 记录生效和 HTTPS 签发
 - 公网 Nginx：域名 Host 独立路由到 RationalTrade，原有 IP 路由继续保留给 OpenClaw
+- Certbot 2.8 与 Nginx 插件：已安装
+- 域名 HTTP Host 内部验证：健康检查 200，未认证业务 API 401
 
 ## 10. 后续发布
 
