@@ -5,7 +5,7 @@
 - 邮箱和密码注册、登录、退出。
 - 暂不发送验证邮件，不提供找回密码。
 - 密码使用服务端 scrypt 加盐哈希，数据库不保存明文。
-- 登录使用签名 HttpOnly Cookie；会话同时写入 PostgreSQL，可在退出时立即撤销。
+- 登录使用 7 天有效的签名 HttpOnly 持久 Cookie；刷新和重开浏览器保持登录，会话同时写入 PostgreSQL，可在退出时立即撤销。
 - 计划、操作、复盘和审计归档继续按 `user_id` 隔离。
 - 页面曝光、登录注册、业务写入和 AI 审计调用写入 `app_events`。
 
@@ -43,6 +43,7 @@ pm2 save
 - `auth_registered`、`auth_login_succeeded`、`auth_login_failed`、`auth_logged_out`。
 - 计划、操作、复盘和审计归档的保存、修改、删除事件。
 - `ai_audit_generated`：provider、model、Prompt 版本、成功/回退、耗时和 token 用量。
+- `ai_screenshot_recognized`：OCR/结构化阶段、模型、Prompt 版本、成功状态、耗时和 token 用量；不记录 OCR 正文或交易字段。
 
 事件不保存密码、Cookie、DeepSeek Token、Prompt 正文、交易理由、心理描述、价格、金额或持仓数量。
 

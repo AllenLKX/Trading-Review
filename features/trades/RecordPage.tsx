@@ -203,42 +203,41 @@ export function RecordPage({
         ) : null}
       </section>
 
-      {selectedPlan ? (
-        <>
-          <SegmentedControl
-            value={mode}
-            onChange={(nextMode) => {
-              setMode(nextMode);
-              if (nextMode !== "screenshot") {
-                setShowRecognized(false);
-              }
-            }}
-            options={[
-              { value: "operation", label: "添加操作" },
-              { value: "review", label: "添加复盘" },
-              { value: "screenshot", label: "截图补账" }
-            ]}
-          />
-          {mode === "operation" ? (
-            <PlanOperationForm plan={selectedPlan} onSave={onAddOperation} />
-          ) : mode === "review" ? (
-            <PlanReviewForm plan={selectedPlan} onSave={onAddReview} />
-          ) : (
-            <ScreenshotUploadPanel
-              plans={plans}
-              showRecognized={showRecognized}
-              onShowRecognized={() => setShowRecognized(true)}
-              onReset={() => setShowRecognized(false)}
-              onCreatePlan={onCreatePlan}
-              onArchive={async (operations) => {
-                for (const operation of operations) await onAddOperation(operation);
-              }}
-            />
-          )}
-        </>
+      <SegmentedControl
+        value={mode}
+        onChange={(nextMode) => {
+          setMode(nextMode);
+          if (nextMode !== "screenshot") {
+            setShowRecognized(false);
+          }
+        }}
+        options={[
+          { value: "operation", label: "添加操作" },
+          { value: "review", label: "添加复盘" },
+          { value: "screenshot", label: "截图补账" }
+        ]}
+      />
+
+      {mode === "screenshot" ? (
+        <ScreenshotUploadPanel
+          plans={plans}
+          showRecognized={showRecognized}
+          onShowRecognized={() => setShowRecognized(true)}
+          onReset={() => setShowRecognized(false)}
+          onCreatePlan={onCreatePlan}
+          onArchive={async (operations) => {
+            for (const operation of operations) await onAddOperation(operation);
+          }}
+        />
+      ) : selectedPlan ? (
+        mode === "operation" ? (
+          <PlanOperationForm plan={selectedPlan} onSave={onAddOperation} />
+        ) : (
+          <PlanReviewForm plan={selectedPlan} onSave={onAddReview} />
+        )
       ) : (
         <div className="rounded-2xl border border-line bg-surface p-4 text-sm leading-6 text-muted-strong">
-          先创建一个计划，再记录操作或复盘。
+          先创建一个计划再手动记录，或使用截图补账自动建立对应计划。
         </div>
       )}
     </main>

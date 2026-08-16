@@ -10,6 +10,8 @@ export type AuthUser = {
   displayName?: string;
 };
 
+export const DEFAULT_SESSION_DAYS = 7;
+
 type AuthResult =
   | { ok: true; user: AuthUser }
   | { ok: false; reason: "invalid-input" | "email-exists" | "invalid-credentials" | "registration-disabled" };
@@ -120,8 +122,8 @@ export async function readActiveSession(sessionId: string, userId: string) {
 }
 
 function readSessionDays() {
-  const parsed = Number(process.env.AUTH_SESSION_DAYS ?? "30");
-  return Number.isFinite(parsed) && parsed >= 1 && parsed <= 365 ? parsed : 30;
+  const parsed = Number(process.env.AUTH_SESSION_DAYS ?? String(DEFAULT_SESSION_DAYS));
+  return Number.isFinite(parsed) && parsed >= 1 && parsed <= 365 ? parsed : DEFAULT_SESSION_DAYS;
 }
 
 function isUniqueViolation(error: unknown) {

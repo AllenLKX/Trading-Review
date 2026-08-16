@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Archive, ImagePlus, RotateCcw } from "lucide-react";
+import { useRef, useState } from "react";
+import { Archive, ImagePlus, LoaderCircle, RotateCcw } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
-import { sampleBatchItems } from "@/lib/sample-data";
 import type { BatchRecognitionItem, TradeOperation, TradePlan } from "@/lib/types";
 import { BatchVerificationCard } from "./BatchVerificationCard";
 
@@ -24,14 +23,49 @@ export function ScreenshotUploadPanel({
   onCreatePlan,
   onArchive
 }: ScreenshotUploadPanelProps) {
-  const [recognizedItems, setRecognizedItems] = useState<BatchRecognitionItem[]>(sampleBatchItems);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [recognizedItems, setRecognizedItems] = useState<BatchRecognitionItem[]>([]);
+  const [recognitionError, setRecognitionError] = useState("");
+  const [isRecognizing, setIsRecognizing] = useState(false);
   const [archiveError, setArchiveError] = useState("");
   const [isArchiving, setIsArchiving] = useState(false);
 
-  const resetRecognition = () => {
-    setRecognizedItems(sampleBatchItems);
+  const resetRecognition = (askConfirmation = true) => {
+    if (
+      askConfirmation &&
+      recognizedItems.length > 0 &&
+      !window.confirm("确认重传截图吗？当前尚未归档的识别结果会被清空。")
+    ) {
+      return;
+    }
+
+    setRecognizedItems([]);
+    setRecognitionError("");
     setArchiveError("");
     onReset();
+  };
+
+  const recognizeScreenshot = async (image: File) => {
+    setRecognitionError("");
+    setArchiveError("");
+    setIsRecognizing(true);
+    const body = new FormData();
+    body.set("image", image);
+
+    try {
+      const response = await fetch("/api/recognitions", { method: "POST", body });
+      const result = (await response.json()) as { items?: BatchRecognitionItem[]; error?: string };
+      if (!response.ok || !Array.isArray(result.items) || result.items.length === 0) {
+        setRecognitionError(result.error ?? "没有识别出可确认的交易，请换一张更清晰的截图。");
+        return;
+      }
+      setRecognizedItems(result.items);
+      onShowRecognized();
+    } catch {
+      setRecognitionError("截图上传或识别失败，请检查网络后重试。");
+    } finally {
+      setIsRecognizing(false);
+    }
   };
 
   const updateRecognizedItem = (nextItem: BatchRecognitionItem) => {
@@ -127,7 +161,7 @@ export function ScreenshotUploadPanel({
     try {
       for (const plan of createdPlans) await onCreatePlan(plan);
       await onArchive(operations);
-      resetRecognition();
+      resetRecognition(false);
     } catch (error) {
       setArchiveError(error instanceof Error ? `${error.message} 已成功保存的项目不会重复创建，请重试剩余项目。` : "批量归档失败，请重试。");
     } finally {
@@ -137,13 +171,41 @@ export function ScreenshotUploadPanel({
 
   if (!showRecognized) {
     return (
-      <button type="button" onClick={onShowRecognized} className="block w-full text-left">
-        <EmptyState
-          icon={ImagePlus}
-          title="点击上传交易截图"
-          description="本轮使用示例识别结果，重点验证逐笔确认和批量归档流程。"
+      <section className="space-y-3">
+        <input
+          ref={inputRef}
+          className="sr-only"
+          type="file"
+          accept="image/png,image/jpeg,image/bmp"
+          onChange={(event) => {
+            const image = event.target.files?.[0];
+            event.target.value = "";
+            if (image) void recognizeScreenshot(image);
+          }}
         />
-      </button>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={isRecognizing}
+          className="block w-full text-left disabled:cursor-wait disabled:opacity-70"
+        >
+          <EmptyState
+            icon={isRecognizing ? LoaderCircle : ImagePlus}
+            title={isRecognizing ? "正在识别交易截图" : "上传交易截图"}
+            description={
+              isRecognizing
+                ? "正在读取图片文字并整理交易明细，请稍候。"
+                : "支持 PNG、JPG 和 BMP；识别后逐笔确认，确认前不会写入记录。"
+            }
+          />
+        </button>
+        {recognitionError ? (
+          <div className="rounded-2xl border border-sell/40 bg-sell/10 p-4 text-sm font-semibold text-risk">
+            {recognitionError}
+          </div>
+        ) : null}
+        <p className="px-1 text-xs leading-5 text-muted">图片用于腾讯云 OCR，识别文字由 DeepSeek 整理；原图不会保存到交易记录。</p>
+      </section>
     );
   }
 
@@ -180,7 +242,7 @@ export function ScreenshotUploadPanel({
         <div className="mx-auto flex max-w-md gap-3">
           <button
             type="button"
-            onClick={resetRecognition}
+            onClick={() => resetRecognition()}
             className="flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-line bg-surface text-sm font-bold text-muted-strong active:scale-[0.98]"
           >
             <RotateCcw className="h-4 w-4" />

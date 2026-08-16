@@ -33,7 +33,7 @@ printf '%s\n' \
   "AUTH_MODE=$auth_mode" \
   "AUTH_SESSION_SECRET=$existing_secret" \
   "AUTH_ALLOW_REGISTRATION=$registration" \
-  "AUTH_SESSION_DAYS=30" >>"$temp_file"
+  "AUTH_SESSION_DAYS=7" >>"$temp_file"
 
 install -m 600 "$temp_file" "$target_file"
 echo "Authentication configuration updated: mode=$auth_mode registration=$registration"

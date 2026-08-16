@@ -9,7 +9,7 @@
 - 计划
 - 操作
 - 独立复盘
-- Mock 截图补账
+- AI 截图补账
 - 近 30 天审计
 - 审计归档
 - JSON 导出
@@ -31,8 +31,7 @@
 
 - Supabase
 - shadcn/ui 组件生成
-- 第三方 AI SDK（当前使用服务端原生 `fetch` 调用 DeepSeek）
-- 真实 OCR
+- DeepSeek SDK（当前使用服务端原生 `fetch`）
 - 原生 Capacitor/Android/iOS 工程
 
 ## 3. 目录结构
@@ -45,6 +44,7 @@
 - `app/layout.tsx`：应用布局和 metadata
 - `app/globals.css`：全局样式和 Tailwind 层
 - `app/api/audit/route.ts`：真实 DeepSeek 审计与本地规则回退入口
+- `app/api/recognitions/route.ts`：图片校验、腾讯云 OCR 与 DeepSeek 结构化入口
 
 ### components
 
@@ -72,7 +72,7 @@
 - 记录页
 - 计划下操作表单
 - 计划下复盘表单
-- 截图补账 Mock 流程
+- 截图上传与 AI 补账流程
 - 批量识别确认卡片
 
 `features/audits`
@@ -102,6 +102,9 @@
 
 - `lib/server/deepseek-audit.ts`：DeepSeek 请求、超时、输出校验与回退原因。
 - `lib/server/audit-prompts.ts`：读取并缓存 Markdown Prompt，注入 `AuditAiRequest`。
+- `lib/server/tencent-ocr.ts`：高精度 OCR 和坐标归一化。
+- `lib/server/deepseek-recognition.ts`：OCR 文本结构化和严格输出校验。
+- `lib/server/recognition-prompts.ts`：截图 Prompt 文档加载和版本读取。
 - `docs/prompts/*.md`：运行时 Prompt 唯一正文来源，不下发前端。
 
 ### PWA 与套壳边界
@@ -161,7 +164,11 @@
 
 `ScreenshotUploadPanel`
 ↓
-Mock `sampleBatchItems`
+上传图片到 `/api/recognitions`
+↓
+腾讯云高精度 OCR（原图仅在请求内存中）
+↓
+DeepSeek 把 OCR 文本整理为交易 JSON
 ↓
 `BatchVerificationCard`
 ↓
