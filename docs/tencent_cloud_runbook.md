@@ -302,6 +302,8 @@ cat /root/rationaltrade-access.txt
 
 首次从 Basic Auth 切换到邮箱密码登录前，严格执行 `docs/auth_and_analytics.md` 的 owner 初始化顺序。owner 密码只在服务器终端输入。
 
+2026-08-16 当前状态：账号代码、`auth_credentials`、`auth_sessions` 和 `app_events` 已部署，仍保持 `AUTH_MODE=basic`。owner 初始化前不得执行 `configure-auth.sh enable`。
+
 本地：
 
 ```bash
