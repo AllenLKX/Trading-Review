@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Archive, ImagePlus, LoaderCircle, RotateCcw } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Toast, type ToastMessage } from "@/components/Toast";
@@ -24,11 +24,26 @@ export function ScreenshotUploadPanel({
 }: ScreenshotUploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [recognizedItems, setRecognizedItems] = useState<BatchRecognitionItem[]>([]);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [recognitionError, setRecognitionError] = useState("");
   const [isRecognizing, setIsRecognizing] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [archiveError, setArchiveError] = useState("");
   const [isArchiving, setIsArchiving] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+
+  useEffect(() => {
+    if (!isRecognizing) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [isRecognizing]);
 
   const resetRecognition = (askConfirmation = true) => {
     if (
@@ -40,12 +55,14 @@ export function ScreenshotUploadPanel({
     }
 
     setRecognizedItems([]);
+    setSelectedImage(null);
     setRecognitionError("");
     setArchiveError("");
     onReset();
   };
 
   const recognizeScreenshot = async (image: File) => {
+    setSelectedImage(image);
     setRecognitionError("");
     setArchiveError("");
     setIsRecognizing(true);
@@ -199,14 +216,28 @@ export function ScreenshotUploadPanel({
           />
         </button>
         {recognitionError ? (
-          <div className="rounded-2xl border border-sell/40 bg-sell/10 p-4 text-sm font-semibold text-risk">
-            {recognitionError}
+          <div className="space-y-3 rounded-2xl border border-sell/40 bg-sell/10 p-4" role="alert">
+            <p className="text-sm font-semibold text-risk">{recognitionError}</p>
+            {selectedImage ? (
+              <button
+                type="button"
+                onClick={() => void recognizeScreenshot(selectedImage)}
+                disabled={isRecognizing}
+                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-sell/50 bg-background px-4 text-sm font-bold text-red-100 disabled:opacity-50"
+              >
+                <RotateCcw className="h-4 w-4" />
+                重新识别
+              </button>
+            ) : null}
           </div>
         ) : null}
         {isRecognizing ? (
-          <p className="px-1 text-xs font-semibold leading-5 text-primary-soft">
-            处理顺序：Kimi K3 读取图片 → DeepSeek 整理交易；全部完成后一次展示结果。
-          </p>
+          <div className="space-y-1 px-1" aria-live="polite">
+            <p className="text-xs font-semibold leading-5 text-primary-soft">
+              处理顺序：Kimi K3 读取图片 → DeepSeek 整理交易；全部完成后一次展示结果。
+            </p>
+            <p className="text-xs tabular-nums text-muted">已等待 {elapsedSeconds} 秒，请保持页面开启。</p>
+          </div>
         ) : null}
         <p className="px-1 text-xs leading-5 text-muted">图片由 Kimi K3 识别，转写文字由 DeepSeek 整理；原图不会保存到交易记录。</p>
         <Toast message={toast} onDismiss={() => setToast(null)} />

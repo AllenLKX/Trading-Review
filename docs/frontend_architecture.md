@@ -118,6 +118,7 @@
 - `/login` 与 `/register` 复用现有移动端深色视觉；正式环境使用 HttpOnly 会话，前端不保存密码或 token。
 - `AnalyticsTracker` 每次页面装载上报一次 `page_view`，匿名 ID 只用于 UV 去重，不包含业务内容。
 - `TopAppBar` 的设置面板通过 `/api/auth/session` 实时读取当前邮箱，并通过 `/api/auth/logout` 撤销会话后返回登录页。
+- `ScreenshotUploadPanel` 在内存中保留本次选择的图片，识别超时或断网后可由用户明确重试，无需重新选图；刷新或离开页面即释放，不写入 localStorage。识别期间显示累计等待时间，不自动重试以避免重复 AI 费用。
 
 ## 4. 状态管理
 
