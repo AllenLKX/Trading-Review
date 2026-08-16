@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 
 import { structureRecognizedTrades } from "@/lib/server/deepseek-recognition";
 import { recordAppEvent } from "@/lib/server/events";
+import { transcribeTradeScreenshot } from "@/lib/server/kimi-vision";
 import { getConfiguredUserId } from "@/lib/server/single-user";
-import { recognizeImageText } from "@/lib/server/tencent-ocr";
 
 export const runtime = "nodejs";
 
@@ -26,33 +26,50 @@ export async function POST(request: Request) {
   }
 
   const imageBase64 = Buffer.from(await image.arrayBuffer()).toString("base64");
-  const ocrResult = await recognizeImageText(imageBase64);
-  if (!ocrResult.ok) {
+  const visionResult = await transcribeTradeScreenshot({
+    imageBase64,
+    mimeType: image.type,
+    sourceImageName: image.name
+  });
+  if (!visionResult.ok) {
     await recordRecognitionEvent(userResult.userId, startedAt, {
       status: "failed",
-      stage: "ocr",
-      reason: ocrResult.reason
+      stage: "vision",
+      provider: "tencent-tokenhub",
+      model: visionResult.model,
+      promptVersion: visionResult.promptVersion,
+      reason: visionResult.reason
     });
     return NextResponse.json(
-      { error: ocrResult.reason === "not-configured" ? "截图识别服务尚未配置。" : "图片文字识别失败，请重试。" },
-      { status: ocrResult.reason === "not-configured" ? 503 : 502 }
+      {
+        error:
+          visionResult.reason === "not-configured"
+            ? "Kimi 识图服务尚未配置。"
+            : visionResult.reason === "timeout"
+              ? "Kimi 识图超时，请重试。"
+              : "Kimi 无法读取这张截图，请重试或更换截图。"
+      },
+      { status: visionResult.reason === "not-configured" ? 503 : 502 }
     );
   }
-  if (ocrResult.lines.length === 0) {
-    await recordRecognitionEvent(userResult.userId, startedAt, { status: "failed", stage: "ocr", reason: "empty" });
-    return NextResponse.json({ error: "没有从图片中识别到文字，请换一张更清晰的截图。" }, { status: 422 });
-  }
 
-  const aiResult = await structureRecognizedTrades({ sourceImageName: image.name, lines: ocrResult.lines });
+  const aiResult = await structureRecognizedTrades({ sourceImageName: image.name, lines: visionResult.lines });
+  const usage = combineUsage(visionResult.usage, aiResult.ok ? aiResult.usage : undefined);
   await recordRecognitionEvent(userResult.userId, startedAt, {
     status: aiResult.ok ? "success" : "failed",
     stage: "structure",
-    provider: "deepseek",
-    model: aiResult.model,
-    promptVersion: aiResult.promptVersion,
-    ocrLineCount: ocrResult.lines.length,
+    visionProvider: "tencent-tokenhub",
+    visionModel: visionResult.model,
+    visionPromptVersion: visionResult.promptVersion,
+    structureProvider: "deepseek",
+    structureModel: aiResult.model,
+    structurePromptVersion: aiResult.promptVersion,
+    transcribedLineCount: visionResult.lines.length,
     itemCount: aiResult.ok ? aiResult.items.length : 0,
-    ...(!aiResult.ok ? { reason: aiResult.reason } : { ...aiResult.usage })
+    visionUsage: visionResult.usage,
+    structureUsage: aiResult.ok ? aiResult.usage : undefined,
+    ...usage,
+    ...(!aiResult.ok ? { reason: aiResult.reason } : {})
   });
 
   if (!aiResult.ok) {
@@ -65,10 +82,12 @@ export async function POST(request: Request) {
   return NextResponse.json({
     items: aiResult.items,
     meta: {
-      source: "tencent-ocr+deepseek",
-      model: aiResult.model,
-      promptVersion: aiResult.promptVersion,
-      ocrLineCount: ocrResult.lines.length
+      source: "kimi-vision+deepseek",
+      visionModel: visionResult.model,
+      visionPromptVersion: visionResult.promptVersion,
+      structureModel: aiResult.model,
+      structurePromptVersion: aiResult.promptVersion,
+      transcribedLineCount: visionResult.lines.length
     }
   });
 }
@@ -80,4 +99,15 @@ async function recordRecognitionEvent(userId: string, startedAt: number, metadat
     path: "/api/recognitions",
     metadata: { durationMs: Date.now() - startedAt, ...metadata }
   });
+}
+
+function combineUsage(
+  vision: { promptTokens?: number; completionTokens?: number; totalTokens?: number } | undefined,
+  structure: { promptTokens?: number; completionTokens?: number; totalTokens?: number } | undefined
+) {
+  return {
+    promptTokens: (vision?.promptTokens ?? 0) + (structure?.promptTokens ?? 0),
+    completionTokens: (vision?.completionTokens ?? 0) + (structure?.completionTokens ?? 0),
+    totalTokens: (vision?.totalTokens ?? 0) + (structure?.totalTokens ?? 0)
+  };
 }

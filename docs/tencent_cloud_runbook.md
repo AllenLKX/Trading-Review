@@ -81,10 +81,10 @@ git checkout codex/phase-1-local-loop
 cp .env.example .env.production
 ```
 
-编辑 `.env.production`：
+编辑 `.env.production`（服务器没有 `nano` 时使用 `vi`）：
 
 ```bash
-nano .env.production
+vi .env.production
 ```
 
 必填或后续必填：
@@ -99,9 +99,10 @@ nano .env.production
 - `AI_BASE_URL=https://api.deepseek.com`
 - `AI_MODEL=deepseek-v4-flash`
 - `AI_TIMEOUT_MS=20000`
-- `TENCENT_OCR_SECRET_ID`
-- `TENCENT_OCR_SECRET_KEY`
-- `TENCENT_OCR_REGION=ap-guangzhou`
+- `VISION_AI_API_KEY`
+- `VISION_AI_BASE_URL=https://tokenhub.tencentmaas.com/v1`
+- `VISION_AI_MODEL=kimi-k3`
+- `VISION_AI_TIMEOUT_MS=120000`
 - `TENCENT_COS_SECRET_ID`
 - `TENCENT_COS_SECRET_KEY`
 - `TENCENT_COS_BUCKET`
@@ -110,7 +111,7 @@ nano .env.production
 注意：
 
 - `.env.production` 不提交到 GitHub。
-- 数据库密码、DeepSeek Key、COS Key 只放服务器环境变量或服务器本地文件。
+- 数据库密码、DeepSeek Key、Kimi 识图 Key、COS Key 只放服务器环境变量或服务器本地文件。
 - `APP_ACCESS_PASSWORD` 在服务器上执行 `openssl rand -base64 24` 生成，不在聊天、文档或 GitHub 中保存明文。
 - 生产环境缺少访问用户名或密码时，除 `/api/health` 外统一返回 503，避免公网裸露业务数据。
 
@@ -125,16 +126,16 @@ pm2 restart rationaltrade --update-env
 
 随后访问 `/api/system/status`，确认 `integrations.ai.configured` 为 `true`；再在历史页点击“AI 分析”，成功时会显示 DeepSeek 更新 Toast。
 
-截图补账还需要先在腾讯云控制台开通“文字识别”，并创建只具备 OCR 调用权限的 CAM 子用户密钥。服务器中静默配置：
+截图补账使用腾讯 TokenHub 中的 Kimi K3，与 DeepSeek 使用不同 Key。服务器中静默配置：
 
 ```bash
 cd /var/www/rationaltrade
-./scripts/configure-tencent-ocr.sh .env.production
+./scripts/configure-vision-ai.sh .env.production
 source /root/.nvm/nvm.sh
 pm2 restart rationaltrade --update-env
 ```
 
-配置后访问 `/api/system/status`，确认 `integrations.ocr.configured` 为 `true`。SecretId、SecretKey 只进入权限为 `600` 的服务器环境文件，不提交 GitHub；优先使用独立 OCR 子用户，不使用主账号永久密钥。
+配置后访问 `/api/system/status`，确认 `integrations.vision.configured` 为 `true`且 `model` 为 `kimi-k3`。Key 只进入权限为 `600` 的服务器环境文件，不提交 GitHub。脚本会自动正确分行，避免手工编辑时把多个变量粘到一行。
 
 生产 Prompt 位于服务器仓库的 `docs/prompts/`。修改并发布 Prompt 文档后必须执行：
 

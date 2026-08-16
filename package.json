@@ -18,8 +18,7 @@
     "next": "^15.0.0",
     "pg": "^8.22.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "tencentcloud-sdk-nodejs-ocr": "^4.1.292"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

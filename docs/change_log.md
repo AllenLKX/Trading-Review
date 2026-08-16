@@ -5,12 +5,14 @@
 ### 真实 AI 截图补账与持久登录
 
 - 截图补账移除固定 Mock，新增受登录保护的 `/api/recognitions` 图片上传接口。
-- 腾讯云高精度 OCR 读取图片文字和坐标，DeepSeek 根据独立 Markdown Prompt 输出结构化交易；服务端严格校验后才返回前端确认。
-- 原图仅在请求内存中处理，不上传 COS、不写数据库；DeepSeek 只接收 OCR 文本，不接收原图或密钥。
+- Kimi K3 通过腾讯 TokenHub 忠实转写图片，DeepSeek 再根据独立 Markdown Prompt 输出结构化交易；两段输出均经服务端校验。
+- 原图仅在请求内存中处理，不上传 COS、不写数据库；DeepSeek 只接收 Kimi 转写文本，不接收原图或任何密钥。
 - 截图识别结果支持逐条修改、二次确认移除或重传，确认归档前不会创建操作；空账号也可用截图自动建立计划。
 - 新增 `ai_screenshot_recognized` 运营事件，按日 AI 次数和 Token 合计同时覆盖周期审计与截图识别。
 - 登录 Cookie 与 PostgreSQL 会话统一为 7 天，显式写入 `Max-Age` 和 `Expires`；普通刷新、关闭并重开浏览器保持登录。
-- 新增静默配置腾讯云 OCR 凭据的脚本及 `integrations.ocr` 状态检查，密钥仅保存在本地或服务器环境文件。
+- 新增静默配置 Kimi 识图 Key 的脚本及 `integrations.vision` 状态检查，识图与 DeepSeek 使用独立 Key，仅保存在本地或服务器环境文件。
+- 真实长截图回归中，Kimi 转写与人工识别的 3 笔成交完全一致，DeepSeek 正确排除现金宝、红股入账和利息流水。
+- 批量归档成功后新增 Toast；识别等待态明确告知 Kimi 识图到 DeepSeek 结构化的处理顺序。
 
 ### 正式账号与轻量运营数据
 

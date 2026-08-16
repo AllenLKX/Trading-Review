@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { OcrTextLine } from "@/lib/server/tencent-ocr";
+import type { VisionTextLine } from "@/lib/server/kimi-vision";
 
 const OCR_INPUT_PLACEHOLDER = "{{OCR_INPUT_JSON}}";
 const promptDirectory = path.join(process.cwd(), "docs", "prompts");
@@ -14,7 +14,7 @@ type RecognitionPromptDocuments = {
 
 let productionPromptCache: Promise<RecognitionPromptDocuments> | null = null;
 
-export async function buildRecognitionPromptMessages(input: { sourceImageName: string; lines: OcrTextLine[] }) {
+export async function buildRecognitionPromptMessages(input: { sourceImageName: string; lines: VisionTextLine[] }) {
   const prompts = await loadRecognitionPromptDocuments();
 
   return {

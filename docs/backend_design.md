@@ -353,11 +353,11 @@ Backend M1 只预留单笔 AI 复盘结果表，不在第一轮接真实 AI。
 当前第一版：
 
 - `/api/recognitions` 接收受登录保护的图片上传，限制格式和 7.5MB 体积。
-- 腾讯云 GeneralAccurateOCR 返回文本、置信度和坐标；DeepSeek 只接收 OCR 结果并输出交易 JSON。
+- Kimi K3 通过腾讯 TokenHub 接收原图，按视觉顺序忠实转写明细行；DeepSeek 只接收转写结果并输出交易 JSON。
 - 服务端校验方向、币种、时间、价格、数量和条数；无法确认的证券代码保持空白，不允许模型猜测。
 - 原图仅在单次请求内存中处理，不上传 COS、不写数据库。
 - 用户逐条确认后才归档为 `TradeOperation`；没有匹配计划时才自动创建计划。
-- `ai_screenshot_recognized` 记录调用阶段、状态、模型、Prompt 版本、耗时与 token，不记录 OCR 正文或交易明细。
+- `ai_screenshot_recognized` 分别记录 Kimi 识图和 DeepSeek 结构化的模型、Prompt 版本、token 与总耗时，不记录转写正文、原图或交易明细。
 
 当前不创建 `recognition_jobs`。只有出现长任务、失败重试、历史识别追溯或多页批处理需求时再引入以下异步模型：
 

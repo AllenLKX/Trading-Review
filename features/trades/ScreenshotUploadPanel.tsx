@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Archive, ImagePlus, LoaderCircle, RotateCcw } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
+import { Toast, type ToastMessage } from "@/components/Toast";
 import type { BatchRecognitionItem, TradeOperation, TradePlan } from "@/lib/types";
 import { BatchVerificationCard } from "./BatchVerificationCard";
 
@@ -29,6 +30,7 @@ export function ScreenshotUploadPanel({
   const [isRecognizing, setIsRecognizing] = useState(false);
   const [archiveError, setArchiveError] = useState("");
   const [isArchiving, setIsArchiving] = useState(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
 
   const resetRecognition = (askConfirmation = true) => {
     if (
@@ -161,6 +163,7 @@ export function ScreenshotUploadPanel({
     try {
       for (const plan of createdPlans) await onCreatePlan(plan);
       await onArchive(operations);
+      setToast({ id: Date.now(), text: `已归档 ${operations.length} 笔交易。`, tone: "success" });
       resetRecognition(false);
     } catch (error) {
       setArchiveError(error instanceof Error ? `${error.message} 已成功保存的项目不会重复创建，请重试剩余项目。` : "批量归档失败，请重试。");
@@ -194,7 +197,7 @@ export function ScreenshotUploadPanel({
             title={isRecognizing ? "正在识别交易截图" : "上传交易截图"}
             description={
               isRecognizing
-                ? "正在读取图片文字并整理交易明细，请稍候。"
+                ? "Kimi 正在读取图片，随后由 DeepSeek 整理交易明细。"
                 : "支持 PNG、JPG 和 BMP；识别后逐笔确认，确认前不会写入记录。"
             }
           />
@@ -204,7 +207,13 @@ export function ScreenshotUploadPanel({
             {recognitionError}
           </div>
         ) : null}
-        <p className="px-1 text-xs leading-5 text-muted">图片用于腾讯云 OCR，识别文字由 DeepSeek 整理；原图不会保存到交易记录。</p>
+        {isRecognizing ? (
+          <p className="px-1 text-xs font-semibold leading-5 text-primary-soft">
+            处理顺序：Kimi K3 读取图片 → DeepSeek 整理交易；全部完成后一次展示结果。
+          </p>
+        ) : null}
+        <p className="px-1 text-xs leading-5 text-muted">图片由 Kimi K3 识别，转写文字由 DeepSeek 整理；原图不会保存到交易记录。</p>
+        <Toast message={toast} onDismiss={() => setToast(null)} />
       </section>
     );
   }
@@ -259,6 +268,7 @@ export function ScreenshotUploadPanel({
           </button>
         </div>
       </div>
+      <Toast message={toast} onDismiss={() => setToast(null)} />
     </section>
   );
 }

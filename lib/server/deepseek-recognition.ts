@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { buildRecognitionPromptMessages } from "@/lib/server/recognition-prompts";
-import type { OcrTextLine } from "@/lib/server/tencent-ocr";
+import type { VisionTextLine } from "@/lib/server/kimi-vision";
 import type { BatchRecognitionItem, CurrencyCode, TradeAction } from "@/lib/types";
 
 const DEFAULT_BASE_URL = "https://api.deepseek.com";
@@ -37,7 +37,7 @@ export type DeepSeekRecognitionResult =
 
 export async function structureRecognizedTrades(input: {
   sourceImageName: string;
-  lines: OcrTextLine[];
+  lines: VisionTextLine[];
 }): Promise<DeepSeekRecognitionResult> {
   const apiKey = (process.env.DEEPSEEK_API_KEY ?? process.env.AI_API_KEY)?.trim();
   if (!apiKey) return { ok: false, reason: "not-configured" };

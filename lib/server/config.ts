@@ -16,10 +16,10 @@ export type ServerRuntimeConfig = {
     provider: "deepseek";
     model: string;
   };
-  ocr: {
+  vision: {
     configured: boolean;
-    provider: "tencent-cloud";
-    region: string;
+    provider: "tencent-tokenhub";
+    model: string;
   };
   cos: {
     configured: boolean;
@@ -53,13 +53,10 @@ export function readServerRuntimeConfig(): ServerRuntimeConfig {
       provider: "deepseek",
       model: process.env.AI_MODEL ?? "deepseek-v4-flash"
     },
-    ocr: {
-      configured: Boolean(
-        (process.env.TENCENT_OCR_SECRET_ID ?? process.env.TENCENT_COS_SECRET_ID) &&
-          (process.env.TENCENT_OCR_SECRET_KEY ?? process.env.TENCENT_COS_SECRET_KEY)
-      ),
-      provider: "tencent-cloud",
-      region: process.env.TENCENT_OCR_REGION ?? process.env.TENCENT_COS_REGION ?? "ap-guangzhou"
+    vision: {
+      configured: Boolean(process.env.VISION_AI_API_KEY),
+      provider: "tencent-tokenhub",
+      model: process.env.VISION_AI_MODEL ?? "kimi-k3"
     },
     cos: {
       configured: Boolean(

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         singleUserConfigured: config.database.singleUserConfigured
       },
       ai: config.ai,
-      ocr: config.ocr,
+      vision: config.vision,
       cos: config.cos
     },
     checkedAt: new Date().toISOString()

@@ -43,7 +43,7 @@ pm2 save
 - `auth_registered`、`auth_login_succeeded`、`auth_login_failed`、`auth_logged_out`。
 - 计划、操作、复盘和审计归档的保存、修改、删除事件。
 - `ai_audit_generated`：provider、model、Prompt 版本、成功/回退、耗时和 token 用量。
-- `ai_screenshot_recognized`：OCR/结构化阶段、模型、Prompt 版本、成功状态、耗时和 token 用量；不记录 OCR 正文或交易字段。
+- `ai_screenshot_recognized`：Kimi 识图/DeepSeek 结构化模型、Prompt 版本、成功状态、耗时和分段 token 用量；不记录原图、转写正文或交易字段。
 
 事件不保存密码、Cookie、DeepSeek Token、Prompt 正文、交易理由、心理描述、价格、金额或持仓数量。
 
