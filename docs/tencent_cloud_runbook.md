@@ -150,6 +150,14 @@ Prompt 在每个生产进程首次调用时读取并缓存；不需要把 Prompt
 
 生产 API 回归不使用 owner 真实密码。发布脚本可以在服务器内生成短期一次性会话，通过仅对当前命令有效的 `TEST_AUTH_COOKIE` 运行 `pnpm verify:database`；完成后必须撤销会话并删除临时文件，不写入 `.env.production`。
 
+真实 AI 全链路可使用隔离合成账号验证截图识别、事务归档、周期分析、分析归档和对应运营事件：
+
+```bash
+pnpm verify:ai-workflow -- http://127.0.0.1:3000 /tmp/trade-screenshot.png
+```
+
+脚本会核对样例截图中的 3 笔人工已确认成交并输出各阶段耗时，最后删除合成账号、业务记录和事件。不得使用 owner 密码，也不得把图片或环境文件提交到 Git。
+
 ## 6. PostgreSQL 初始化
 
 创建数据库和初始单用户 profile：

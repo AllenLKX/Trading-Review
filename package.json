@@ -11,6 +11,7 @@
     "verify:database": "node scripts/check-database-api.mjs",
     "verify:auth": "node scripts/check-auth-api.mjs",
     "verify:analytics": "node scripts/check-login-funnel.mjs",
+    "verify:ai-workflow": "node scripts/check-ai-workflow.mjs",
     "report:daily": "node scripts/report-daily.mjs"
   },
   "dependencies": {
