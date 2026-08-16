@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { recordAppEvent } from "@/lib/server/events";
+import { readAdtag, recordAppEvent } from "@/lib/server/events";
 
 export const runtime = "nodejs";
 
@@ -18,7 +18,10 @@ export async function POST(request: Request) {
     sessionId: requestHeaders.get("x-rationaltrade-session-id") ?? undefined,
     anonymousId: typeof body.anonymousId === "string" ? body.anonymousId : undefined,
     path: typeof body.path === "string" ? body.path : undefined,
-    metadata: { referrerHost: typeof body.referrerHost === "string" ? body.referrerHost.slice(0, 120) : undefined }
+    metadata: {
+      adtag: readAdtag(body),
+      referrerHost: typeof body.referrerHost === "string" ? body.referrerHost.slice(0, 120) : undefined
+    }
   });
   return NextResponse.json({ ok: true }, { status: 202 });
 }

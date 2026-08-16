@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 
-import { getAnalyticsAnonymousId } from "@/lib/client/analytics";
+import { getAnalyticsAdtag, getAnalyticsAnonymousId } from "@/lib/client/analytics";
 
 type AuthFormProps = {
   mode: "login" | "register";
@@ -25,7 +25,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       const response = await fetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, password, anonymousId: getAnalyticsAnonymousId() })
+        body: JSON.stringify({ email, password, anonymousId: getAnalyticsAnonymousId(), adtag: getAnalyticsAdtag() })
       });
       const result = (await response.json()) as { ok?: boolean; error?: string };
       if (!response.ok) {

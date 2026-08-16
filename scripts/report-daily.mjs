@@ -11,7 +11,7 @@ if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Date must use YYYY-MM-DD
 
 const pool = new Pool({ connectionString: databaseUrl, max: 1 });
 try {
-  const [summary, loginFunnel, eventCounts, activity] = await Promise.all([
+  const [summary, loginFunnel, trafficSources, eventCounts, activity] = await Promise.all([
     pool.query(
       `select
          count(*) filter (where event_name = 'page_view')::int as pv,
@@ -55,6 +55,20 @@ try {
       [timeZone, date, loginFunnelTrackingStartedAt]
     ),
     pool.query(
+      `select metadata->>'adtag' as adtag,
+              count(*) filter (where event_name = 'page_view')::int as pv,
+              count(distinct coalesce(user_id, case when anonymous_id is not null then 'anon:' || anonymous_id end))
+                filter (where event_name = 'page_view')::int as uv,
+              count(*) filter (where event_name = 'auth_registered')::int as registrations,
+              count(*) filter (where event_name = 'auth_login_succeeded')::int as successful_logins
+       from app_events
+       where (occurred_at at time zone $1)::date = $2::date
+         and nullif(metadata->>'adtag', '') is not null
+       group by metadata->>'adtag'
+       order by uv desc, pv desc, adtag`,
+      [timeZone, date]
+    ),
+    pool.query(
       `select event_name, count(*)::int as count
        from app_events where (occurred_at at time zone $1)::date = $2::date
        group by event_name order by count desc, event_name`,
@@ -72,7 +86,15 @@ try {
 
   console.log(
     JSON.stringify(
-      { date, timeZone, summary: summary.rows[0], loginFunnel: loginFunnel.rows[0], eventCounts: eventCounts.rows, activity: activity.rows },
+      {
+        date,
+        timeZone,
+        summary: summary.rows[0],
+        loginFunnel: loginFunnel.rows[0],
+        trafficSources: trafficSources.rows,
+        eventCounts: eventCounts.rows,
+        activity: activity.rows
+      },
       null,
       2
     )

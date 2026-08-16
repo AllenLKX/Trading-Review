@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { attachNewSession } from "@/lib/server/auth-http";
 import { authenticateAccount, validateCredentialsInput } from "@/lib/server/auth-repository";
-import { readAnonymousId, recordAppEvent } from "@/lib/server/events";
+import { readAdtag, readAnonymousId, recordAppEvent } from "@/lib/server/events";
 import { checkAuthRateLimit } from "@/lib/server/auth-rate-limit";
 
 export const runtime = "nodejs";
@@ -17,15 +17,16 @@ export async function POST(request: Request) {
   }
   const body = await request.json().catch(() => null);
   const anonymousId = readAnonymousId(body);
+  const adtag = readAdtag(body);
   const input = validateCredentialsInput(body);
   if (!input) {
-    await recordAppEvent({ eventName: "auth_login_failed", anonymousId, path: "/login", metadata: { reason: "invalid-input" } });
+    await recordAppEvent({ eventName: "auth_login_failed", anonymousId, path: "/login", metadata: { adtag, reason: "invalid-input" } });
     return NextResponse.json({ ok: false, error: "邮箱或密码不正确。" }, { status: 400 });
   }
 
   const result = await authenticateAccount(input.email, input.password);
   if (!result.ok) {
-    await recordAppEvent({ eventName: "auth_login_failed", anonymousId, path: "/login", metadata: { reason: result.reason } });
+    await recordAppEvent({ eventName: "auth_login_failed", anonymousId, path: "/login", metadata: { adtag, reason: result.reason } });
     return NextResponse.json({ ok: false, error: "邮箱或密码不正确。" }, { status: 401 });
   }
 
@@ -36,7 +37,8 @@ export async function POST(request: Request) {
     userId: result.user.id,
     anonymousId,
     sessionId: session.id,
-    path: "/login"
+    path: "/login",
+    metadata: { adtag }
   });
   return response;
 }

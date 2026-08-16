@@ -117,6 +117,7 @@
 - 浏览器与未来 WebView 共用 `https://rationaltrade.cn` 和相对 `/api/*`，不增加跨域配置。
 - `/login` 与 `/register` 复用当前浏览器选择的日间或黑夜主题；正式环境使用 HttpOnly 会话，前端不保存密码或 token。
 - `AnalyticsTracker` 每次页面装载上报一次 `page_view`，匿名 ID 只用于 UV 去重，不包含业务内容。
+- 分享链接可使用 `?adtag=渠道名`；客户端只持久保存经校验的最近一次非直接来源，登录/注册请求继续携带该标签。未登录跳转会把 `adtag` 复制到登录页，避免入口归因丢失。
 - `TopAppBar` 的设置面板通过 `/api/auth/session` 实时读取当前邮箱，并通过 `/api/auth/logout` 撤销会话后返回登录页。
 - `ThemeToggle` 通过 `data-theme` 和 CSS 语义颜色变量切换日间/黑夜模式，偏好仅保存于浏览器；根布局在 React 加载前恢复主题，避免刷新时先闪现错误主题。
 - `ScreenshotUploadPanel` 在内存中保留本次选择的图片，识别超时或断网后可由用户明确重试，无需重新选图；刷新或离开页面即释放，不写入 localStorage。识别期间显示累计等待时间，不自动重试以避免重复 AI 费用。

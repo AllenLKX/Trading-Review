@@ -36,6 +36,14 @@ export function readAnonymousId(raw: unknown) {
   return typeof value === "string" ? cleanIdentifier(value) ?? undefined : undefined;
 }
 
+export function readAdtag(raw: unknown) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const value = (raw as Record<string, unknown>).adtag;
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim().normalize("NFKC");
+  return normalized && normalized.length <= 64 && /^[\p{L}\p{N}._-]+$/u.test(normalized) ? normalized : undefined;
+}
+
 function cleanIdentifier(value: string | undefined) {
   const cleaned = value?.trim();
   return cleaned ? cleaned.slice(0, 120) : null;

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { attachNewSession } from "@/lib/server/auth-http";
 import { registerAccount, validateCredentialsInput } from "@/lib/server/auth-repository";
-import { readAnonymousId, recordAppEvent } from "@/lib/server/events";
+import { readAdtag, readAnonymousId, recordAppEvent } from "@/lib/server/events";
 import { checkAuthRateLimit } from "@/lib/server/auth-rate-limit";
 
 export const runtime = "nodejs";
@@ -17,6 +17,7 @@ export async function POST(request: Request) {
   }
   const body = await request.json().catch(() => null);
   const anonymousId = readAnonymousId(body);
+  const adtag = readAdtag(body);
   const input = validateCredentialsInput(body);
   if (!input) {
     return NextResponse.json({ ok: false, error: "请输入有效邮箱，密码至少 8 位。" }, { status: 400 });
@@ -38,7 +39,8 @@ export async function POST(request: Request) {
     userId: result.user.id,
     anonymousId,
     sessionId: session.id,
-    path: "/register"
+    path: "/register",
+    metadata: { adtag }
   });
   return response;
 }

@@ -37,7 +37,9 @@ export async function middleware(request: NextRequest) {
   const session = await verifySignedSession(request.cookies.get(SESSION_COOKIE_NAME)?.value, secret);
   if (SESSION_PUBLIC_PATHS.has(path)) {
     if (session && (path === "/login" || path === "/register")) {
-      return NextResponse.redirect(buildAppUrl("/", request));
+      const appUrl = buildAppUrl("/", request);
+      copyAdtag(request.nextUrl, appUrl);
+      return NextResponse.redirect(appUrl);
     }
     return session ? nextWithSession(request, session) : NextResponse.next();
   }
@@ -48,6 +50,7 @@ export async function middleware(request: NextRequest) {
     }
     const loginUrl = buildAppUrl("/login", request);
     loginUrl.searchParams.set("next", `${path}${request.nextUrl.search}`);
+    copyAdtag(request.nextUrl, loginUrl);
     return NextResponse.redirect(loginUrl);
   }
 
@@ -57,6 +60,11 @@ export async function middleware(request: NextRequest) {
 function buildAppUrl(path: string, request: NextRequest) {
   const configuredOrigin = process.env.APP_PUBLIC_ORIGIN?.trim();
   return new URL(path, configuredOrigin || request.url);
+}
+
+function copyAdtag(source: URL, target: URL) {
+  const adtag = source.searchParams.get("adtag")?.trim().normalize("NFKC");
+  if (adtag && adtag.length <= 64 && /^[\p{L}\p{N}._-]+$/u.test(adtag)) target.searchParams.set("adtag", adtag);
 }
 
 export const config = {
