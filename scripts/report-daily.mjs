@@ -5,6 +5,7 @@ const databaseUrl = process.env.DATABASE_URL;
 const requestedDate = process.argv.slice(2).find((argument) => argument !== "--");
 const date = requestedDate ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai" }).format(new Date());
 const timeZone = process.env.REPORT_TIMEZONE ?? "Asia/Shanghai";
+const loginFunnelTrackingStartedAt = "2026-08-16T11:56:00Z";
 if (!databaseUrl) throw new Error("DATABASE_URL is required.");
 if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Date must use YYYY-MM-DD.");
 
@@ -31,6 +32,7 @@ try {
          select anonymous_id, min(occurred_at) as first_seen_at
          from app_events
          where event_name = 'page_view' and path = '/login' and anonymous_id is not null
+           and occurred_at >= $3::timestamptz
            and (occurred_at at time zone $1)::date = $2::date
          group by anonymous_id
        ), converted_visitors as (
@@ -41,6 +43,7 @@ try {
            and event.occurred_at >= visitor.first_seen_at
        )
        select
+         $3::timestamptz as tracking_started_at,
          count(*)::int as login_page_uv,
          count(converted.anonymous_id)::int as entered_product_uv,
          (count(*) - count(converted.anonymous_id))::int as stalled_login_uv,
@@ -49,7 +52,7 @@ try {
          end as stalled_rate_percent
        from login_visitors visitor
        left join converted_visitors converted on converted.anonymous_id = visitor.anonymous_id`,
-      [timeZone, date]
+      [timeZone, date, loginFunnelTrackingStartedAt]
     ),
     pool.query(
       `select event_name, count(*)::int as count
