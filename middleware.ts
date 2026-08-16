@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 
 const ACCESS_USERNAME = process.env.APP_ACCESS_USERNAME;
 const ACCESS_PASSWORD = process.env.APP_ACCESS_PASSWORD;
+const PUBLIC_PATHS = new Set([
+  "/api/health",
+  "/apple-icon",
+  "/icon",
+  "/manifest.webmanifest",
+  "/offline.html",
+  "/sw.js"
+]);
 
 export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname === "/api/health") {
+  if (PUBLIC_PATHS.has(request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 

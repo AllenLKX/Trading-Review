@@ -126,9 +126,14 @@ create table if not exists audit_reports (
   findings text[] not null default '{}',
   review_questions text[] not null default '{}',
   source text not null default 'mock-local',
+  generation jsonb not null default '{"source":"legacy","provider":"unknown","promptVersion":"unknown","status":"legacy"}'::jsonb,
   created_at timestamptz not null default now(),
   constraint audit_reports_period_order check (period_start <= period_end)
 );
+
+alter table audit_reports
+  add column if not exists generation jsonb not null
+  default '{"source":"legacy","provider":"unknown","promptVersion":"unknown","status":"legacy"}'::jsonb;
 
 -- These tables are not implemented in the H5 flow yet, but reserving them avoids
 -- a future data migration when user-defined rules and AI review records are added.

@@ -6,6 +6,7 @@
 
 - `audit_system.md`：DeepSeek 周期行为审计的 system message。
 - `audit_user.md`：DeepSeek 周期行为审计的 user message 模板。
+- `audit_manifest.json`：Prompt 名称与版本；修改任一 Prompt 时必须提升 `version`。
 
 ## 修改规则
 
@@ -15,6 +16,7 @@
 4. 不得删除投资建议边界、JSON 输出要求和样本不足约束。
 5. 修改后同步记录 `docs/change_log.md`，运行 `pnpm typecheck` 和生产构建，并真实点击一次“AI 分析”。
 6. 开发环境每次请求重新读取文档；生产环境首次读取后缓存在进程内，修改文档后需要重启 PM2。
+7. Prompt 内容发生变化时同步更新 `audit_manifest.json` 的 `version`，归档会保存该版本用于追溯。
 
 ## 数据边界
 

@@ -153,6 +153,7 @@ export function AuditSnapshotCard({
                   <p className="mt-1 text-xs text-muted">
                     {report.periodStart} 至 {report.periodEnd} · {report.signalLabel}
                   </p>
+                  <p className="mt-1 text-[11px] text-muted">{formatGeneration(report)}</p>
                 </div>
                 {canManageArchives ? (
                   <button
@@ -173,6 +174,16 @@ export function AuditSnapshotCard({
       </CollapsibleSection>
     </section>
   );
+}
+
+function formatGeneration(report: AuditReport) {
+  const generation = report.generation;
+  if (!generation || generation.status === "legacy") return "历史归档 · 来源未记录";
+  if (generation.status === "fallback") return `本地规则回退 · ${generation.promptVersion}`;
+  if (generation.source === "deepseek") {
+    return `${generation.model ?? "DeepSeek"} · ${generation.promptVersion}`;
+  }
+  return `本地规则 · ${generation.promptVersion}`;
 }
 
 function CollapsibleSection({

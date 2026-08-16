@@ -197,6 +197,18 @@ ss -lntp | grep ':3000'
 - 不对公网开放 Next.js 3000。
 - 不对公网开放 PostgreSQL 5432。
 
+家庭宽带和移动网络公网 IP 会变化，因此当前 SSH 22 保持公网可达，但服务器使用 `deploy/sshd-rationaltrade.conf` 禁止密码登录，只接受已授权 SSH Key。`PermitRootLogin prohibit-password` 不影响腾讯云 VNC/救援终端使用 root 密码。
+
+部署 SSH 加固：
+
+```bash
+cp deploy/sshd-rationaltrade.conf /etc/ssh/sshd_config.d/99-rationaltrade.conf
+sshd -t
+systemctl reload sshd
+```
+
+reload 后必须从另一条终端实际完成一次密钥登录，再保留配置；不要在未验证 SSH Key 时关闭当前会话。
+
 DNSPod 免费解析添加：
 
 - `@`：A 记录，值为 `43.156.228.145`，默认线路，TTL 600。
@@ -273,7 +285,7 @@ cat /root/rationaltrade-access.txt
 - 正确认证业务 API：200
 - 数据库事务 CRUD：通过，合成测试数据已清理
 - DeepSeek：服务器密钥已配置，`deepseek-v4-flash` 内部真实调用通过
-- 云端业务数据：当前 0 个计划、0 条操作、0 条复盘，本地正式数据尚未迁移
+- 云端业务数据：已迁移 8 个计划、10 条操作、6 条复盘和 3 条审计归档，复盘引用无断链
 - 域名：`rationaltrade.cn` 已购买，等待 DNS 记录生效和 HTTPS 签发
 - 公网 Nginx：域名 Host 独立路由到 RationalTrade，原有 IP 路由继续保留给 OpenClaw
 - Certbot 2.8 与 Nginx 插件：已安装

@@ -118,6 +118,17 @@ export type BatchRecognitionItem = {
   emotionTags: string[];
 };
 
+export type AuditFallbackReason = "not-configured" | "timeout" | "provider-error" | "invalid-output";
+
+export type AuditGeneration = {
+  source: "deepseek" | "local-rules" | "legacy";
+  provider: "deepseek" | "local" | "unknown";
+  model?: string;
+  promptVersion: string;
+  status: "success" | "fallback" | "local" | "legacy";
+  fallbackReason?: AuditFallbackReason;
+};
+
 export type AuditReport = {
   id: string;
   periodStart: string;
@@ -136,5 +147,6 @@ export type AuditReport = {
   aiInputDigest: string[];
   findings: string[];
   reviewQuestions: string[];
+  generation?: AuditGeneration;
   createdAt: string;
 };

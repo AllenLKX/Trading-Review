@@ -15,7 +15,17 @@ export async function POST(request: Request) {
 
     if (aiResult.ok) {
       return NextResponse.json({
-        report: { ...localReport, ...aiResult.narrative },
+        report: {
+          ...localReport,
+          ...aiResult.narrative,
+          generation: {
+            source: "deepseek",
+            provider: "deepseek",
+            model: aiResult.model,
+            promptVersion: aiResult.promptVersion,
+            status: "success"
+          }
+        },
         aiRequest,
         source: "deepseek",
         model: aiResult.model
@@ -23,7 +33,17 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      report: localReport,
+      report: {
+        ...localReport,
+        generation: {
+          source: "local-rules",
+          provider: aiResult.model ? "deepseek" : "local",
+          model: aiResult.model,
+          promptVersion: aiResult.promptVersion ?? "local-rules-v1",
+          status: "fallback",
+          fallbackReason: aiResult.reason
+        }
+      },
       aiRequest,
       source: "local-fallback",
       fallbackReason: aiResult.reason

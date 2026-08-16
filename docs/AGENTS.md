@@ -146,6 +146,7 @@ AI 不得提供直接投资建议。
 13. 如有风险，必须提前说明。
 14. 每次出现产品需求、核心数据模型、页面结构或重要开发节奏变化，必须同步更新合适的 docs 文件，并在 `docs/change_log.md` 记录变更摘要。
 15. 运行时 Prompt 只允许在 `docs/prompts/` 中维护；TypeScript 只负责读取、变量注入、调用和结果校验，不得复制 Prompt 正文。
+16. 修改 Prompt 正文时必须同步提升 `docs/prompts/audit_manifest.json` 的版本，并验证新归档保存正确版本。
 
 ## 六、架构预留原则
 

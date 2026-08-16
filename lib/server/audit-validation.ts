@@ -1,4 +1,4 @@
-import type { AuditReport } from "@/lib/types";
+import type { AuditGeneration, AuditReport } from "@/lib/types";
 
 type ValidationResult = { ok: true; value: AuditReport } | { ok: false; errors: string[] };
 
@@ -28,6 +28,7 @@ export function parseAuditReportInput(raw: unknown): ValidationResult {
   const aiInputDigest = readStringArray(data, "aiInputDigest", errors);
   const findings = readStringArray(data, "findings", errors);
   const reviewQuestions = readStringArray(data, "reviewQuestions", errors);
+  const generation = readGeneration(data.generation, errors);
   const createdAt = readDate(data, "createdAt", errors, false);
 
   if (periodStart && periodEnd && periodStart > periodEnd) {
@@ -50,9 +51,51 @@ export function parseAuditReportInput(raw: unknown): ValidationResult {
           aiInputDigest,
           findings,
           reviewQuestions,
+          generation,
           createdAt
         }
       };
+}
+
+function readGeneration(value: unknown, errors: string[]): AuditGeneration {
+  if (value === undefined) {
+    return { source: "legacy", provider: "unknown", promptVersion: "unknown", status: "legacy" };
+  }
+
+  const data = asRecord(value);
+  const source = data.source;
+  const provider = data.provider;
+  const promptVersion = data.promptVersion;
+  const status = data.status;
+  const model = data.model;
+  const fallbackReason = data.fallbackReason;
+
+  if (!(["deepseek", "local-rules", "legacy"] as unknown[]).includes(source)) errors.push("generation.source is invalid.");
+  if (!(["deepseek", "local", "unknown"] as unknown[]).includes(provider)) errors.push("generation.provider is invalid.");
+  if (typeof promptVersion !== "string" || !promptVersion.trim()) errors.push("generation.promptVersion is required.");
+  if (!(["success", "fallback", "local", "legacy"] as unknown[]).includes(status)) errors.push("generation.status is invalid.");
+  if (model !== undefined && typeof model !== "string") errors.push("generation.model must be a string.");
+  if (
+    fallbackReason !== undefined &&
+    !(["not-configured", "timeout", "provider-error", "invalid-output"] as unknown[]).includes(fallbackReason)
+  ) {
+    errors.push("generation.fallbackReason is invalid.");
+  }
+
+  return {
+    source: source === "deepseek" || source === "local-rules" ? source : "legacy",
+    provider: provider === "deepseek" || provider === "local" ? provider : "unknown",
+    model: typeof model === "string" ? model.trim() || undefined : undefined,
+    promptVersion: typeof promptVersion === "string" ? promptVersion.trim() : "unknown",
+    status: status === "success" || status === "fallback" || status === "local" ? status : "legacy",
+    fallbackReason:
+      fallbackReason === "not-configured" ||
+      fallbackReason === "timeout" ||
+      fallbackReason === "provider-error" ||
+      fallbackReason === "invalid-output"
+        ? fallbackReason
+        : undefined
+  };
 }
 
 function asRecord(value: unknown) {

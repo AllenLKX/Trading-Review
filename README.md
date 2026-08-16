@@ -15,6 +15,8 @@ RationalTrade 是一个移动端优先的交易决策记录与行为复盘工具
 - 用户主动触发的 DeepSeek 周期行为审计，失败时回退本地规则
 - 审计快照归档、删除、清空
 - 本地 JSON 导入导出，包含计划和审计归档
+- AI 归档记录模型、Prompt 版本与生成/回退状态
+- PWA manifest、主屏幕图标和不缓存交易数据的离线兜底
 
 ## 本地运行
 
@@ -136,6 +138,14 @@ docs/prompts/audit_user.md
 ```
 
 TypeScript 不保存 Prompt 副本。开发环境修改文档后下一次请求生效；生产环境需要重启 PM2。
+
+修改 Prompt 时还需要提升 `docs/prompts/audit_manifest.json` 中的版本；新审计归档会保存该版本、模型和生成状态。
+
+## PWA 与套壳
+
+正式域名可添加到手机主屏幕，并以 standalone 模式运行。Service Worker 只缓存静态离线提示页，不缓存页面正文、API 响应或交易数据。
+
+未来 Android/iOS WebView 直接加载 `https://rationaltrade.cn`，继续使用同源 `/api/*`。正式上架前仍需用登录会话替换当前临时 Basic Auth。
 
 安全配置本地密钥：
 

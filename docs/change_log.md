@@ -2,6 +2,16 @@
 
 ## 2026-08-16
 
+### 云端数据迁移、AI 追溯与 PWA 基础
+
+- 本地 8 个计划、10 条操作、6 条复盘和 3 条审计归档通过 SSH 管道事务导入云端，没有生成含业务数据的临时文件。
+- 云端回读数量一致，所有复盘操作引用无断链。
+- 审计报告新增 generation 元数据，记录 source、provider、model、promptVersion、生成状态和回退原因；旧归档兼容为 legacy。
+- 新增 `audit_manifest.json`，Prompt 修改必须提升版本，新归档保存实际 Prompt 版本。
+- 历史审计卡显示简短模型与 Prompt 版本，不增加主体卡片高度。
+- 新增密钥-only SSH 配置，动态公网 IP 场景保留 22 可达但禁止 root 密码登录。
+- 新增 PWA manifest、512/180 图标、standalone 与安全区支持；Service Worker 只缓存离线提示，不缓存业务页面、API 或交易数据。
+
 ### 正式域名与同源部署方案
 
 - 正式域名确定为 `rationaltrade.cn`，服务器区域确认为腾讯云新加坡 `ap-singapore-1`。

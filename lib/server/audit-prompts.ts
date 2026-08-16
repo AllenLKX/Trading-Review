@@ -9,6 +9,7 @@ const promptDirectory = path.join(process.cwd(), "docs", "prompts");
 type AuditPromptDocuments = {
   system: string;
   userTemplate: string;
+  version: string;
 };
 
 let productionPromptCache: Promise<AuditPromptDocuments> | null = null;
@@ -16,13 +17,16 @@ let productionPromptCache: Promise<AuditPromptDocuments> | null = null;
 export async function buildAuditPromptMessages(aiRequest: AuditAiRequest) {
   const prompts = await loadAuditPromptDocuments();
 
-  return [
-    { role: "system", content: prompts.system },
-    {
-      role: "user",
-      content: prompts.userTemplate.replace(AUDIT_INPUT_PLACEHOLDER, JSON.stringify(aiRequest))
-    }
-  ];
+  return {
+    promptVersion: prompts.version,
+    messages: [
+      { role: "system", content: prompts.system },
+      {
+        role: "user",
+        content: prompts.userTemplate.replace(AUDIT_INPUT_PLACEHOLDER, JSON.stringify(aiRequest))
+      }
+    ]
+  };
 }
 
 async function loadAuditPromptDocuments() {
@@ -33,9 +37,10 @@ async function loadAuditPromptDocuments() {
 }
 
 async function readAuditPromptDocuments(): Promise<AuditPromptDocuments> {
-  const [system, userTemplate] = await Promise.all([
+  const [system, userTemplate, manifestText] = await Promise.all([
     readPromptFile("audit_system.md"),
-    readPromptFile("audit_user.md")
+    readPromptFile("audit_user.md"),
+    readPromptFile("audit_manifest.json")
   ]);
 
   const placeholderCount = userTemplate.split(AUDIT_INPUT_PLACEHOLDER).length - 1;
@@ -43,7 +48,12 @@ async function readAuditPromptDocuments(): Promise<AuditPromptDocuments> {
     throw new Error(`audit_user.md must contain exactly one ${AUDIT_INPUT_PLACEHOLDER} placeholder.`);
   }
 
-  return { system, userTemplate };
+  const manifest = JSON.parse(manifestText) as { version?: unknown };
+  if (typeof manifest.version !== "string" || !manifest.version.trim()) {
+    throw new Error("audit_manifest.json must contain a non-empty version.");
+  }
+
+  return { system, userTemplate, version: manifest.version.trim() };
 }
 
 async function readPromptFile(fileName: string) {

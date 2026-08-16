@@ -126,6 +126,12 @@ export function buildRollingAuditReport(plans: TradePlan[]): AuditReport {
       topStrategies,
       topViolations
     }),
+    generation: {
+      source: "local-rules",
+      provider: "local",
+      promptVersion: "local-rules-v1",
+      status: "local"
+    },
     createdAt: now.toISOString()
   };
 }

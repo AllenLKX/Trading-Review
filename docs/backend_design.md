@@ -171,6 +171,7 @@ Backend M1 初期采用私有单用户模式：
 - 页面与 API 保持同源，前端继续请求相对路径 `/api/*`；浏览器和未来 WebView 套壳不需要额外 API 域名。
 - 公网只开放 Nginx 的 80/443 端口；Next.js 3000 和 PostgreSQL 5432 只允许本机或内网访问。
 - HTTP 只用于证书签发与跳转，正式业务统一使用 HTTPS。
+- SSH 22 面向动态公网 IP 保持可达，但只允许密钥认证；公网禁止 root 密码登录，腾讯云控制台保留密码救援通道。
 
 ID 设计：
 
@@ -347,6 +348,7 @@ Backend M1 只预留单笔 AI 复盘结果表，不在第一轮接真实 AI。
 - `docs/prompts/audit_system.md` 和 `audit_user.md` 是 Prompt 唯一来源，服务端通过 `lib/server/audit-prompts.ts` 读取并注入审计 JSON。
 - 开发环境每次请求读取 Prompt，方便修改验证；生产环境首次读取后缓存，避免重复磁盘 IO。
 - Next.js 文件追踪显式包含 `docs/prompts/*.md`，未来使用精简部署产物时也不会遗漏 Prompt。
+- `audit_reports.generation` 使用 JSONB 保存来源、provider、model、promptVersion、成功/回退状态和回退原因；旧归档自动标记为 legacy。
 
 ## 6. Backend M3：截图识别服务化
 

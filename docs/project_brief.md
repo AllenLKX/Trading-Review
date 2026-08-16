@@ -49,6 +49,8 @@ RationalTrade 是一个 AI 驱动的投资决策记录与复盘工具。
 
 当前周期审计已接入 DeepSeek：用户主动点击后才调用模型，模型只接收系统整理的审计摘要，输出必须通过服务端结构和投资建议边界校验。Prompt 统一在 `docs/prompts/` 维护，不下发前端；调用失败时继续展示本地规则审计。
 
+当前正式域名为 `https://rationaltrade.cn`。H5 已具备 PWA manifest、主屏幕图标和安全离线提示，未来 WebView 套壳继续使用同域 API；Service Worker 不缓存用户交易数据。
+
 ## 三、产品定位
 
 RationalTrade 是一个交易决策复盘工具，而不是投资建议工具。

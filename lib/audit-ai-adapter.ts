@@ -1,5 +1,5 @@
 import { buildRollingAuditReport } from "@/lib/audit-summary";
-import type { AuditReport, TradePlan } from "@/lib/types";
+import type { AuditFallbackReason, AuditReport, TradePlan } from "@/lib/types";
 
 export type AuditAiRequest = {
   schemaVersion: 1;
@@ -15,7 +15,7 @@ export type AuditApiResponse = {
   aiRequest: AuditAiRequest;
   source: "deepseek" | "local-fallback";
   model?: string;
-  fallbackReason?: "not-configured" | "timeout" | "provider-error" | "invalid-output";
+  fallbackReason?: AuditFallbackReason;
 };
 
 export function buildAuditReport(plans: TradePlan[]): AuditReport {

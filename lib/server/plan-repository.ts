@@ -1016,9 +1016,9 @@ async function upsertAuditReport(client: PoolClient, userId: string, report: Aud
   await client.query(
     `insert into audit_reports (
         id, user_id, period_start, period_end, title, summary, signal_label, signal_level,
-        metrics, ai_input_digest, findings, review_questions, source, created_at
+        metrics, ai_input_digest, findings, review_questions, source, generation, created_at
      )
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
      on conflict (id) do update set
        period_start = excluded.period_start,
        period_end = excluded.period_end,
@@ -1030,7 +1030,8 @@ async function upsertAuditReport(client: PoolClient, userId: string, report: Aud
        ai_input_digest = excluded.ai_input_digest,
        findings = excluded.findings,
        review_questions = excluded.review_questions,
-       source = excluded.source
+       source = excluded.source,
+       generation = excluded.generation
      where audit_reports.user_id = excluded.user_id`,
     [
       report.id,
@@ -1045,7 +1046,10 @@ async function upsertAuditReport(client: PoolClient, userId: string, report: Aud
       report.aiInputDigest,
       report.findings,
       report.reviewQuestions,
-      "local-import",
+      report.generation?.source ?? "legacy",
+      JSON.stringify(
+        report.generation ?? { source: "legacy", provider: "unknown", promptVersion: "unknown", status: "legacy" }
+      ),
       report.createdAt
     ]
   );

@@ -2,7 +2,7 @@ import type { QueryResultRow } from "pg";
 
 import { getDatabasePool } from "@/lib/server/db";
 import { getConfiguredUserId } from "@/lib/server/single-user";
-import type { AuditReport } from "@/lib/types";
+import type { AuditGeneration, AuditReport } from "@/lib/types";
 
 type AuditRow = QueryResultRow & {
   id: string;
@@ -16,6 +16,7 @@ type AuditRow = QueryResultRow & {
   ai_input_digest: string[];
   findings: string[];
   review_questions: string[];
+  generation: AuditGeneration;
   created_at: Date | string;
 };
 
@@ -34,7 +35,7 @@ type AuditMutationResult<T> =
     };
 
 const auditColumns = `id, period_start, period_end, title, summary, signal_label, signal_level,
-  metrics, ai_input_digest, findings, review_questions, created_at`;
+  metrics, ai_input_digest, findings, review_questions, generation, created_at`;
 
 export async function listServerAuditReports(): Promise<AuditListResult> {
   const userResult = getConfiguredUserId();
@@ -63,8 +64,8 @@ export async function createServerAuditReport(report: AuditReport): Promise<Audi
     const result = await getDatabasePool().query<AuditRow>(
       `insert into audit_reports (
          id, user_id, period_start, period_end, title, summary, signal_label, signal_level,
-         metrics, ai_input_digest, findings, review_questions, source, created_at
-       ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+         metrics, ai_input_digest, findings, review_questions, source, generation, created_at
+       ) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        on conflict (id) do update set
          period_start = excluded.period_start,
          period_end = excluded.period_end,
@@ -76,7 +77,8 @@ export async function createServerAuditReport(report: AuditReport): Promise<Audi
          ai_input_digest = excluded.ai_input_digest,
          findings = excluded.findings,
          review_questions = excluded.review_questions,
-         source = excluded.source
+         source = excluded.source,
+         generation = excluded.generation
        where audit_reports.user_id = excluded.user_id
        returning ${auditColumns}`,
       [
@@ -92,7 +94,8 @@ export async function createServerAuditReport(report: AuditReport): Promise<Audi
         report.aiInputDigest,
         report.findings,
         report.reviewQuestions,
-        "manual-archive",
+        report.generation?.source ?? "legacy",
+        JSON.stringify(report.generation ?? legacyGeneration),
         report.createdAt
       ]
     );
@@ -136,9 +139,17 @@ function mapAuditRow(row: AuditRow): AuditReport {
     aiInputDigest: row.ai_input_digest ?? [],
     findings: row.findings ?? [],
     reviewQuestions: row.review_questions ?? [],
+    generation: row.generation ?? legacyGeneration,
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString()
   };
 }
+
+const legacyGeneration: AuditGeneration = {
+  source: "legacy",
+  provider: "unknown",
+  promptVersion: "unknown",
+  status: "legacy"
+};
 
 function toDateOnly(value: Date | string) {
   return value instanceof Date ? value.toISOString().slice(0, 10) : String(value).slice(0, 10);

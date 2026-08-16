@@ -33,7 +33,7 @@
 - shadcn/ui 组件生成
 - 第三方 AI SDK（当前使用服务端原生 `fetch` 调用 DeepSeek）
 - 真实 OCR
-- PWA
+- 原生 Capacitor/Android/iOS 工程
 
 ## 3. 目录结构
 
@@ -103,6 +103,14 @@
 - `lib/server/deepseek-audit.ts`：DeepSeek 请求、超时、输出校验与回退原因。
 - `lib/server/audit-prompts.ts`：读取并缓存 Markdown Prompt，注入 `AuditAiRequest`。
 - `docs/prompts/*.md`：运行时 Prompt 唯一正文来源，不下发前端。
+
+### PWA 与套壳边界
+
+- `app/manifest.ts` 提供 standalone、portrait、主题色和 maskable 图标声明。
+- `app/icon.tsx` 与 `app/apple-icon.tsx` 生成应用图标。
+- `public/sw.js` 只处理导航离线兜底，不缓存 API、页面正文或交易数据。
+- 浏览器与未来 WebView 共用 `https://rationaltrade.cn` 和相对 `/api/*`，不增加跨域配置。
+- Basic Auth 只用于当前私有单用户阶段；应用商店版本前改为正式登录会话。
 
 ## 4. 状态管理
 

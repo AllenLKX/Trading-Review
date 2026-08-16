@@ -1,6 +1,6 @@
 import type { AuditAiRequest } from "@/lib/audit-ai-adapter";
 import { buildAuditPromptMessages } from "@/lib/server/audit-prompts";
-import type { AuditReport } from "@/lib/types";
+import type { AuditFallbackReason, AuditReport } from "@/lib/types";
 
 const DEFAULT_BASE_URL = "https://api.deepseek.com";
 const DEFAULT_MODEL = "deepseek-v4-flash";
@@ -24,8 +24,8 @@ type DeepSeekResponse = {
 };
 
 export type DeepSeekAuditResult =
-  | { ok: true; narrative: DeepSeekAuditNarrative; model: string }
-  | { ok: false; reason: "not-configured" | "timeout" | "provider-error" | "invalid-output" };
+  | { ok: true; narrative: DeepSeekAuditNarrative; model: string; promptVersion: string }
+  | { ok: false; reason: AuditFallbackReason; model?: string; promptVersion?: string };
 
 export async function generateDeepSeekAudit(aiRequest: AuditAiRequest): Promise<DeepSeekAuditResult> {
   const apiKey = (process.env.DEEPSEEK_API_KEY ?? process.env.AI_API_KEY)?.trim();
@@ -36,8 +36,11 @@ export async function generateDeepSeekAudit(aiRequest: AuditAiRequest): Promise<
   const timeoutMs = readTimeout(process.env.AI_TIMEOUT_MS);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let promptVersion: string | undefined;
 
   try {
+    const prompt = await buildAuditPromptMessages(aiRequest);
+    promptVersion = prompt.promptVersion;
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -46,7 +49,7 @@ export async function generateDeepSeekAudit(aiRequest: AuditAiRequest): Promise<
       },
       body: JSON.stringify({
         model,
-        messages: await buildAuditPromptMessages(aiRequest),
+        messages: prompt.messages,
         response_format: { type: "json_object" },
         thinking: { type: "disabled" },
         max_tokens: 1200
@@ -57,21 +60,23 @@ export async function generateDeepSeekAudit(aiRequest: AuditAiRequest): Promise<
 
     if (!response.ok) {
       console.error("DeepSeek audit request failed", { status: response.status });
-      return { ok: false, reason: "provider-error" };
+      return { ok: false, reason: "provider-error", model, promptVersion };
     }
 
     const payload = (await response.json()) as DeepSeekResponse;
     const choice = payload.choices?.[0];
-    if (choice?.finish_reason === "length") return { ok: false, reason: "invalid-output" };
+    if (choice?.finish_reason === "length") return { ok: false, reason: "invalid-output", model, promptVersion };
 
     const narrative = parseNarrative(choice?.message?.content);
-    return narrative ? { ok: true, narrative, model } : { ok: false, reason: "invalid-output" };
+    return narrative
+      ? { ok: true, narrative, model, promptVersion }
+      : { ok: false, reason: "invalid-output", model, promptVersion };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      return { ok: false, reason: "timeout" };
+      return { ok: false, reason: "timeout", model, promptVersion };
     }
     console.error("DeepSeek audit request failed", error);
-    return { ok: false, reason: "provider-error" };
+    return { ok: false, reason: "provider-error", model, promptVersion };
   } finally {
     clearTimeout(timeout);
   }
