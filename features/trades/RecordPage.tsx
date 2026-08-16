@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { currencyOptions } from "@/lib/sample-data";
@@ -38,7 +38,7 @@ export function RecordPage({
 }: RecordPageProps) {
   const [mode, setMode] = useState<RecordMode>("operation");
   const [showRecognized, setShowRecognized] = useState(false);
-  const [showPlanForm, setShowPlanForm] = useState(plans.length === 0);
+  const [showPlanForm, setShowPlanForm] = useState(false);
   const [title, setTitle] = useState("");
   const [assetName, setAssetName] = useState("");
   const [ticker, setTicker] = useState("");
@@ -52,6 +52,10 @@ export function RecordPage({
     () => plans.find((plan) => plan.id === selectedPlanId) ?? plans[0],
     [plans, selectedPlanId]
   );
+
+  useEffect(() => {
+    if (dataStatus !== "loading" && plans.length === 0) setShowPlanForm(true);
+  }, [dataStatus, plans.length]);
 
   const createPlan = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -136,8 +140,9 @@ export function RecordPage({
           </div>
           <button
             type="button"
+            disabled={dataStatus === "loading"}
             onClick={() => setShowPlanForm((current) => !current)}
-            className="flex h-10 items-center gap-1 rounded-xl border border-primary/40 bg-primary/10 px-3 text-xs font-bold text-primary-soft"
+            className="flex h-10 items-center gap-1 rounded-xl border border-primary/40 bg-primary/10 px-3 text-xs font-bold text-primary-soft disabled:cursor-wait disabled:opacity-50"
           >
             <Plus className="h-4 w-4" />
             新计划

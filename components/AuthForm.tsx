@@ -41,7 +41,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <main className="flex min-h-dvh items-center px-5 py-10">
+    <main className="flex min-h-dvh items-center px-5 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))]">
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-8">
           <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary/15 text-primary-soft">

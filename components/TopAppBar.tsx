@@ -54,7 +54,7 @@ export function TopAppBar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-background/92 px-4 py-4 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-line bg-background/92 px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] backdrop-blur">
       <div className="relative mx-auto flex max-w-md items-center justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface-raised text-primary-soft">

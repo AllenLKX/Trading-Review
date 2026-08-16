@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { samplePlans } from "@/lib/sample-data";
 import { cloudTradeRepository, localTradeRepository } from "@/lib/trade-repository";
 import type { PlanReview, ScreenshotArchiveBatch, TradeOperation, TradePlan } from "@/lib/types";
 
@@ -27,8 +26,8 @@ type TradePlanStore = {
 };
 
 export function useTradePlans(): TradePlanStore {
-  const [plans, setPlans] = useState<TradePlan[]>(samplePlans);
-  const [selectedPlanId, setSelectedPlanIdState] = useState<string | null>(samplePlans[0]?.id ?? null);
+  const [plans, setPlans] = useState<TradePlan[]>([]);
+  const [selectedPlanId, setSelectedPlanIdState] = useState<string | null>(null);
   const [highlightedPlanId, setHighlightedPlanId] = useState<string | null>(null);
   const [dataStatus, setDataStatus] = useState<DataStatus>("loading");
   const [dataMessage, setDataMessage] = useState("正在读取服务器数据…");

@@ -10,7 +10,7 @@ import { PlanReviewForm } from "@/features/trades/PlanReviewForm";
 import { buildAuditReport, requestAuditReport } from "@/lib/audit-ai-adapter";
 import { cloudAuditRepository, localAuditRepository } from "@/lib/audit-repository";
 import { formatCurrency, formatDateTime, getActionLabel, getActionTone, getRealizedResultLabel } from "@/lib/format";
-import { currencyOptions, sampleAuditReports } from "@/lib/sample-data";
+import { currencyOptions } from "@/lib/sample-data";
 import { buildTradeDataFile } from "@/lib/trade-data-file";
 import type { AuditReport, CurrencyCode, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
 import { AuditSnapshotCard } from "./AuditSnapshotCard";
@@ -44,7 +44,6 @@ export function HistoryPage({
   const [dataMessage, setDataMessage] = useState("");
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [selectedDetailPlanId, setSelectedDetailPlanId] = useState<string | null>(null);
-  const [, ...sampleArchivedAudits] = sampleAuditReports;
   const [userArchivedAudits, setUserArchivedAudits] = useState<AuditReport[]>([]);
   const [isAuditArchiveHydrated, setIsAuditArchiveHydrated] = useState(false);
   const [latestAudit, setLatestAudit] = useState(() => buildAuditReport(plans));
@@ -81,7 +80,7 @@ export function HistoryPage({
     [normalizedQuery, plans]
   );
   const selectedDetailPlan = plans.find((plan) => plan.id === selectedDetailPlanId) ?? null;
-  const archivedAudits = userArchivedAudits.length > 0 ? userArchivedAudits : sampleArchivedAudits;
+  const archivedAudits = userArchivedAudits;
   const notify = useCallback((text: string, tone: ToastMessage["tone"] = "info") => {
     setDataMessage(text);
     setToast({ id: Date.now(), text, tone });

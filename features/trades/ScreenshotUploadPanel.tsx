@@ -274,7 +274,7 @@ export function ScreenshotUploadPanel({
         </div>
       ) : null}
 
-      <div className="fixed inset-x-0 bottom-[4.5rem] z-40 border-t border-line bg-background/95 p-3 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-40 border-t border-line bg-background/95 p-3 backdrop-blur">
         <div className="mx-auto flex max-w-md gap-3">
           <button
             type="button"

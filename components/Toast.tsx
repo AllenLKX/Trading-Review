@@ -37,7 +37,7 @@ export function Toast({ message, onDismiss }: ToastProps) {
         : "border-primary/50 bg-surface-raised text-foreground";
 
   return (
-    <div className="pointer-events-none fixed inset-x-4 bottom-24 z-50 mx-auto flex max-w-sm justify-center" aria-live="polite">
+    <div className="pointer-events-none fixed inset-x-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 mx-auto flex max-w-sm justify-center" aria-live="polite">
       <div className={`pointer-events-auto flex w-full items-start gap-3 rounded-xl border px-4 py-3 shadow-2xl ${toneClass}`} role="status">
         <Icon className="mt-0.5 h-5 w-5 shrink-0" />
         <p className="min-w-0 flex-1 text-sm font-semibold leading-5">{message.text}</p>

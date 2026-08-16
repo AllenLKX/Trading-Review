@@ -1,4 +1,3 @@
-import { samplePlans, sampleTrades } from "@/lib/sample-data";
 import { migrateTradesToPlans, normalizeTradePlans } from "@/lib/plan-migration";
 import type {
   PlanReview,
@@ -32,18 +31,18 @@ export const localTradeRepository: TradeRepository = {
       const storedTrades = window.localStorage.getItem(TRADE_STORAGE_KEY);
 
       if (!storedTrades) {
-        return samplePlans;
+        return [];
       }
 
       const parsedTrades = JSON.parse(storedTrades) as unknown;
 
       if (!Array.isArray(parsedTrades)) {
-        return samplePlans;
+        return [];
       }
 
       return migrateTradesToPlans(parsedTrades as TradeDecision[]);
     } catch {
-      return samplePlans;
+      return [];
     }
   },
   persist: (plans) => {

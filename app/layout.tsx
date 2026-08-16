@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { PwaRegistration } from "@/components/PwaRegistration";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
+import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import "./globals.css";
 
 const themeInitializer = `(() => {
@@ -33,7 +34,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: "cover",
   themeColor: "#051425"
 };
@@ -50,6 +50,7 @@ export default function RootLayout({
       </head>
       <body>
         {children}
+        <NetworkStatusBanner />
         <AnalyticsTracker />
         <PwaRegistration />
       </body>
