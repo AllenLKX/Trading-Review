@@ -24,7 +24,7 @@
 
 ## 1.1 部署环境约束
 
-实际服务器为腾讯云云服务器，公网 IP `43.156.228.145`，当前系统是 OpenCloudOS 9.4；原计划中的 Ubuntu 改为未来迁移可选环境。
+实际服务器为腾讯云新加坡区云服务器，公网 IP `43.156.228.145`，当前系统是 OpenCloudOS 9.4；正式域名为 `rationaltrade.cn`。
 
 因此后台实现优先按“自部署 Next.js 服务 + 自管理数据库/对象存储”的方式设计，而不是默认依赖平台托管。
 
@@ -154,7 +154,7 @@ Backend M1 第一版优先选方案 A，但可以先只做单用户登录或管�
 - `POST /api/sync/import-local` 保留为首次迁移和运维工具，不在正式用户界面展示。
 - 计划详情编辑使用 `PUT /api/plans/:planId/snapshot`，计划基础信息、操作和复盘在同一 PostgreSQL 事务中替换，任一校验或写入失败会整体回滚。
 - 私有单用户阶段使用 middleware Basic Auth；生产环境未配置 `APP_ACCESS_USERNAME` 和 `APP_ACCESS_PASSWORD` 时默认拒绝业务访问。
-- 当前公网联调 IP 为 `43.156.228.145`，仅 `/api/health` 无需认证。
+- 正式公网入口为 `https://rationaltrade.cn`，仅 `/api/health` 无需认证。
 - 已新增服务端输入校验模块，先不用第三方校验库，减少 Backend M1 早期依赖面。
 - `.env.production`、`.env.local` 等真实配置文件不提交到 GitHub。
 - 初始 schema 只定义结构和约束，不包含任何真实用户数据、token、AI Key 或 COS Key。
@@ -167,9 +167,10 @@ Backend M1 初期采用私有单用户模式：
 
 公网入口约束：
 
-- 手机或外部网络访问时，需要腾讯云 CVM 具备公网 IP，或由域名解析到公网负载入口。
+- `rationaltrade.cn` 和 `www.rationaltrade.cn` 解析到腾讯云公网 IP，Nginx 按 Host 与原有 OpenClaw 共存。
+- 页面与 API 保持同源，前端继续请求相对路径 `/api/*`；浏览器和未来 WebView 套壳不需要额外 API 域名。
 - 公网只开放 Nginx 的 80/443 端口；Next.js 3000 和 PostgreSQL 5432 只允许本机或内网访问。
-- 正式使用优先配置域名和 HTTPS，公网 IP + HTTP 只用于首次短期联调。
+- HTTP 只用于证书签发与跳转，正式业务统一使用 HTTPS。
 
 ID 设计：
 

@@ -1,5 +1,15 @@
 # RationalTrade 更新记录
 
+## 2026-08-16
+
+### 正式域名与同源部署方案
+
+- 正式域名确定为 `rationaltrade.cn`，服务器区域确认为腾讯云新加坡 `ap-singapore-1`。
+- 浏览器、移动 H5 和未来 WebView 套壳统一访问 `https://rationaltrade.cn`，后台请求继续使用同源 `/api/*`。
+- 暂不购买独立 API 域名、付费 DNS 套餐或付费 DV 证书；使用 DNSPod 免费解析和自动续期的免费 HTTPS 证书。
+- Nginx 配置改为只匹配 `rationaltrade.cn` 与 `www.rationaltrade.cn`，和原有 OpenClaw IP 路由共存。
+- 环境变量模板的 `APP_PUBLIC_ORIGIN` 更新为正式 HTTPS 域名，部署手册补充 DNS 记录和证书签发顺序。
+
 ## 2026-07-19
 
 ### Prompt 文档化与运行时加载

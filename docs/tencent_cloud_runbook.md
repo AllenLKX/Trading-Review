@@ -18,7 +18,7 @@
 - 复杂 CI/CD。
 - 多用户注册。
 
-当前公网联调入口暂定为 `http://43.156.228.145`。IP + HTTP 只用于首次连通性验证；Basic Auth 在 HTTP 上不能防止链路窃听，写入真实交易数据前必须改为域名 + HTTPS，或仅允许可信来源 IP/VPN 访问。
+正式域名为 `rationaltrade.cn`，解析到 `43.156.228.145`。服务器位于腾讯云 `ap-singapore-1`，域名与 HTTPS 生效前不通过公网写入真实交易数据。
 
 服务器已有 OpenClaw 的 Nginx 根路径配置。RationalTrade 已在 `127.0.0.1:3000` 运行，但在确认 OpenClaw 是否保留前，不覆盖 `/etc/nginx/conf.d/openclaw.conf`。
 
@@ -90,7 +90,7 @@ nano .env.production
 必填或后续必填：
 
 - `NEXT_PUBLIC_APP_VERSION`
-- `APP_PUBLIC_ORIGIN=http://43.156.228.145`
+- `APP_PUBLIC_ORIGIN=https://rationaltrade.cn`
 - `APP_ACCESS_USERNAME`
 - `APP_ACCESS_PASSWORD`
 - `DATABASE_URL`
@@ -188,7 +188,7 @@ ss -lntp | grep ':3000'
 
 ## 8. Nginx 反向代理
 
-外部手机要访问服务，腾讯云需要提供一个公网入口。可先使用 CVM 公网 IP 联调，正式使用建议把域名解析到该公网 IP 并配置 HTTPS。
+外部手机、浏览器和未来套壳 App 共用 `https://rationaltrade.cn`。前端与 `/api/*` 保持同源，暂不拆分独立 API 域名。
 
 腾讯云安全组建议：
 
@@ -197,13 +197,17 @@ ss -lntp | grep ':3000'
 - 不对公网开放 Next.js 3000。
 - 不对公网开放 PostgreSQL 5432。
 
-仓库已提供当前 IP 对应的配置 `deploy/nginx-rationaltrade.conf`。复制并启用：
+DNSPod 免费解析添加：
+
+- `@`：A 记录，值为 `43.156.228.145`，默认线路，TTL 600。
+- `www`：CNAME 记录，值为 `rationaltrade.cn`，默认线路，TTL 600。
+
+仓库已提供域名配置 `deploy/nginx-rationaltrade.conf`。OpenCloudOS 复制并启用：
 
 ```bash
-sudo cp deploy/nginx-rationaltrade.conf /etc/nginx/sites-available/rationaltrade
-sudo ln -s /etc/nginx/sites-available/rationaltrade /etc/nginx/sites-enabled/rationaltrade
-sudo nginx -t
-sudo systemctl reload nginx
+cp deploy/nginx-rationaltrade.conf /etc/nginx/conf.d/rationaltrade.conf
+nginx -t
+systemctl reload nginx
 ```
 
 配置内容使用：
@@ -211,7 +215,8 @@ sudo systemctl reload nginx
 ```nginx
 server {
     listen 80;
-    server_name 43.156.228.145;
+    listen [::]:80;
+    server_name rationaltrade.cn www.rationaltrade.cn;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -224,14 +229,16 @@ server {
 }
 ```
 
+DNS 生效且 HTTP 健康检查通过后，使用 Certbot 为根域名和 `www` 签发免费证书，并开启 HTTP 到 HTTPS 跳转。证书申请不要早于 DNS 生效，否则会因域名验证失败。
+
 ## 9. 发布后验证
 
 访问：
 
 ```text
-http://43.156.228.145/api/health
-http://43.156.228.145/api/system/status
-http://43.156.228.145/api/system/status?db=1
+https://rationaltrade.cn/api/health
+https://rationaltrade.cn/api/system/status
+https://rationaltrade.cn/api/system/status?db=1
 ```
 
 手机页面检查：
@@ -267,7 +274,8 @@ cat /root/rationaltrade-access.txt
 - 数据库事务 CRUD：通过，合成测试数据已清理
 - DeepSeek：服务器密钥已配置，`deepseek-v4-flash` 内部真实调用通过
 - 云端业务数据：当前 0 个计划、0 条操作、0 条复盘，本地正式数据尚未迁移
-- 公网 Nginx：等待确认 OpenClaw 路由归属
+- 域名：`rationaltrade.cn` 已购买，等待 DNS 记录生效和 HTTPS 签发
+- 公网 Nginx：域名 Host 独立路由到 RationalTrade，原有 IP 路由继续保留给 OpenClaw
 
 ## 10. 后续发布
 
