@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Archive, ImagePlus, LoaderCircle, RotateCcw } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { Toast, type ToastMessage } from "@/components/Toast";
-import type { BatchRecognitionItem, TradeOperation, TradePlan } from "@/lib/types";
+import type { BatchRecognitionItem, ScreenshotArchiveBatch, TradeOperation, TradePlan } from "@/lib/types";
 import { BatchVerificationCard } from "./BatchVerificationCard";
 
 type ScreenshotUploadPanelProps = {
@@ -12,8 +12,7 @@ type ScreenshotUploadPanelProps = {
   showRecognized: boolean;
   onShowRecognized: () => void;
   onReset: () => void;
-  onCreatePlan: (plan: TradePlan) => Promise<void>;
-  onArchive: (operations: TradeOperation[]) => Promise<void>;
+  onArchive: (batch: ScreenshotArchiveBatch) => Promise<number>;
 };
 
 export function ScreenshotUploadPanel({
@@ -21,7 +20,6 @@ export function ScreenshotUploadPanel({
   showRecognized,
   onShowRecognized,
   onReset,
-  onCreatePlan,
   onArchive
 }: ScreenshotUploadPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -93,11 +91,11 @@ export function ScreenshotUploadPanel({
         plan.assetName.trim().toLowerCase() === item.assetName.trim().toLowerCase()
     );
 
-  const createPlanFromItem = (item: BatchRecognitionItem, archiveId: number, index: number) => {
+  const createPlanFromItem = (item: BatchRecognitionItem) => {
     const now = new Date().toISOString();
 
     return {
-      id: `plan-${item.id}-${archiveId}-${index}`,
+      id: `plan-${item.id}`,
       title: `${item.assetName} 截图补账计划`,
       assetName: item.assetName.trim(),
       ticker: item.ticker.trim() || item.assetName.trim(),
@@ -127,20 +125,19 @@ export function ScreenshotUploadPanel({
     }
 
     const now = new Date().toISOString();
-    const archiveId = Date.now();
     const nextPlans = [...plans];
     const createdPlans: TradePlan[] = [];
-    const operations: TradeOperation[] = recognizedItems.map((item, index) => {
+    const operations: TradeOperation[] = recognizedItems.map((item) => {
       let matchedPlan = findMatchingPlan(item, nextPlans);
 
       if (!matchedPlan) {
-        matchedPlan = createPlanFromItem(item, archiveId, index);
+        matchedPlan = createPlanFromItem(item);
         nextPlans.push(matchedPlan);
         createdPlans.push(matchedPlan);
       }
 
       return {
-        id: `operation-${item.id}-${archiveId}`,
+        id: `operation-${item.id}`,
         planId: matchedPlan.id,
         action: item.action,
         tradeTime: item.tradeTime,
@@ -161,12 +158,11 @@ export function ScreenshotUploadPanel({
 
     setIsArchiving(true);
     try {
-      for (const plan of createdPlans) await onCreatePlan(plan);
-      await onArchive(operations);
-      setToast({ id: Date.now(), text: `已归档 ${operations.length} 笔交易。`, tone: "success" });
+      const archivedOperationCount = await onArchive({ newPlans: createdPlans, operations });
+      setToast({ id: Date.now(), text: `已归档 ${archivedOperationCount} 笔交易。`, tone: "success" });
       resetRecognition(false);
     } catch (error) {
-      setArchiveError(error instanceof Error ? `${error.message} 已成功保存的项目不会重复创建，请重试剩余项目。` : "批量归档失败，请重试。");
+      setArchiveError(error instanceof Error ? error.message : "批量归档失败，数据不会部分保存，请重试。");
     } finally {
       setIsArchiving(false);
     }

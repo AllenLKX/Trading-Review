@@ -14,6 +14,10 @@ const auditId = `audit-contract-${runId}`;
 const clientPlanId = `plan-client-${runId}`;
 const clientOperationId = `operation-client-${runId}`;
 const clientReviewId = `review-client-${runId}`;
+const screenshotPlanId = `plan-screenshot-${runId}`;
+const screenshotExistingOperationId = `operation-screenshot-existing-${runId}`;
+const screenshotNewOperationId = `operation-screenshot-new-${runId}`;
+const screenshotRollbackPlanId = `plan-screenshot-rollback-${runId}`;
 
 let planId;
 let operationId;
@@ -187,6 +191,112 @@ try {
     "Rejected snapshot changed persisted plan data."
   );
 
+  const screenshotArchiveTime = new Date().toISOString();
+  const screenshotBatch = {
+    newPlans: [
+      {
+        id: screenshotPlanId,
+        title: `Screenshot plan ${runId}`,
+        assetName: "Synthetic Screenshot Asset",
+        ticker: "SHOT",
+        market: "LOCAL",
+        currency: "USD",
+        status: "active",
+        thesis: "Synthetic screenshot archive verification only.",
+        operations: [],
+        reviews: [],
+        createdAt: screenshotArchiveTime,
+        updatedAt: screenshotArchiveTime
+      }
+    ],
+    operations: [
+      {
+        id: screenshotExistingOperationId,
+        planId,
+        action: "buy",
+        tradeTime: screenshotArchiveTime,
+        currency: "USD",
+        price: 20,
+        quantity: 2,
+        quantityUnit: "shares",
+        totalAmount: 40,
+        decisionReason: "Synthetic screenshot operation for an existing plan.",
+        psychologyNote: "",
+        emotionTags: [],
+        strategyTags: ["截图补账"],
+        source: "ai_screenshot",
+        createdAt: screenshotArchiveTime,
+        updatedAt: screenshotArchiveTime
+      },
+      {
+        id: screenshotNewOperationId,
+        planId: screenshotPlanId,
+        action: "sell",
+        tradeTime: screenshotArchiveTime,
+        currency: "USD",
+        price: 25,
+        quantity: 2,
+        quantityUnit: "shares",
+        totalAmount: 50,
+        decisionReason: "Synthetic screenshot operation for a new plan.",
+        psychologyNote: "",
+        emotionTags: [],
+        strategyTags: ["截图补账"],
+        source: "ai_screenshot",
+        createdAt: screenshotArchiveTime,
+        updatedAt: screenshotArchiveTime
+      }
+    ]
+  };
+  const screenshotArchive = await request("/api/recognitions/archive", {
+    method: "POST",
+    body: screenshotBatch
+  });
+  assert(screenshotArchive.archivedOperationCount === 2, "Screenshot archive did not report two operations.");
+  assert(screenshotArchive.plans.length === 2, "Screenshot archive did not return both affected plans.");
+
+  const retriedScreenshotArchive = await request("/api/recognitions/archive", {
+    method: "POST",
+    body: screenshotBatch
+  });
+  assert(retriedScreenshotArchive.archivedOperationCount === 2, "Screenshot archive retry changed its result.");
+  const plansAfterScreenshotRetry = await request("/api/plans");
+  assert(
+    plansAfterScreenshotRetry.plans.flatMap((plan) => plan.operations).filter((item) => item.id === screenshotExistingOperationId).length === 1,
+    "Screenshot archive retry duplicated the existing-plan operation."
+  );
+  assert(
+    plansAfterScreenshotRetry.plans.flatMap((plan) => plan.operations).filter((item) => item.id === screenshotNewOperationId).length === 1,
+    "Screenshot archive retry duplicated the new-plan operation."
+  );
+
+  await expectRejectedScreenshotArchive({
+    newPlans: [
+      {
+        ...screenshotBatch.newPlans[0],
+        id: screenshotRollbackPlanId,
+        title: "Screenshot rollback plan"
+      }
+    ],
+    operations: [
+      {
+        ...screenshotBatch.operations[1],
+        id: `operation-screenshot-rollback-${runId}`,
+        planId: screenshotRollbackPlanId
+      },
+      {
+        ...screenshotBatch.operations[0],
+        id: clientOperationId,
+        planId: screenshotRollbackPlanId
+      }
+    ]
+  });
+  const plansAfterRejectedScreenshot = await request("/api/plans");
+  assert(
+    !plansAfterRejectedScreenshot.plans.some((plan) => plan.id === screenshotRollbackPlanId),
+    "Rejected screenshot archive left a partial plan."
+  );
+
   await request("/api/audit/archive", {
     method: "POST",
     body: {
@@ -214,8 +324,8 @@ try {
   const plans = await request("/api/plans");
   const audits = await request("/api/audit/reports");
   const storedPlan = plans.plans.find((plan) => plan.id === planId);
-  assert(storedPlan?.operations.length === 1, "Stored operation was not returned.");
-  assert(storedPlan?.reviews.length === 1, "Stored review was not returned.");
+  assert(storedPlan?.operations.some((operation) => operation.id === operationId), "Stored operation was not returned.");
+  assert(storedPlan?.reviews.some((review) => review.id === reviewId), "Stored review was not returned.");
   assert(audits.reports.some((report) => report.id === auditId), "Stored audit was not returned.");
 
   bulkPlanId = `plan-bulk-${runId}`;
@@ -322,8 +432,10 @@ try {
   const plansAfterRejectedImport = await request("/api/plans");
   assert(!plansAfterRejectedImport.plans.some((plan) => plan.id === rollbackPlanId), "Rejected import wrote partial data.");
 
-  console.log("Database API create, read, update, and bulk import verification passed.");
+  console.log("Database API CRUD, screenshot transaction, and bulk import verification passed.");
 } finally {
+  await safeDelete(screenshotExistingOperationId && planId ? `/api/plans/${planId}/operations/${screenshotExistingOperationId}` : null);
+  await safeDelete(`/api/plans/${screenshotPlanId}`);
   await safeDelete(reviewId && planId ? `/api/plans/${planId}/reviews/${reviewId}` : null);
   await safeDelete(operationId && planId ? `/api/plans/${planId}/operations/${operationId}` : null);
   await safeDelete(`/api/audit/reports/${auditId}`);
@@ -335,6 +447,8 @@ const remainingPlans = await request("/api/plans");
 const remainingAudits = await request("/api/audit/reports");
 assert(!remainingPlans.plans.some((plan) => plan.id === planId), "Synthetic plan cleanup failed.");
 assert(!remainingPlans.plans.some((plan) => plan.id === bulkPlanId), "Synthetic bulk plan cleanup failed.");
+assert(!remainingPlans.plans.some((plan) => plan.id === screenshotPlanId), "Synthetic screenshot plan cleanup failed.");
+assert(!remainingPlans.plans.some((plan) => plan.id === screenshotRollbackPlanId), "Rejected screenshot plan cleanup failed.");
 assert(!remainingAudits.reports.some((report) => report.id === auditId), "Synthetic audit cleanup failed.");
 console.log("Database API delete verification passed; synthetic data cleaned up.");
 
@@ -403,6 +517,21 @@ async function expectRejectedSnapshot(planId, body) {
   const result = await response.json();
   assert(response.status === 400, `Invalid snapshot returned ${response.status} instead of 400.`);
   assert(result.meta?.message, "Invalid snapshot did not return a validation message.");
+}
+
+async function expectRejectedScreenshotArchive(body) {
+  const response = await fetch(`${baseUrl}/api/recognitions/archive`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(authorization ? { authorization } : {}),
+      ...(sessionCookie ? { cookie: sessionCookie } : {})
+    },
+    body: JSON.stringify(body)
+  });
+  const result = await response.json();
+  assert(response.status === 400, `Invalid screenshot archive returned ${response.status} instead of 400.`);
+  assert(result.meta?.message?.includes("冲突"), "Invalid screenshot archive did not report the ID conflict.");
 }
 
 function assert(condition, message) {

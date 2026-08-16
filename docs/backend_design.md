@@ -358,7 +358,10 @@ Backend M1 只预留单笔 AI 复盘结果表，不在第一轮接真实 AI。
 - DeepSeek 响应为非法 JSON 或不符合结构契约时最多重试一次，复用已完成的 Kimi 转写，不重复上传或识图。
 - 原图仅在单次请求内存中处理，不上传 COS、不写数据库。
 - 用户逐条确认后才归档为 `TradeOperation`；没有匹配计划时才自动创建计划。
+- `POST /api/recognitions/archive` 同时接收 `newPlans` 和 `operations`，校验计划归属、客户端 ID、来源和字段后在一个 PostgreSQL 事务中完成归档。
+- 归档保留客户端 ID 用于幂等重试；任意冲突、丢失计划或数据库错误都会整批回滚，不产生半完成计划。
 - `ai_screenshot_recognized` 分别记录 Kimi 识图和 DeepSeek 结构化的模型、Prompt 版本、token 与总耗时，不记录转写正文、原图或交易明细。
+- `screenshot_batch_archived` 只记录受影响计划数、新计划数和操作数，不记录标的或金额。
 
 当前不创建 `recognition_jobs`。只有出现长任务、失败重试、历史识别追溯或多页批处理需求时再引入以下异步模型：
 

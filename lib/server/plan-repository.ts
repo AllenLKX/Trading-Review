@@ -7,6 +7,7 @@ import {
   parseCreateOperationInput,
   parseCreatePlanInput,
   parseCreateReviewInput,
+  parseCreateEntityIdentity,
   type CreateEntityIdentity,
   type CreateOperationInput,
   type CreatePlanInput,
@@ -23,7 +24,9 @@ import type {
   TradeAction,
   TradeOperation,
   TradePlan,
-  TradeSource
+  TradeSource,
+  ScreenshotArchiveBatch,
+  ScreenshotArchiveResult
 } from "@/lib/types";
 
 type PlanListResult = {
@@ -710,6 +713,82 @@ export async function replaceServerTradePlanSnapshot(
   }
 }
 
+export async function archiveServerScreenshotBatch(
+  input: ScreenshotArchiveBatch
+): Promise<MutationResult<ScreenshotArchiveResult>> {
+  const userResult = await getConfiguredUserId();
+  if (!userResult.ok) return userResult;
+
+  const parsed = parseScreenshotArchiveBatch(input);
+  if (!parsed.ok) return { ok: false, storage: "validation", message: parsed.message };
+
+  const { newPlans, operations } = parsed.data;
+  const newPlanIds = new Set(newPlans.map((plan) => plan.id));
+  const affectedPlanIds = [...new Set(operations.map((operation) => operation.planId))];
+  let client: PoolClient | null = null;
+
+  try {
+    client = await getDatabasePool().connect();
+    await client.query("begin");
+
+    const planOwnership = await client.query<{ id: string; user_id: string }>(
+      `select id, user_id from trade_plans where id = any($1::text[]) for update`,
+      [affectedPlanIds]
+    );
+    if (planOwnership.rows.some((row) => row.user_id !== userResult.userId)) {
+      await client.query("rollback");
+      return { ok: false, storage: "validation", message: "截图归档中的计划 ID 冲突，未写入任何数据。" };
+    }
+    const ownedPlanIds = new Set(planOwnership.rows.map((row) => row.id));
+    const missingPlanId = affectedPlanIds.find((id) => !ownedPlanIds.has(id) && !newPlanIds.has(id));
+    if (missingPlanId) {
+      await client.query("rollback");
+      return notFound("截图结果要挂靠的计划已不存在，请刷新后重试。");
+    }
+
+    const operationOwnership = await client.query<{ id: string; user_id: string; plan_id: string }>(
+      `select id, user_id, plan_id from trade_operations where id = any($1::text[]) for update`,
+      [operations.map((operation) => operation.id)]
+    );
+    if (
+      operationOwnership.rows.some(
+        (row) =>
+          row.user_id !== userResult.userId ||
+          operations.find((operation) => operation.id === row.id)?.planId !== row.plan_id
+      )
+    ) {
+      await client.query("rollback");
+      return { ok: false, storage: "validation", message: "截图归档中的操作 ID 冲突，未写入任何数据。" };
+    }
+
+    for (const plan of newPlans) await upsertPlan(client, userResult.userId, plan);
+    for (const operation of operations) await upsertOperation(client, userResult.userId, operation);
+    await client.query(
+      `update trade_plans set updated_at = now() where user_id = $1 and id = any($2::text[])`,
+      [userResult.userId, affectedPlanIds]
+    );
+
+    const plans = await loadPlansByIds(client, userResult.userId, affectedPlanIds);
+    await client.query("commit");
+    await recordAppEvent({
+      eventName: "screenshot_batch_archived",
+      userId: userResult.userId,
+      metadata: { planCount: plans.length, newPlanCount: newPlans.length, operationCount: operations.length }
+    });
+    return {
+      ok: true,
+      storage: "postgres",
+      data: { plans, archivedOperationCount: operations.length }
+    };
+  } catch (error) {
+    if (client) await client.query("rollback");
+    console.error("Failed to archive screenshot batch.", error);
+    return databaseError("截图补账归档失败，数据库事务已全部回滚，请重试。");
+  } finally {
+    client?.release();
+  }
+}
+
 export async function importLocalTradeData(
   plans: TradePlan[],
   auditReports: AuditReport[]
@@ -846,6 +925,102 @@ function validatePlanSnapshot(planId: string, plan: TradePlan) {
   }
 
   return null;
+}
+
+function parseScreenshotArchiveBatch(
+  input: ScreenshotArchiveBatch
+): { ok: true; data: ScreenshotArchiveBatch } | { ok: false; message: string } {
+  if (!input || typeof input !== "object" || !Array.isArray(input.newPlans) || !Array.isArray(input.operations)) {
+    return { ok: false, message: "截图归档请求必须包含 newPlans 和 operations 数组。" };
+  }
+  if (input.operations.length < 1 || input.operations.length > 30 || input.newPlans.length > 30) {
+    return { ok: false, message: "单次截图归档必须包含 1 至 30 笔操作。" };
+  }
+
+  const newPlans: TradePlan[] = [];
+  for (const rawPlan of input.newPlans) {
+    const plan = parseCreatePlanInput(rawPlan);
+    const identity = parseCreateEntityIdentity(rawPlan);
+    if (!plan.ok || !identity.ok || !identity.value.id || !identity.value.createdAt || !identity.value.updatedAt) {
+      return { ok: false, message: "截图自动创建的计划字段不完整。" };
+    }
+    if (!Array.isArray(rawPlan.operations) || rawPlan.operations.length || !Array.isArray(rawPlan.reviews) || rawPlan.reviews.length) {
+      return { ok: false, message: "截图新计划不能携带额外操作或复盘。" };
+    }
+    newPlans.push({
+      id: identity.value.id,
+      ...plan.value,
+      operations: [],
+      reviews: [],
+      createdAt: identity.value.createdAt,
+      updatedAt: identity.value.updatedAt
+    });
+  }
+
+  const operations: TradeOperation[] = [];
+  for (const rawOperation of input.operations) {
+    const operation = parseCreateOperationInput(rawOperation);
+    const identity = parseCreateEntityIdentity(rawOperation);
+    if (
+      !operation.ok ||
+      !identity.ok ||
+      !identity.value.id ||
+      !identity.value.createdAt ||
+      !identity.value.updatedAt ||
+      typeof rawOperation.planId !== "string" ||
+      !rawOperation.planId.trim()
+    ) {
+      return { ok: false, message: "截图操作字段不完整。" };
+    }
+    if (operation.value.source !== "ai_screenshot") {
+      return { ok: false, message: "截图批量归档只接受 AI 截图来源的操作。" };
+    }
+    operations.push({
+      id: identity.value.id,
+      planId: rawOperation.planId.trim(),
+      ...operation.value,
+      createdAt: identity.value.createdAt,
+      updatedAt: identity.value.updatedAt
+    });
+  }
+
+  const newPlanIds = newPlans.map((plan) => plan.id);
+  const operationIds = operations.map((operation) => operation.id);
+  if (new Set(newPlanIds).size !== newPlanIds.length || new Set(operationIds).size !== operationIds.length) {
+    return { ok: false, message: "截图归档中存在重复 ID。" };
+  }
+  const referencedNewPlanIds = new Set(operations.map((operation) => operation.planId));
+  if (newPlans.some((plan) => !referencedNewPlanIds.has(plan.id))) {
+    return { ok: false, message: "截图归档中存在没有任何操作的新计划。" };
+  }
+
+  return { ok: true, data: { newPlans, operations } };
+}
+
+async function loadPlansByIds(client: PoolClient, userId: string, planIds: string[]) {
+  const planResult = await client.query<PlanRow>(
+    `select id, title, asset_name, ticker, market, currency, status, thesis, created_at, updated_at
+     from trade_plans where user_id = $1 and id = any($2::text[]) order by updated_at desc`,
+    [userId, planIds]
+  );
+  const operationResult = await client.query<OperationRow>(
+    `select id, plan_id, action, trade_time, currency, price, quantity, quantity_unit,
+            total_amount, take_profit_price, stop_loss_price, decision_reason,
+            psychology_note, emotion_tags, strategy_tags, source, created_at, updated_at
+     from trade_operations where user_id = $1 and plan_id = any($2::text[]) order by trade_time desc`,
+    [userId, planIds]
+  );
+  const reviewResult = await client.query<ReviewRow>(
+    `select id, plan_id, review_time, operation_ids, realized_result, profit_loss,
+            violated_rules, review_note, emotion_tags, created_at, updated_at
+     from plan_reviews where user_id = $1 and plan_id = any($2::text[]) order by review_time desc`,
+    [userId, planIds]
+  );
+  const operationsByPlan = groupByPlanId(operationResult.rows.map(mapOperationRow));
+  const reviewsByPlan = groupByPlanId(reviewResult.rows.map(mapReviewRow));
+  return planResult.rows.map((row) =>
+    mapPlanRow(row, operationsByPlan.get(row.id) ?? [], reviewsByPlan.get(row.id) ?? [])
+  );
 }
 
 async function assertSnapshotChildOwnership(

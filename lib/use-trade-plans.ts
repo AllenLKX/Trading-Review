@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { samplePlans } from "@/lib/sample-data";
 import { cloudTradeRepository, localTradeRepository } from "@/lib/trade-repository";
-import type { PlanReview, TradeOperation, TradePlan } from "@/lib/types";
+import type { PlanReview, ScreenshotArchiveBatch, TradeOperation, TradePlan } from "@/lib/types";
 
 export type DataStatus = "loading" | "ready" | "cached";
 
@@ -23,6 +23,7 @@ type TradePlanStore = {
   deletePlan: (planId: string) => Promise<void>;
   addOperation: (operation: TradeOperation) => Promise<void>;
   addReview: (review: PlanReview) => Promise<void>;
+  archiveScreenshotBatch: (batch: ScreenshotArchiveBatch) => Promise<number>;
 };
 
 export function useTradePlans(): TradePlanStore {
@@ -190,6 +191,27 @@ export function useTradePlans(): TradePlanStore {
             setHighlightedPlanId(savedReview.planId);
           }
         );
+      },
+      archiveScreenshotBatch: async (batch: ScreenshotArchiveBatch) => {
+        let archivedOperationCount = 0;
+        await runMutation(
+          () => cloudTradeRepository.archiveScreenshotBatch(batch),
+          (result) => {
+            archivedOperationCount = result.archivedOperationCount;
+            const affectedIds = new Set(result.plans.map((plan) => plan.id));
+            persistCache((current) => [
+              ...result.plans,
+              ...current.filter((plan) => !affectedIds.has(plan.id))
+            ]);
+            const selectedId = result.plans[0]?.id;
+            if (selectedId) {
+              setSelectedPlanIdState(selectedId);
+              persistSelectedPlanId(selectedId);
+              setHighlightedPlanId(selectedId);
+            }
+          }
+        );
+        return archivedOperationCount;
       }
     }),
     [dataMessage, dataStatus, highlightedPlanId, isMutating, persistCache, plans, reload, runMutation, selectedPlanId]

@@ -44,6 +44,7 @@ pm2 save
 - 计划、操作、复盘和审计归档的保存、修改、删除事件。
 - `ai_audit_generated`：provider、model、Prompt 版本、成功/回退、耗时和 token 用量。
 - `ai_screenshot_recognized`：Kimi 识图/DeepSeek 结构化模型、Prompt 版本、成功状态、耗时和分段 token 用量；不记录原图、转写正文或交易字段。
+- `screenshot_batch_archived`：截图确认后归档的受影响计划数、新计划数和操作数；不记录交易正文或金额。
 
 事件不保存密码、Cookie、DeepSeek Token、Prompt 正文、交易理由、心理描述、价格、金额或持仓数量。
 

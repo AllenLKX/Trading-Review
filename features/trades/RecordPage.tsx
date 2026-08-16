@@ -4,7 +4,7 @@ import { type FormEvent, useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { currencyOptions } from "@/lib/sample-data";
-import type { CurrencyCode, PlanReview, TradeOperation, TradePlan } from "@/lib/types";
+import type { CurrencyCode, PlanReview, ScreenshotArchiveBatch, TradeOperation, TradePlan } from "@/lib/types";
 import { PlanOperationForm } from "./PlanOperationForm";
 import { PlanReviewForm } from "./PlanReviewForm";
 import { ScreenshotUploadPanel } from "./ScreenshotUploadPanel";
@@ -20,6 +20,7 @@ type RecordPageProps = {
   onCreatePlan: (plan: TradePlan) => Promise<void>;
   onAddOperation: (operation: TradeOperation) => Promise<void>;
   onAddReview: (review: PlanReview) => Promise<void>;
+  onArchiveScreenshotBatch: (batch: ScreenshotArchiveBatch) => Promise<number>;
 };
 
 type PlanErrors = Partial<Record<"assetName" | "title" | "thesis", string>>;
@@ -32,7 +33,8 @@ export function RecordPage({
   onSelectPlan,
   onCreatePlan,
   onAddOperation,
-  onAddReview
+  onAddReview,
+  onArchiveScreenshotBatch
 }: RecordPageProps) {
   const [mode, setMode] = useState<RecordMode>("operation");
   const [showRecognized, setShowRecognized] = useState(false);
@@ -224,10 +226,7 @@ export function RecordPage({
           showRecognized={showRecognized}
           onShowRecognized={() => setShowRecognized(true)}
           onReset={() => setShowRecognized(false)}
-          onCreatePlan={onCreatePlan}
-          onArchive={async (operations) => {
-            for (const operation of operations) await onAddOperation(operation);
-          }}
+          onArchive={onArchiveScreenshotBatch}
         />
       ) : selectedPlan ? (
         mode === "operation" ? (

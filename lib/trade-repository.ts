@@ -1,6 +1,13 @@
 import { samplePlans, sampleTrades } from "@/lib/sample-data";
 import { migrateTradesToPlans, normalizeTradePlans } from "@/lib/plan-migration";
-import type { PlanReview, TradeDecision, TradeOperation, TradePlan } from "@/lib/types";
+import type {
+  PlanReview,
+  ScreenshotArchiveBatch,
+  ScreenshotArchiveResult,
+  TradeDecision,
+  TradeOperation,
+  TradePlan
+} from "@/lib/types";
 
 const TRADE_STORAGE_KEY = "rationaltrade.tradeDecisions.v1";
 const PLAN_STORAGE_KEY = "rationaltrade.tradePlans.v2";
@@ -125,6 +132,21 @@ export const cloudTradeRepository = {
       `/api/plans/${encodeURIComponent(planId)}/reviews/${encodeURIComponent(reviewId)}`,
       "删除云端复盘失败。"
     );
+  },
+  async archiveScreenshotBatch(batch: ScreenshotArchiveBatch): Promise<ScreenshotArchiveResult> {
+    const response = await fetch("/api/recognitions/archive", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(batch)
+    });
+    const result = (await response.json()) as ScreenshotArchiveResult & {
+      meta?: ApiMeta;
+      errors?: string[];
+    };
+    if (!response.ok || !Array.isArray(result.plans)) {
+      throw new Error(result.meta?.message ?? result.errors?.[0] ?? "截图补账批量归档失败。");
+    }
+    return { plans: result.plans, archivedOperationCount: result.archivedOperationCount };
   }
 };
 

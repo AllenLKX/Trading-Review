@@ -45,6 +45,7 @@
 - `app/globals.css`：全局样式和 Tailwind 层
 - `app/api/audit/route.ts`：真实 DeepSeek 审计与本地规则回退入口
 - `app/api/recognitions/route.ts`：图片校验、Kimi K3 转写与 DeepSeek 结构化入口
+- `app/api/recognitions/archive/route.ts`：用户确认后的截图计划与操作事务归档入口
 
 ### components
 
@@ -167,7 +168,7 @@
 ↓
 上传图片到 `/api/recognitions`
 ↓
-腾讯云高精度 OCR（原图仅在请求内存中）
+Kimi K3 转写（原图仅在请求内存中）
 ↓
 DeepSeek 把 Kimi 转写文本整理为交易 JSON
 ↓
@@ -179,7 +180,11 @@ DeepSeek 把 Kimi 转写文本整理为交易 JSON
 ↓
 匹配或创建计划
 ↓
-等待 PostgreSQL API 逐项成功后更新界面
+单次请求 `/api/recognitions/archive`
+↓
+PostgreSQL 整批提交或整批回滚
+↓
+用服务端返回的完整计划刷新界面并显示 Toast
 
 ### 审计
 

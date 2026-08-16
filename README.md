@@ -100,6 +100,8 @@ DELETE /api/plans/:planId/operations/:operationId
 POST /api/plans/:planId/reviews
 PATCH /api/plans/:planId/reviews/:reviewId
 DELETE /api/plans/:planId/reviews/:reviewId
+POST /api/recognitions
+POST /api/recognitions/archive
 POST /api/sync/import-local
 POST /api/audit/archive
 GET /api/audit/reports
@@ -160,6 +162,8 @@ TypeScript 不保存 Prompt 副本。开发环境修改文档后下一次请求�
 脚本静默读取密钥，不把密钥写入命令历史；`.env.local` 已被 Git 忽略。配置后需要重启 `pnpm dev`。
 
 截图补账使用 Kimi K3 读取原图，再由 DeepSeek 从转写中排除资金流水并结构化交易。识别结果必须由用户逐条确认后才会归档，原图不持久化。
+
+确认后的新计划与交易操作通过 `POST /api/recognitions/archive` 在单个 PostgreSQL 事务中归档。请求失败时整批回滚，使用相同客户端 ID 重试不会生成重复操作。
 
 安全配置 Kimi 识图 Key：
 

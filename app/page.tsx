@@ -22,7 +22,8 @@ export default function Home() {
     updatePlan,
     deletePlan,
     addOperation,
-    addReview
+    addReview,
+    archiveScreenshotBatch
   } = useTradePlans();
 
   return (
@@ -44,6 +45,7 @@ export default function Home() {
             await addReview(review);
             setActiveTab("history");
           }}
+          onArchiveScreenshotBatch={archiveScreenshotBatch}
         />
       ) : (
         <HistoryPage

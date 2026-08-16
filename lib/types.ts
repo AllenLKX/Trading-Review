@@ -118,6 +118,16 @@ export type BatchRecognitionItem = {
   emotionTags: string[];
 };
 
+export type ScreenshotArchiveBatch = {
+  newPlans: TradePlan[];
+  operations: TradeOperation[];
+};
+
+export type ScreenshotArchiveResult = {
+  plans: TradePlan[];
+  archivedOperationCount: number;
+};
+
 export type AuditFallbackReason = "not-configured" | "timeout" | "provider-error" | "invalid-output";
 
 export type AuditGeneration = {
