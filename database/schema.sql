@@ -49,9 +49,19 @@ create table if not exists profiles (
   id text primary key default gen_random_uuid()::text,
   email text unique,
   display_name text,
+  onboarding_step smallint not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table profiles add column if not exists onboarding_step smallint not null default 0;
+
+do $$
+begin
+  alter table profiles add constraint profiles_onboarding_step_check check (onboarding_step between 0 and 4);
+exception
+  when duplicate_object then null;
+end $$;
 
 create table if not exists auth_credentials (
   user_id text primary key references profiles(id) on delete cascade,

@@ -21,7 +21,7 @@ const SESSION_PUBLIC_PATHS = new Set([
 
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  if (PUBLIC_ASSET_PATHS.has(path)) return NextResponse.next();
+  if (PUBLIC_ASSET_PATHS.has(path) || path.startsWith("/onboarding/")) return NextResponse.next();
 
   if (process.env.AUTH_MODE !== "session") {
     return applyBasicAuth(request);

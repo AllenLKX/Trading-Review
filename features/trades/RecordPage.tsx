@@ -16,6 +16,9 @@ type RecordPageProps = {
   selectedPlanId: string | null;
   dataStatus: "loading" | "ready" | "cached";
   dataMessage: string;
+  deferEmptyPlanForm: boolean;
+  highlightNewPlan: boolean;
+  onNewPlanTutorialComplete: () => void;
   onSelectPlan: (planId: string) => void;
   onCreatePlan: (plan: TradePlan) => Promise<void>;
   onAddOperation: (operation: TradeOperation) => Promise<void>;
@@ -30,6 +33,9 @@ export function RecordPage({
   selectedPlanId,
   dataStatus,
   dataMessage,
+  deferEmptyPlanForm,
+  highlightNewPlan,
+  onNewPlanTutorialComplete,
   onSelectPlan,
   onCreatePlan,
   onAddOperation,
@@ -54,8 +60,8 @@ export function RecordPage({
   );
 
   useEffect(() => {
-    if (dataStatus !== "loading" && plans.length === 0) setShowPlanForm(true);
-  }, [dataStatus, plans.length]);
+    if (dataStatus !== "loading" && plans.length === 0 && !deferEmptyPlanForm) setShowPlanForm(true);
+  }, [dataStatus, deferEmptyPlanForm, plans.length]);
 
   const createPlan = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -140,9 +146,13 @@ export function RecordPage({
           </div>
           <button
             type="button"
+            data-onboarding-target="new-plan"
             disabled={dataStatus === "loading"}
-            onClick={() => setShowPlanForm((current) => !current)}
-            className="flex h-10 items-center gap-1 rounded-xl border border-primary/40 bg-primary/10 px-3 text-xs font-bold text-primary-soft disabled:cursor-wait disabled:opacity-50"
+            onClick={() => {
+              setShowPlanForm((current) => (highlightNewPlan ? true : !current));
+              if (highlightNewPlan) onNewPlanTutorialComplete();
+            }}
+            className={`flex h-10 items-center gap-1 rounded-xl border border-primary/40 bg-primary/10 px-3 text-xs font-bold text-primary-soft disabled:cursor-wait disabled:opacity-50 ${highlightNewPlan ? "relative z-[90] animate-pulse ring-4 ring-cyan-300/80 shadow-[0_0_28px_rgba(103,232,249,0.75)]" : ""}`}
           >
             <Plus className="h-4 w-4" />
             新计划

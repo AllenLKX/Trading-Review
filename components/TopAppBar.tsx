@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { LoaderCircle, LogOut, Mail, Settings, X } from "lucide-react";
+import { AppGuideDialog } from "@/components/AppGuideDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function TopAppBar() {
@@ -64,17 +65,20 @@ export function TopAppBar() {
             <p className="truncate text-xs text-muted">交易决策记录与行为复盘</p>
           </div>
         </div>
-        <button
-          type="button"
-          aria-label="设置"
-          title="设置"
-          aria-expanded={isOpen}
-          aria-controls="account-settings-panel"
-          onClick={() => (isOpen ? setIsOpen(false) : void openSettings())}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-strong transition active:scale-95 active:bg-surface-raised"
-        >
-          <Settings className="h-5 w-5" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <AppGuideDialog />
+          <button
+            type="button"
+            aria-label="设置"
+            title="设置"
+            aria-expanded={isOpen}
+            aria-controls="account-settings-panel"
+            onClick={() => (isOpen ? setIsOpen(false) : void openSettings())}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-strong transition active:scale-95 active:bg-surface-raised"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+        </div>
 
         {isOpen ? (
           <>

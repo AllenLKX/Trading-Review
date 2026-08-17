@@ -19,7 +19,7 @@ const themeInitializer = `(() => {
 
 export const metadata: Metadata = {
   title: "交易笔记本",
-  description: "记录每一次判断，沉淀属于你的交易系统",
+  description: "记录每一次判断，沉淀你的交易系统",
   applicationName: "交易笔记本",
   icons: {
     icon: "/brand-logo.png",

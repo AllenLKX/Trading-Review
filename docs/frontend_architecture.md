@@ -1,5 +1,7 @@
 # 交易笔记本 H5 / 前端架构设计
 
+> 首次登录体验由 `OnboardingExperience` 负责三张静态图和真实“新计划”按钮聚焦，进度读取自账号接口；`AppGuideDialog` 是设置旁长期保留的 HTML 使用教程。静态引导图必须完整展示并在短屏、高屏上平衡上下留白，不以裁切换取铺满。
+
 ## 1. 当前定位
 
 当前 H5 是 Product Phase 1 的主要交付形态。
@@ -53,6 +55,8 @@
 
 - `BottomTabBar`
 - `TopAppBar`
+- `OnboardingExperience`
+- `AppGuideDialog`
 - `SegmentedControl`
 - `ChipGroup`
 - `EmptyState`

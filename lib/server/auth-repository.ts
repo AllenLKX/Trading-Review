@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 
+import { normalizeOnboardingStep, type OnboardingStep } from "@/lib/onboarding";
 import { getDatabasePool } from "@/lib/server/db";
 import { hashPassword, verifyPassword } from "@/lib/server/password";
 
@@ -119,6 +120,25 @@ export async function readActiveSession(sessionId: string, userId: string) {
   const row = result.rows[0];
   if (!row) return null;
   return { id: row.id, email: row.email, displayName: row.display_name ?? undefined } satisfies AuthUser;
+}
+
+export async function readOnboardingStep(userId: string): Promise<OnboardingStep> {
+  const result = await getDatabasePool().query<{ onboarding_step: number }>(
+    `select onboarding_step from profiles where id = $1 limit 1`,
+    [userId]
+  );
+  return normalizeOnboardingStep(result.rows[0]?.onboarding_step);
+}
+
+export async function advanceOnboardingStep(userId: string, step: OnboardingStep): Promise<OnboardingStep> {
+  const result = await getDatabasePool().query<{ onboarding_step: number }>(
+    `update profiles
+     set onboarding_step = greatest(onboarding_step, $2), updated_at = now()
+     where id = $1
+     returning onboarding_step`,
+    [userId, step]
+  );
+  return normalizeOnboardingStep(result.rows[0]?.onboarding_step);
 }
 
 function readSessionDays() {

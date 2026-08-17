@@ -1,5 +1,7 @@
 # 交易笔记本 后台设计
 
+> 新手引导进度由 `profiles.onboarding_step` 按账号保存，取值为 `0-4` 且只能向前推进。`GET /api/onboarding` 读取当前步骤，`PATCH /api/onboarding` 保存进度；到达真实页面的“新计划”聚焦步骤后写入完成状态 `4`。
+
 ## 1. 设计目标
 
 后台第一阶段不是重做一个复杂系统，而是把当前本地闭环平滑迁移到云端。
@@ -184,6 +186,7 @@ ID 设计：
 - `id`
 - `email`
 - `display_name`
+- `onboarding_step`：`0-4`，只向前推进，`4` 表示已到达真实页面聚焦步骤
 - `created_at`
 - `updated_at`
 

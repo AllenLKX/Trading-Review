@@ -6,6 +6,6 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
   exit 1
 fi
 
-psql "${DATABASE_URL}" -f database/schema.sql
+psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -f database/schema.sql
 
 echo "Database schema applied."

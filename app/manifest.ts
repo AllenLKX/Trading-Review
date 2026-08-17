@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "交易笔记本",
     short_name: "交易笔记本",
-    description: "记录每一次判断，沉淀属于你的交易系统",
+    description: "记录每一次判断，沉淀你的交易系统",
     start_url: "/",
     scope: "/",
     display: "standalone",

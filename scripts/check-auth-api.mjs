@@ -34,6 +34,17 @@ try {
   const plansBody = await plans.json();
   assert(plans.ok && plansBody.plans?.length === 0, "New account did not receive isolated empty data.");
 
+  const onboarding = await fetch(`${baseUrl}/api/onboarding`, { headers: { cookie: firstCookie } });
+  const onboardingBody = await onboarding.json();
+  assert(onboarding.ok && onboardingBody.step === 0, "New account did not start at the first onboarding slide.");
+
+  const advancedOnboarding = await updateOnboarding(baseUrl, firstCookie, 2);
+  assert(advancedOnboarding.step === 2, "Onboarding progress was not saved.");
+  const regressedOnboarding = await updateOnboarding(baseUrl, firstCookie, 1);
+  assert(regressedOnboarding.step === 2, "Onboarding progress moved backwards.");
+  const completedOnboarding = await updateOnboarding(baseUrl, firstCookie, 4);
+  assert(completedOnboarding.step === 4, "Onboarding completion was not saved.");
+
   const logout = await fetch(`${baseUrl}/api/auth/logout`, { method: "POST", headers: { cookie: firstCookie } });
   assert(logout.ok, "Logout failed.");
   const revoked = await fetch(`${baseUrl}/api/auth/session`, { headers: { cookie: firstCookie } });
@@ -49,6 +60,9 @@ try {
   const secondCookie = readCookie(login);
   const reloggedSession = await fetch(`${baseUrl}/api/auth/session`, { headers: { cookie: secondCookie } });
   assert(reloggedSession.ok, "New login session was not active.");
+  const persistedOnboarding = await fetch(`${baseUrl}/api/onboarding`, { headers: { cookie: secondCookie } });
+  const persistedOnboardingBody = await persistedOnboarding.json();
+  assert(persistedOnboarding.ok && persistedOnboardingBody.step === 4, "Onboarding progress did not follow the account after login.");
 
   const linkedEvents = await pool.query(
     `select event_name, metadata from app_events
@@ -58,7 +72,7 @@ try {
   assert(linkedEvents.rowCount === 2, "Authentication events were not linked to the anonymous visitor.");
   assert(linkedEvents.rows.every((event) => event.metadata?.adtag === adtag), "Authentication events lost their adtag attribution.");
 
-  console.log("Registration, login, logout, revocation, and account isolation verification passed.");
+  console.log("Registration, login, logout, onboarding persistence, revocation, and account isolation verification passed.");
 } finally {
   if (userId) {
     await pool.query("delete from app_events where user_id = $1", [userId]);
@@ -71,6 +85,17 @@ function readCookie(response) {
   const cookie = response.headers.get("set-cookie")?.split(";", 1)[0];
   if (!cookie) throw new Error("Session cookie was not returned.");
   return cookie;
+}
+
+async function updateOnboarding(baseUrl, cookie, step) {
+  const response = await fetch(`${baseUrl}/api/onboarding`, {
+    method: "PATCH",
+    headers: { cookie, "content-type": "application/json" },
+    body: JSON.stringify({ step })
+  });
+  const body = await response.json();
+  assert(response.ok, body.error ?? `Unable to advance onboarding to ${step}.`);
+  return body;
 }
 
 function assert(condition, message) {
