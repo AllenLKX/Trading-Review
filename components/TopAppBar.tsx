@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { LoaderCircle, LogOut, Mail, Settings, X } from "lucide-react";
 import { AppGuideDialog } from "@/components/AppGuideDialog";
+import { SupportAuthorDialog } from "@/components/SupportAuthorDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function TopAppBar({ onReplayOnboarding }: { onReplayOnboarding: () => void }) {
@@ -117,6 +118,10 @@ export function TopAppBar({ onReplayOnboarding }: { onReplayOnboarding: () => vo
 
               <div className="border-b border-line py-4">
                 <ThemeToggle />
+              </div>
+
+              <div className="border-b border-line py-3">
+                <SupportAuthorDialog />
               </div>
 
               {error ? <p className="mt-3 rounded-lg border border-sell/60 bg-danger-surface px-3 py-2 text-sm text-danger-foreground">{error}</p> : null}
