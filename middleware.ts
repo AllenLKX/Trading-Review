@@ -9,6 +9,7 @@ const PUBLIC_ASSET_PATHS = new Set([
   "/icon",
   "/manifest.webmanifest",
   "/offline.html",
+  "/support/wechat-coffee.jpg",
   "/sw.js"
 ]);
 const SESSION_PUBLIC_PATHS = new Set([
