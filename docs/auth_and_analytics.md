@@ -47,6 +47,7 @@ pm2 save
 - `ai_audit_generated`：provider、model、Prompt 版本、成功/回退、耗时和 token 用量。
 - `ai_screenshot_recognized`：Kimi 识图/DeepSeek 结构化模型、Prompt 版本、成功状态、耗时和分段 token 用量；不记录原图、转写正文或交易字段。
 - `screenshot_batch_archived`：截图确认后归档的受影响计划数、新计划数和操作数；不记录交易正文或金额。
+- `support_qr_opened`：已登录用户打开“请作者喝咖啡”二维码弹窗；不记录付款结果或金额。
 
 事件不保存密码、Cookie、DeepSeek Token、Prompt 正文、交易理由、心理描述、价格、金额或持仓数量。
 
@@ -83,7 +84,7 @@ pnpm report:daily -- 2026-08-16
 
 默认时区是 `Asia/Shanghai`，输出 JSON 包含：
 
-- `summary`：PV、UV、注册、成功/失败登录、AI 调用和 token 合计。
+- `summary`：PV、UV、注册、成功/失败登录、支持作者二维码打开次数/去重用户数、AI 调用和 token 合计。
 - `loginFunnel`：当日登录页去重访客、后来注册或登录的访客、截至查询时仍未进入产品的访客和对应比例。重复刷新不会增加 UV；访客以后完成注册或登录时，历史日期的“仍未进入”人数会相应减少。该漏斗从 `2026-08-16 19:56 Asia/Shanghai` 开始采集，因此当天只有部分日数据，`2026-08-17` 起才是完整自然日。
 - `trafficSources`：每个 `adtag` 的 PV、UV、注册数和成功登录数。
 - `eventCounts`：各类事件数量。

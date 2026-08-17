@@ -11,6 +11,13 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1 });
 let userId;
 
 try {
+  const anonymousSupportEvent = await fetch(`${baseUrl}/api/events`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ eventName: "support_qr_opened" })
+  });
+  assert(anonymousSupportEvent.status === 401, "Anonymous support QR event was accepted.");
+
   const taggedEntry = await fetch(`${baseUrl}/?adtag=${encodeURIComponent(adtag)}`, { redirect: "manual" });
   const taggedLocation = new URL(taggedEntry.headers.get("location"), baseUrl);
   assert(taggedEntry.status >= 300 && taggedEntry.status < 400, "Tagged unauthenticated entry did not redirect to login.");
@@ -45,6 +52,13 @@ try {
   const completedOnboarding = await updateOnboarding(baseUrl, firstCookie, 4);
   assert(completedOnboarding.step === 4, "Onboarding completion was not saved.");
 
+  const supportEvent = await fetch(`${baseUrl}/api/events`, {
+    method: "POST",
+    headers: { cookie: firstCookie, "content-type": "application/json" },
+    body: JSON.stringify({ eventName: "support_qr_opened" })
+  });
+  assert(supportEvent.status === 202, "Support QR event was not accepted.");
+
   const logout = await fetch(`${baseUrl}/api/auth/logout`, { method: "POST", headers: { cookie: firstCookie } });
   assert(logout.ok, "Logout failed.");
   const revoked = await fetch(`${baseUrl}/api/auth/session`, { headers: { cookie: firstCookie } });
@@ -72,7 +86,13 @@ try {
   assert(linkedEvents.rowCount === 2, "Authentication events were not linked to the anonymous visitor.");
   assert(linkedEvents.rows.every((event) => event.metadata?.adtag === adtag), "Authentication events lost their adtag attribution.");
 
-  console.log("Registration, login, logout, onboarding persistence, revocation, and account isolation verification passed.");
+  const supportEvents = await pool.query(
+    `select count(*)::int as count from app_events where user_id = $1 and event_name = 'support_qr_opened'`,
+    [userId]
+  );
+  assert(supportEvents.rows[0]?.count === 1, "Support QR event was not linked to the account.");
+
+  console.log("Registration, login, logout, onboarding persistence, support event, revocation, and account isolation verification passed.");
 } finally {
   if (userId) {
     await pool.query("delete from app_events where user_id = $1", [userId]);

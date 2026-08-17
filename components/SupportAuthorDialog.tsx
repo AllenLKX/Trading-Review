@@ -7,6 +7,16 @@ import { Coffee, X } from "lucide-react";
 export function SupportAuthorDialog() {
   const [isOpen, setIsOpen] = useState(false);
 
+  function openDialog() {
+    setIsOpen(true);
+    void fetch("/api/events", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventName: "support_qr_opened" }),
+      keepalive: true
+    }).catch(() => undefined);
+  }
+
   useEffect(() => {
     if (!isOpen) return;
     const previousOverflow = document.body.style.overflow;
@@ -20,7 +30,7 @@ export function SupportAuthorDialog() {
     <>
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={openDialog}
         className="flex min-h-11 w-full items-center gap-3 rounded-lg px-1 text-left text-sm font-bold text-muted-strong transition active:bg-surface-raised"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary-soft">

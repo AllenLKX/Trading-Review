@@ -20,6 +20,8 @@ try {
          count(*) filter (where event_name = 'auth_registered')::int as registrations,
          count(*) filter (where event_name = 'auth_login_succeeded')::int as successful_logins,
          count(*) filter (where event_name = 'auth_login_failed')::int as failed_logins,
+         count(*) filter (where event_name = 'support_qr_opened')::int as support_qr_opens,
+         count(distinct user_id) filter (where event_name = 'support_qr_opened')::int as support_qr_users,
          count(*) filter (where event_name in ('ai_audit_generated', 'ai_screenshot_recognized'))::int as ai_calls,
          coalesce(sum((metadata->>'promptTokens')::int) filter (where event_name in ('ai_audit_generated', 'ai_screenshot_recognized')), 0)::int as prompt_tokens,
          coalesce(sum((metadata->>'completionTokens')::int) filter (where event_name in ('ai_audit_generated', 'ai_screenshot_recognized')), 0)::int as completion_tokens,
