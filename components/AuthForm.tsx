@@ -46,7 +46,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <Image src="/brand-logo.png" alt="交易笔记本" width={56} height={56} priority className="h-14 w-14 shrink-0 object-contain" />
+            <Image src="/brand-logo-v2.png" alt="交易笔记本" width={56} height={56} priority className="h-14 w-14 shrink-0 object-contain" />
             <p className="text-xl font-bold text-primary-soft">交易笔记本</p>
           </div>
           <h1 className="mt-7 whitespace-nowrap text-base font-bold leading-8 tracking-normal text-foreground min-[360px]:text-lg min-[430px]:text-xl">记录每一次判断，沉淀你的交易系统</h1>

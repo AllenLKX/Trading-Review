@@ -58,8 +58,8 @@ export default function Home() {
       body: JSON.stringify({ step })
     });
     if (!response.ok) throw new Error("Unable to save onboarding progress.");
-    const result = (await response.json()) as { step?: OnboardingStep };
-    setOnboardingStep(result.step ?? step);
+    await response.json();
+    setOnboardingStep(step);
   }, []);
 
   const persistOnboardingCompletion = useCallback(async () => {
@@ -76,9 +76,14 @@ export default function Home() {
     void persistOnboardingCompletion().catch(() => undefined);
   }, [persistOnboardingCompletion]);
 
+  const replayOnboarding = useCallback(() => {
+    setActiveTab("record");
+    setOnboardingStep(0);
+  }, []);
+
   return (
     <div className="min-h-dvh bg-background text-muted-strong">
-      <TopAppBar />
+      <TopAppBar onReplayOnboarding={replayOnboarding} />
       {activeTab === "record" ? (
         <RecordPage
           plans={plans}

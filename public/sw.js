@@ -1,6 +1,6 @@
-const CACHE_NAME = "rationaltrade-shell-v3";
+const CACHE_NAME = "rationaltrade-shell-v4";
 const OFFLINE_URL = "/offline.html";
-const SHELL_URLS = [OFFLINE_URL, "/brand-logo.png"];
+const SHELL_URLS = [OFFLINE_URL, "/brand-logo-v2.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS)));

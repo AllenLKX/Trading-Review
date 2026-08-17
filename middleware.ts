@@ -5,7 +5,7 @@ import { SESSION_COOKIE_NAME, verifySignedSession } from "@/lib/auth-session";
 const PUBLIC_ASSET_PATHS = new Set([
   "/api/health",
   "/apple-icon",
-  "/brand-logo.png",
+  "/brand-logo-v2.png",
   "/icon",
   "/manifest.webmanifest",
   "/offline.html",

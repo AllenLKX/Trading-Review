@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { BookOpen, ClipboardCheck, Eye, ListTodo, Sparkles, X, Zap } from "lucide-react";
+import { BookOpen, ClipboardCheck, Eye, ListTodo, RotateCcw, Sparkles, X, Zap } from "lucide-react";
 
 const guideSteps = [
   { icon: ListTodo, title: "先建计划", detail: "围绕一个标的写下判断、依据和计划假设。" },
@@ -12,7 +12,7 @@ const guideSteps = [
   { icon: Sparkles, title: "周期分析", detail: "让 AI 基于近期计划、操作和复盘提炼行为模式。" }
 ] as const;
 
-export function AppGuideDialog() {
+export function AppGuideDialog({ onReplayOnboarding }: { onReplayOnboarding: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
@@ -76,6 +76,17 @@ export function AppGuideDialog() {
             <p className="mt-5 rounded-lg bg-background px-4 py-3 text-sm leading-6 text-muted-strong">
               重点不是补齐每个字段，而是先把当时为什么这样判断写下来。记录越连续，复盘越有价值。
             </p>
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onReplayOnboarding();
+              }}
+              className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-line bg-background text-sm font-bold text-muted-strong active:scale-[0.99]"
+            >
+              <RotateCcw className="h-4 w-4" />
+              重新查看新手引导
+            </button>
           </section>
         </div>,
         document.body

@@ -2,15 +2,17 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { LoaderCircle, MousePointerClick } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle, MousePointerClick } from "lucide-react";
 
 import type { OnboardingStep } from "@/lib/onboarding";
 
 const slides = [
-  { src: "/onboarding/01.jpg", alt: "为什么要记录：把情绪和临场反应转化为可回顾的交易依据" },
-  { src: "/onboarding/02.jpg", alt: "围绕一条计划记录操作、观察和复盘" },
-  { src: "/onboarding/03.jpg", alt: "通过长期记录沉淀更稳定的交易方法" }
+  { src: "/onboarding/01.webp", alt: "为什么要记录：保留交易判断、情绪和计划变化" },
+  { src: "/onboarding/02.webp", alt: "围绕计划记录操作、观察和复盘" },
+  { src: "/onboarding/03.webp", alt: "从长期记录中沉淀自己的交易系统" }
 ] as const;
+
+type SlideIndex = 0 | 1 | 2;
 
 type OnboardingExperienceProps = {
   step: OnboardingStep | null;
@@ -22,6 +24,8 @@ type OnboardingExperienceProps = {
 export function OnboardingExperience({ step, onAdvance, onPersistCompletion, onDismissSpotlight }: OnboardingExperienceProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [visibleSlide, setVisibleSlide] = useState<SlideIndex>(0);
+  const [loadedSlides, setLoadedSlides] = useState<string[]>([]);
   const completionStarted = useRef(false);
 
   useEffect(() => {
@@ -34,10 +38,31 @@ export function OnboardingExperience({ step, onAdvance, onPersistCompletion, onD
   }, [step]);
 
   useEffect(() => {
-    if (step === null || step >= 2) return;
-    const nextImage = new window.Image();
-    nextImage.src = slides[step + 1].src;
+    if (step !== null && step <= 2) setVisibleSlide(step as SlideIndex);
   }, [step]);
+
+  useEffect(() => {
+    const candidates = step === null
+      ? [slides[0]]
+      : step <= 2
+        ? slides.filter((_, index) => Math.abs(index - visibleSlide) <= 1)
+        : [];
+    let active = true;
+
+    for (const candidate of candidates) {
+      const preload = new window.Image();
+      preload.decoding = "async";
+      preload.src = candidate.src;
+      void preload.decode().then(() => {
+        if (!active) return;
+        setLoadedSlides((current) => current.includes(candidate.src) ? current : [...current, candidate.src]);
+      }).catch(() => undefined);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [step, visibleSlide]);
 
   useEffect(() => {
     if (step !== 3 || completionStarted.current) return;
@@ -55,7 +80,7 @@ export function OnboardingExperience({ step, onAdvance, onPersistCompletion, onD
     return (
       <div className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center bg-[#020b20] px-6 text-white">
         <div className="flex flex-col items-center gap-4">
-          <Image src="/brand-logo.png" alt="交易笔记本" width={64} height={64} priority className="h-16 w-16 object-contain" />
+          <Image src="/brand-logo-v2.png" alt="交易笔记本" width={64} height={64} priority className="h-16 w-16 object-contain" />
           <LoaderCircle className="h-5 w-5 animate-spin text-[#77d9ff]" />
           <p className="text-sm text-[#b7c8e8]">正在准备你的交易笔记本</p>
         </div>
@@ -67,14 +92,20 @@ export function OnboardingExperience({ step, onAdvance, onPersistCompletion, onD
     return <PlanSpotlight error={error} onDismiss={onDismissSpotlight} />;
   }
 
-  const slide = slides[step];
-  const nextStep = (step + 1) as OnboardingStep;
+  const slide = slides[visibleSlide];
+  const isSlideLoaded = loadedSlides.includes(slide.src);
 
-  async function advance() {
+  async function showNextSlide() {
     setError("");
     setIsSaving(true);
     try {
-      await onAdvance(nextStep);
+      if (visibleSlide < 2) {
+        const nextSlide = (visibleSlide + 1) as SlideIndex;
+        await onAdvance(nextSlide);
+        setVisibleSlide(nextSlide);
+      } else {
+        await onAdvance(3);
+      }
     } catch {
       setError("暂时无法保存进度，请检查网络后重试。");
     } finally {
@@ -82,32 +113,65 @@ export function OnboardingExperience({ step, onAdvance, onPersistCompletion, onD
     }
   }
 
+  function showPreviousSlide() {
+    setError("");
+    setVisibleSlide((current) => Math.max(0, current - 1) as SlideIndex);
+  }
+
   return (
     <section
-      aria-label={`新手引导，第 ${step + 1} 页，共 3 页`}
-      className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center overflow-y-auto bg-[#020b20] px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-[calc(0.75rem+env(safe-area-inset-top))] text-white"
+      aria-label={`新手引导，第 ${visibleSlide + 1} 页，共 3 页`}
+      className="fixed inset-0 z-[100] flex min-h-dvh items-center justify-center overflow-hidden bg-[#020b20] px-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-[calc(0.5rem+env(safe-area-inset-top))] text-white"
     >
-      <div className="flex w-full max-w-[440px] flex-col items-center gap-3">
-        <div className="relative aspect-[900/1124] w-full overflow-hidden rounded-xl bg-[#020b20]">
-          <Image src={slide.src} alt={slide.alt} fill priority sizes="(max-width: 480px) calc(100vw - 24px), 440px" className="object-contain" />
-        </div>
+      <div className="relative aspect-[941/1672] w-full max-w-[430px] overflow-hidden bg-[#020b20]">
+        {!isSlideLoaded ? (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#020b20]">
+            <LoaderCircle className="h-6 w-6 animate-spin text-[#77d9ff]" />
+            <p className="text-xs text-[#9fb0d1]">正在载入完整图片</p>
+          </div>
+        ) : null}
+        <Image
+          key={slide.src}
+          src={slide.src}
+          alt={slide.alt}
+          fill
+          unoptimized
+          priority
+          sizes="(max-width: 446px) calc(100vw - 16px), 430px"
+          onLoad={() => setLoadedSlides((current) => current.includes(slide.src) ? current : [...current, slide.src])}
+          className={`object-contain transition-opacity duration-200 ${isSlideLoaded ? "opacity-100" : "opacity-0"}`}
+        />
 
-        <div className="flex h-5 items-center justify-center gap-2" aria-label={`进度 ${step + 1} / 3`}>
-          {slides.map((item, index) => (
-            <span key={item.src} className={`h-2 rounded-full transition-all ${index === step ? "w-6 bg-[#7ee7ff]" : "w-2 bg-[#415278]"}`} />
-          ))}
-        </div>
+        <div className="absolute inset-x-3 bottom-2 z-20">
+          <div className="mb-2 flex h-4 items-center justify-center gap-2" aria-label={`进度 ${visibleSlide + 1} / 3`}>
+            {slides.map((item, index) => (
+              <span key={item.src} className={`h-2 rounded-full transition-all ${index === visibleSlide ? "w-6 bg-[#7ee7ff]" : "w-2 bg-[#415278]"}`} />
+            ))}
+          </div>
 
-        {error ? <p className="text-center text-xs font-semibold text-[#ff9aa9]">{error}</p> : null}
-        <button
-          type="button"
-          disabled={isSaving}
-          onClick={() => void advance()}
-          className="flex h-12 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-bold text-white transition active:scale-[0.99] disabled:opacity-60"
-        >
-          {isSaving ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {step === 2 ? "开始沉淀你的交易系统" : "继续"}
-        </button>
+          {error ? <p className="mb-2 text-center text-xs font-semibold text-[#ff9aa9]">{error}</p> : null}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={visibleSlide === 0 || isSaving}
+              onClick={showPreviousSlide}
+              className="flex h-11 w-24 shrink-0 items-center justify-center gap-1 rounded-lg border border-[#50648f] bg-[#09162e]/95 text-xs font-bold text-[#dce7ff] disabled:opacity-35"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              前一张
+            </button>
+            <button
+              type="button"
+              disabled={isSaving || !isSlideLoaded}
+              onClick={() => void showNextSlide()}
+              className="flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-lg bg-primary px-2 text-xs font-bold text-white transition active:scale-[0.99] disabled:opacity-60 min-[360px]:text-sm"
+            >
+              {isSaving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+              {visibleSlide === 2 ? "开始沉淀你的交易系统" : "后一张"}
+              {!isSaving && visibleSlide < 2 ? <ChevronRight className="h-4 w-4" /> : null}
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   );

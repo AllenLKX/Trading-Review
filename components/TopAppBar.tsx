@@ -6,7 +6,7 @@ import { LoaderCircle, LogOut, Mail, Settings, X } from "lucide-react";
 import { AppGuideDialog } from "@/components/AppGuideDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-export function TopAppBar() {
+export function TopAppBar({ onReplayOnboarding }: { onReplayOnboarding: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
@@ -59,14 +59,14 @@ export function TopAppBar() {
     <header className="sticky top-0 z-40 border-b border-line bg-background/92 px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] backdrop-blur">
       <div className="relative mx-auto flex max-w-md items-center justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <Image src="/brand-logo.png" alt="交易笔记本" width={44} height={44} priority className="h-11 w-11 shrink-0 object-contain" />
+          <Image src="/brand-logo-v2.png" alt="交易笔记本" width={44} height={44} priority className="h-11 w-11 shrink-0 object-contain" />
           <div className="min-w-0">
             <h1 className="truncate text-xl font-bold tracking-normal text-primary-soft">交易笔记本</h1>
             <p className="truncate text-xs text-muted">交易决策记录与行为复盘</p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <AppGuideDialog />
+          <AppGuideDialog onReplayOnboarding={onReplayOnboarding} />
           <button
             type="button"
             aria-label="设置"

@@ -22,8 +22,8 @@ export const metadata: Metadata = {
   description: "记录每一次判断，沉淀你的交易系统",
   applicationName: "交易笔记本",
   icons: {
-    icon: "/brand-logo.png",
-    apple: "/brand-logo.png"
+    icon: "/brand-logo-v2.png",
+    apple: "/brand-logo-v2.png"
   },
   appleWebApp: {
     capable: true,
