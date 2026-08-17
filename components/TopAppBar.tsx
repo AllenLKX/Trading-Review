@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { LoaderCircle, LogOut, Mail, Settings, UserRound, X } from "lucide-react";
+import Image from "next/image";
+import { LoaderCircle, LogOut, Mail, Settings, X } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 export function TopAppBar() {
@@ -57,11 +58,9 @@ export function TopAppBar() {
     <header className="sticky top-0 z-40 border-b border-line bg-background/92 px-4 pb-4 pt-[calc(1rem+env(safe-area-inset-top))] backdrop-blur">
       <div className="relative mx-auto flex max-w-md items-center justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface-raised text-primary-soft">
-            <UserRound className="h-5 w-5" />
-          </div>
+          <Image src="/brand-logo.png" alt="交易笔记本" width={44} height={44} priority className="h-11 w-11 shrink-0 object-contain" />
           <div className="min-w-0">
-            <h1 className="truncate text-xl font-bold tracking-normal text-primary-soft">RationalTrade</h1>
+            <h1 className="truncate text-xl font-bold tracking-normal text-primary-soft">交易笔记本</h1>
             <p className="truncate text-xs text-muted">交易决策记录与行为复盘</p>
           </div>
         </div>

@@ -4,13 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#051425" />
-    <title>RationalTrade · 暂时离线</title>
+    <title>交易笔记本 · 暂时离线</title>
     <style>
       * { box-sizing: border-box; }
       :root { color-scheme: dark; --background: #051425; --surface: #0b1c2f; --line: #2a3b50; --foreground: #fff; --muted: #9fb0c8; }
       :root[data-theme="light"] { color-scheme: light; --background: #f3f6f8; --surface: #fff; --line: #cfd7df; --foreground: #0f172a; --muted: #607085; }
       body { margin: 0; min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: calc(24px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left)); background: var(--background); color: var(--foreground); font-family: system-ui, sans-serif; }
       main { width: min(100%, 360px); border: 1px solid var(--line); border-radius: 8px; padding: 24px; background: var(--surface); }
+      main > img { display: block; margin-bottom: 16px; object-fit: contain; }
       h1 { margin: 0; color: var(--foreground); font-size: 20px; letter-spacing: 0; }
       p { margin: 12px 0 0; color: var(--muted); font-size: 14px; line-height: 1.7; }
       button { width: 100%; height: 44px; margin-top: 20px; border: 0; border-radius: 8px; background: #5447e8; color: white; font-size: 14px; font-weight: 700; }
@@ -18,6 +19,7 @@
   </head>
   <body>
     <main>
+      <img src="/brand-logo.png" alt="交易笔记本" width="52" height="52" />
       <h1>当前网络不可用</h1>
       <p>交易数据不会在离线页面中缓存或修改。网络恢复后重新连接服务器。</p>
       <button type="button" onclick="location.reload()">重新连接</button>

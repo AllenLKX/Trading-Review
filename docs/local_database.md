@@ -1,4 +1,4 @@
-# RationalTrade 本地 PostgreSQL
+# 交易笔记本 本地 PostgreSQL
 
 ## 用途
 

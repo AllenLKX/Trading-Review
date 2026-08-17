@@ -1,6 +1,6 @@
 # AI Prompt 维护说明
 
-本目录是 RationalTrade 运行时 Prompt 的唯一内容来源。
+本目录是交易笔记本运行时 Prompt 的唯一内容来源。
 
 ## 文件
 

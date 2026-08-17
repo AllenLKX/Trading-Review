@@ -18,13 +18,17 @@ const themeInitializer = `(() => {
 })();`;
 
 export const metadata: Metadata = {
-  title: "RationalTrade",
-  description: "交易决策记录与行为复盘工具",
-  applicationName: "RationalTrade",
+  title: "交易笔记本",
+  description: "记录每一次判断，沉淀属于你的交易系统",
+  applicationName: "交易笔记本",
+  icons: {
+    icon: "/brand-logo.png",
+    apple: "/brand-logo.png"
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "RationalTrade"
+    title: "交易笔记本"
   },
   formatDetection: {
     telephone: false

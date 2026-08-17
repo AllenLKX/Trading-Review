@@ -27,6 +27,6 @@ export async function POST(request: Request) {
       }
     });
   } catch {
-    return NextResponse.json({ ok: false, errors: ["上传文件不是有效的 RationalTrade 数据。"] }, { status: 400 });
+    return NextResponse.json({ ok: false, errors: ["上传文件不是有效的交易笔记本数据。"] }, { status: 400 });
   }
 }

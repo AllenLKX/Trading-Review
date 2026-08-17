@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Image from "next/image";
 import { Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from "lucide-react";
 
 import { getAnalyticsAdtag, getAnalyticsAnonymousId } from "@/lib/client/analytics";
@@ -44,16 +45,21 @@ export function AuthForm({ mode }: AuthFormProps) {
     <main className="flex min-h-dvh items-center px-5 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))]">
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-8">
-          <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-primary/40 bg-primary/15 text-primary-soft">
-            <LockKeyhole className="h-6 w-6" />
+          <div className="flex items-center gap-3">
+            <Image src="/brand-logo.png" alt="交易笔记本" width={56} height={56} priority className="h-14 w-14 shrink-0 object-contain" />
+            <p className="text-xl font-bold text-primary-soft">交易笔记本</p>
           </div>
-          <h1 className="text-3xl font-bold tracking-normal text-foreground">{isLogin ? "登录 RationalTrade" : "创建账号"}</h1>
-          <p className="mt-2 text-sm leading-6 text-muted">
-            {isLogin ? "继续记录计划、操作与独立复盘。" : "使用邮箱和密码建立你的独立交易记录空间。"}
-          </p>
+          <h1 className="mt-7 text-2xl font-bold leading-9 tracking-normal text-foreground">记录每一次判断，沉淀属于你的交易系统</h1>
+          <p className="mt-2 text-sm leading-6 text-muted">复盘交易 · 优化决策 · 构建长期有效的方法</p>
         </div>
 
         <form onSubmit={submit} className="rt-card space-y-5 p-5">
+          <div>
+            <h2 className="text-lg font-bold text-foreground">{isLogin ? "登录账号" : "创建账号"}</h2>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              {isLogin ? "继续你的记录与复盘。" : "使用邮箱和密码建立独立记录空间。"}
+            </p>
+          </div>
           <label className="block">
             <span className="rt-label">邮箱</span>
             <span className="relative mt-2 block">

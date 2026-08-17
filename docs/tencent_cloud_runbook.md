@@ -1,8 +1,8 @@
-# RationalTrade 腾讯云 OpenCloudOS 部署手册
+# 交易笔记本 腾讯云 OpenCloudOS 部署手册
 
 ## 1. 目标
 
-本手册用于把 RationalTrade 部署到当前腾讯云 OpenCloudOS 9.4 服务器。Ubuntu 保留为未来迁移选项，但包管理命令不同。
+本手册用于把交易笔记本部署到当前腾讯云 OpenCloudOS 9.4 服务器。Ubuntu 保留为未来迁移选项，但包管理命令不同。
 
 当前优先目标：
 
@@ -20,7 +20,7 @@
 
 正式域名为 `rationaltrade.cn`，解析到 `43.156.228.145`。服务器位于腾讯云 `ap-singapore-1`，域名与 HTTPS 生效前不通过公网写入真实交易数据。
 
-服务器已有 OpenClaw 的 Nginx 根路径配置。RationalTrade 已在 `127.0.0.1:3000` 运行，但在确认 OpenClaw 是否保留前，不覆盖 `/etc/nginx/conf.d/openclaw.conf`。
+服务器已有 OpenClaw 的 Nginx 根路径配置。交易笔记本已在 `127.0.0.1:3000` 运行，但在确认 OpenClaw 是否保留前，不覆盖 `/etc/nginx/conf.d/openclaw.conf`。
 
 ## 2. 本地发布前检查
 
@@ -288,7 +288,7 @@ https://rationaltrade.cn/api/system/status?db=1
 - 记录页与历史页可读取 PostgreSQL 数据。
 - 新增或修改后刷新页面，记录仍然存在。
 - 数据库不可用时显示缓存状态，写操作不会提示成功。
-- 首次打开会出现 RationalTrade 的用户名和密码提示；取消或输入错误时不能读取页面和业务 API。
+- 首次打开会出现 交易笔记本的用户名和密码提示；取消或输入错误时不能读取页面和业务 API。
 - `/api/health` 保持公开，供 Nginx、PM2 和腾讯云健康检查使用，不读取业务数据。
 
 临时访问用户名和密码只存放在服务器：
@@ -316,7 +316,7 @@ cat /root/rationaltrade-access.txt
 - DeepSeek：服务器密钥已配置，`deepseek-v4-flash` 内部真实调用通过
 - 云端业务数据：已迁移 8 个计划、10 条操作、6 条复盘和 3 条审计归档，复盘引用无断链
 - 域名：`rationaltrade.cn` 已购买，等待 DNS 记录生效和 HTTPS 签发
-- 公网 Nginx：域名 Host 独立路由到 RationalTrade，原有 IP 路由继续保留给 OpenClaw
+- 公网 Nginx：域名 Host 独立路由到交易笔记本，原有 IP 路由继续保留给 OpenClaw
 - Certbot 2.8 与 Nginx 插件：已安装
 - 域名 HTTP Host 内部验证：健康检查 200，未认证业务 API 401
 - HTTPS：`rationaltrade.cn` 与 `www.rationaltrade.cn` 已签发 ECDSA 证书，HTTP 自动 301 跳转 HTTPS

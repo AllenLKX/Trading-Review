@@ -169,7 +169,7 @@ export function HistoryPage({
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `rationaltrade-plans-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `trade-notebook-plans-${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(link);
     link.click();
     link.remove();

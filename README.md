@@ -1,6 +1,6 @@
-# RationalTrade
+# 交易笔记本
 
-RationalTrade 是一个移动端优先的交易决策记录与行为复盘工具。
+交易笔记本是一个移动端优先的交易决策记录与行为复盘工具。
 
 它不是荐股工具，也不是资产管理工具。当前目标是先跑通 Phase 1：创建计划，记录操作和独立复盘，再基于近 30 天记录生成轻量审计报告。
 
@@ -112,7 +112,7 @@ DELETE /api/audit/reports/:reportId
 
 当前前端以 PostgreSQL 为正式数据源，localStorage 只保留最近一次成功读取的只读缓存。未配置数据库时返回 `storage: "not-configured"`；配置 PostgreSQL 和 `RATIONALTRADE_SINGLE_USER_ID` 后，可以管理计划、操作和复盘。`DELETE` 必须携带 `X-Confirm-Delete: true`，并由前端先完成二次确认。
 
-`POST /api/sync/import-local` 接收当前导出的 RationalTrade JSON，批量导入计划、操作、复盘和审计归档。导入会保留本地字符串 ID，用于维持复盘和操作之间的关联。
+`POST /api/sync/import-local` 接收当前导出的交易笔记本 JSON，批量导入计划、操作、复盘和审计归档。导入会保留本地字符串 ID，用于维持复盘和操作之间的关联。
 
 审计生成和审计归档相互独立：`POST /api/audit` 在配置 `DEEPSEEK_API_KEY` 后调用 DeepSeek，未配置、超时或输出校验失败时返回本地规则报告；`/api/audit/archive` 和 `/api/audit/reports` 负责用户明确保存的云端快照。
 

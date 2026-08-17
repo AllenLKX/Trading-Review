@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "RationalTrade",
-    short_name: "RationalTrade",
-    description: "交易决策记录与行为复盘工具",
+    name: "交易笔记本",
+    short_name: "交易笔记本",
+    description: "记录每一次判断，沉淀属于你的交易系统",
     start_url: "/",
     scope: "/",
     display: "standalone",
@@ -14,7 +14,13 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "zh-CN",
     icons: [
       {
-        src: "/icon",
+        src: "/brand-logo.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any"
+      },
+      {
+        src: "/brand-logo.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable"

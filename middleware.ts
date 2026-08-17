@@ -5,6 +5,7 @@ import { SESSION_COOKIE_NAME, verifySignedSession } from "@/lib/auth-session";
 const PUBLIC_ASSET_PATHS = new Set([
   "/api/health",
   "/apple-icon",
+  "/brand-logo.png",
   "/icon",
   "/manifest.webmanifest",
   "/offline.html",
@@ -102,7 +103,7 @@ function applyBasicAuth(request: NextRequest) {
     status: 401,
     headers: {
       "cache-control": "no-store",
-      "www-authenticate": 'Basic realm="RationalTrade", charset="UTF-8"'
+      "www-authenticate": 'Basic realm="交易笔记本", charset="UTF-8"'
     }
   });
 }
